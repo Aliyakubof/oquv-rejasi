@@ -4,21 +4,26 @@ from collections import defaultdict
 
 from django.core.exceptions import ValidationError
 from django.db.models import Prefetch
-from django.http import FileResponse, HttpRequest, HttpResponse, HttpResponseForbidden
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseForbidden,
+)
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.generic import TemplateView
 
-from plans import dashboard, services
+from plans import services
 from plans.dastur.service import dastur_egasimi, dastur_render
 from plans.dastur.topshirish import dastur_topshirish
 from plans.models import DasturTopshirish, FanVariant, SoatTuri, Yuklama
 from web.forms.dastur import DasturTopshirishForm
-from web.mixins import OqituvchiTalabMixin
-from web.views.office.dashboard import yilni_tanlash
+from web.mixins import OqituvchiTalabMixin, YilTanlovMixin
 
 
-class MenYuklamalarimView(OqituvchiTalabMixin, TemplateView):
+class MenYuklamalarimView(OqituvchiTalabMixin, YilTanlovMixin, TemplateView):
     template_name = "web/men/yuklamalar.html"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
@@ -27,11 +32,9 @@ class MenYuklamalarimView(OqituvchiTalabMixin, TemplateView):
         context["profil"] = profil
         if profil is None:
             return context
-        yillar, yil = yilni_tanlash(self.request.GET.get("yil"))
-        yil = yil or dashboard.joriy_akademik_yil()
         yuklamalar = list(
             Yuklama.objects.filter(oqituvchi=profil)
-            .akademik_yilda(yil)
+            .akademik_yilda(self.yil)
             .select_related("fan_semestr__variant__fan__reja", "guruh")
             .prefetch_related(
                 Prefetch(
@@ -41,13 +44,19 @@ class MenYuklamalarimView(OqituvchiTalabMixin, TemplateView):
             )
             .order_by("fan_semestr__variant__nomi", "fan_semestr__semestr", "tur")
         )
+        korilgan_variantlar: set[int] = set()
+        for yuklama in yuklamalar:
+            vid = yuklama.fan_semestr.variant_id
+            yuklama.dastur_korsatilsin = (
+                yuklama.tur == SoatTuri.MARUZA and vid not in korilgan_variantlar
+            )
+            if yuklama.dastur_korsatilsin:
+                korilgan_variantlar.add(vid)
         context.update(
             {
-                "yillar": yillar,
-                "yil": yil,
                 "yuklamalar": yuklamalar,
                 "tur_jami": _tur_jami(yuklamalar),
-                "jami_soat": services.oqituvchi_yillik_yuklamasi(profil, yil),
+                "jami_soat": services.oqituvchi_yillik_yuklamasi(profil, self.yil),
             }
         )
         return context
@@ -61,10 +70,11 @@ class MenOquvDasturView(OqituvchiTalabMixin, View):
             return HttpResponseForbidden(
                 "Bu fan dasturini faqat ma'ruza egasi yaratishi mumkin."
             )
+        prefiks = (variant.kodi or variant.nomi).replace("/", "_").replace("\\", "_")
         return FileResponse(
             dastur_render(variant),
             as_attachment=True,
-            filename=f"{variant.kodi or variant.nomi}_oquv_dastur.docx",
+            filename=f"{prefiks}_oquv_dastur.docx",
         )
 
 
@@ -109,7 +119,10 @@ class MenDasturFaylView(OqituvchiTalabMixin, View):
             return HttpResponseForbidden(
                 "Bu faylni faqat ma'ruza egasi ko'rishi mumkin."
             )
-        return FileResponse(topshirish.fayl.open("rb"), as_attachment=True)
+        try:
+            return FileResponse(topshirish.fayl.open("rb"), as_attachment=True)
+        except FileNotFoundError as exc:
+            raise Http404("Fayl topilmadi.") from exc
 
 
 def _panel_kontekst(

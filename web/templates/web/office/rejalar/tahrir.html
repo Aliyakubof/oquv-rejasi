@@ -18,29 +18,9 @@
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
 
-    <div class="form-section">
-      <div class="form-section-title">Bilim sohasi</div>
-      <div class="form-grid">
-        <div class="form-field">{% include "web/parts/_maydon.html" with field=form.bilim_sohasi_kodi label="Kodi" %}</div>
-        <div class="form-field">{% include "web/parts/_maydon.html" with field=form.bilim_sohasi_nomi label="Nomi" %}</div>
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-section-title">Ta'lim sohasi</div>
-      <div class="form-grid">
-        <div class="form-field">{% include "web/parts/_maydon.html" with field=form.talim_sohasi_kodi label="Kodi" %}</div>
-        <div class="form-field">{% include "web/parts/_maydon.html" with field=form.talim_sohasi_nomi label="Nomi" %}</div>
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-section-title">Yo'nalish</div>
-      <div class="form-grid">
-        <div class="form-field">{% include "web/parts/_maydon.html" with field=form.yonalish_kodi label="Kodi" %}</div>
-        <div class="form-field">{% include "web/parts/_maydon.html" with field=form.yonalish_nomi label="Nomi" %}</div>
-      </div>
-    </div>
+    {% include "web/parts/_kod_nomi_bolimi.html" with sarlavha="Bilim sohasi" kodi_field=form.bilim_sohasi_kodi nomi_field=form.bilim_sohasi_nomi %}
+    {% include "web/parts/_kod_nomi_bolimi.html" with sarlavha="Ta'lim sohasi" kodi_field=form.talim_sohasi_kodi nomi_field=form.talim_sohasi_nomi %}
+    {% include "web/parts/_kod_nomi_bolimi.html" with sarlavha="Yo'nalish" kodi_field=form.yonalish_kodi nomi_field=form.yonalish_nomi %}
 
     <div class="form-section">
       <div class="form-section-title">Ta'lim shakli va bosqich</div>

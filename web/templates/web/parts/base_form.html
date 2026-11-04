@@ -1,0 +1,26 @@
+{% extends "web/base.html" %}
+{% block title %}{% block sahifa_sarlavhasi %}Form{% endblock %}{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  {% block breadcrumb %}{% endblock %}
+</nav>
+<div class="topbar">
+  <div>
+    <div class="title">{% block form_nomi %}{% endblock %}</div>
+    {% block subtitle %}{% endblock %}
+  </div>
+</div>
+<div class="card">
+  <form method="post" {% block form_attrs %}{% endblock %}>
+    {% csrf_token %}
+    {% block form_maydonlari %}
+    {% include "web/parts/_form_maydonlari.html" %}
+    {% endblock %}
+    {% block form_tugmalar %}
+    <button type="submit" class="btn btn-primary">Saqlash</button>
+    <a class="btn" href="{% block bekor_url %}#{% endblock %}">Bekor qilish</a>
+    {% endblock %}
+  </form>
+</div>
+{% endblock %}
+

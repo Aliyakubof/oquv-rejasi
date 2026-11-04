@@ -1,10 +1,7 @@
 {% load ui %}
 <div x-data="{ qidiruv: '' }">
   <div class="controls" style="margin-bottom:10px;">
-    <div class="search">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input type="text" placeholder="Ism yoki telefon" x-model="qidiruv">
-    </div>
+    {% include "web/parts/_qidiruv.html" with placeholder="Ism yoki telefon" aria_label="Ism yoki telefon" %}
   </div>
   <div class="table-wrap narrow cards">
     <table>
@@ -16,20 +13,20 @@
           <th>Lavozim</th>
           <th class="num">Minimal soat</th>
           <th class="num">Yuklama soat</th>
-          <th style="min-width:120px;">Qamrov</th>
+          <th style="min-width:140px;">Qamrov</th>
           <th></th>
         </tr>
       </thead>
-      <tbody>
+      <tbody data-jonli="office-oqituvchilar-tbody">
         {% for holat in holatlar %}
         <tr data-nomi="{{ holat.oqituvchi|stringformat:'s'|lower }} {{ holat.oqituvchi.foydalanuvchi.telefon }}"
             x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
           <td data-label="F.I.Sh">
-            <span class="teacher-chip" style="cursor:default;">
+            <a href="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}" class="teacher-chip" style="text-decoration:none;color:inherit;" title="Yuklama varaqasini ko'rish">
               <span class="avatar">{{ holat.oqituvchi|stringformat:"s"|bosh_harflar }}</span>
               {{ holat.oqituvchi }}
               {% if not holat.oqituvchi.foydalanuvchi.is_active %}<span class="tag tag-elec">FAOL EMAS</span>{% endif %}
-            </span>
+            </a>
           </td>
           <td data-label="Telefon"><span class="code">{{ holat.oqituvchi.foydalanuvchi.telefon }}</span></td>
           <td data-label="Kafedra">{{ holat.oqituvchi.kafedra.nomi }}</td>
@@ -38,12 +35,16 @@
           <td class="num" data-label="Yuklama soat">{{ holat.jami_soat }}</td>
           <td data-label="Qamrov">
             {% with f=holat.jami_soat|foiz:holat.min_soat %}
-            <div class="progress" title="{{ f }}% ({% if holat.kamomad %}kamomad {{ holat.kamomad }} soat{% else %}to'ldi{% endif %})">
-              <div class="fill {% if holat.kamomad %}warn{% endif %}" style="width:{{ f }}%;"></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="progress" style="flex:1;" title="{{ f }}% ({% if holat.kamomad %}kamomad {{ holat.kamomad }} soat{% else %}to'ldi{% endif %})">
+                <div class="fill {% if holat.kamomad %}warn{% endif %}" :style="'width: {{ f }}%'"></div>
+              </div>
+              <span class="credits num" style="min-width:34px;text-align:right;">{{ f }}%</span>
             </div>
             {% endwith %}
           </td>
           <td style="white-space:nowrap;">
+            <a class="btn" href="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}">Yuklama</a>
             <a class="btn" href="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}">Tahrirlash</a>
             <form method="post" action="{% url 'office:oqituvchi_ochirish' holat.oqituvchi.pk %}" style="display:inline" onsubmit="return confirm('O\'qituvchini o\'chirasizmi?');">
               {% csrf_token %}

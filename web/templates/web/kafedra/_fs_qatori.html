@@ -1,19 +1,27 @@
-<tr id="fs-qator-{{ satr.fan_semestr.pk }}" {% if oob %}hx-swap-oob="true"{% endif %} class="{% if satr.qoldiq_bor %}qator-biriktirilmagan{% endif %}">
-  <td>
-    <span class="code">{{ satr.fan_semestr.variant.kodi|default:"" }}</span>
-    <strong>{{ satr.fan_semestr.variant.nomi }}</strong>
-    <span class="credits">· {{ satr.fan_semestr.variant.fan.reja.yonalish_kodi }}</span>
+<tr id="fs-qator-{{ satr.fan_semestr.pk }}"
+    {% if oob %}hx-swap-oob="true"{% endif %}
+    data-nomi="{{ satr.fan_semestr.variant.nomi|lower }} {{ satr.fan_semestr.variant.kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_nomi|lower }}"
+    data-qoldiq="{% if satr.qoldiq_bor %}1{% else %}0{% endif %}"
+    x-show="(!faqat_qoldiq || $el.dataset.qoldiq === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))"
+    class="{% if satr.qoldiq_bor %}qator-biriktirilmagan{% endif %}">
+  <td data-label="Fan">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      {% if satr.fan_semestr.variant.kodi %}<span class="code">{{ satr.fan_semestr.variant.kodi }}</span>{% endif %}
+      <strong>{{ satr.fan_semestr.variant.nomi }}</strong>
+      <span class="credits">· {{ satr.fan_semestr.variant.fan.reja.yonalish_kodi }} ({{ satr.fan_semestr.variant.fan.reja.guruhlar_soni|default:"?" }} guruh)</span>
+    </div>
   </td>
-  <td>{{ satr.fan_semestr.semestr }}-semestr</td>
-  {% include "web/kafedra/_tur_katak.html" with tur="MARUZA" %}
-  {% include "web/kafedra/_tur_katak.html" with tur="AMALIYOT" %}
-  {% include "web/kafedra/_tur_katak.html" with tur="LABORATORIYA" %}
-  {% include "web/kafedra/_tur_katak.html" with tur="SEMINAR" %}
-  {% include "web/kafedra/_tur_katak.html" with tur="KURS_ISHI" %}
-  <td>
-    <button type="button" class="btn"
+  <td data-label="Semestr" style="white-space:nowrap;color:var(--text-secondary);">{{ satr.fan_semestr.semestr }}-semestr</td>
+  {% include "web/kafedra/_tur_katak.html" with tur="MARUZA" yorliq="Ma'ruza" %}
+  {% include "web/kafedra/_tur_katak.html" with tur="AMALIYOT" yorliq="Amaliyot" %}
+  {% include "web/kafedra/_tur_katak.html" with tur="LABORATORIYA" yorliq="Lab." %}
+  {% include "web/kafedra/_tur_katak.html" with tur="SEMINAR" yorliq="Seminar" %}
+  {% include "web/kafedra/_tur_katak.html" with tur="KURS_ISHI" yorliq="Kurs ishi" %}
+  <td style="text-align:right;white-space:nowrap;">
+    <button type="button" class="btn {% if satr.qoldiq_bor %}btn-primary{% endif %}"
             hx-get="{% url 'kafedra:taqsimot_panel' satr.fan_semestr.pk %}"
             hx-target="#panel-{{ satr.fan_semestr.pk }}" hx-swap="innerHTML"
-            hx-indicator="#panel-yuk-{{ satr.fan_semestr.pk }}" hx-disabled-elt="this">Taqsimlash</button>
+            hx-indicator="#panel-yuk-{{ satr.fan_semestr.pk }}" hx-disabled-elt="this"
+            hx-on::before-request="const p = document.getElementById('panel-{{ satr.fan_semestr.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">Taqsimlash</button>
   </td>
 </tr>

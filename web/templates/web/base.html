@@ -1,19 +1,52 @@
-{% load static %}<!DOCTYPE html>
+{% load static %}
+<!DOCTYPE html>
 <html lang="uz">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}O'quv yuklamasi{% endblock %}</title>
-<link rel="stylesheet" href="{% static 'web/css/app.css' %}">
-<script src="{% static 'web/js/htmx.min.js' %}" defer></script>
-<script src="{% static 'web/js/alpine.min.js' %}" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="htmx-config" content='{"historyCacheSize": 0}'>
+  <title>{% block title %}O'quv yuklamasi{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=16">
+  <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=3">
+  <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
+  <script>
+    document.addEventListener('htmx:configRequest', (e) => {
+      const csrfEl = document.getElementById('csrf-meta');
+      if (csrfEl && csrfEl.dataset.csrf) {
+        e.detail.headers['X-CSRFToken'] = csrfEl.dataset.csrf;
+      }
+    });
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('popover', () => ({
+        ochiq: false,
+        q: '',
+      }));
+      Alpine.data('jadvalQidiruv', () => ({
+        qidiruv: '',
+        mos(el) {
+          if (!this.qidiruv) return true;
+          const matn = (el.dataset.nomi || '').toLowerCase();
+          return matn.includes(this.qidiruv.toLowerCase());
+        }
+      }));
+    });
+  </script>
+  <script src="{% static 'web/js/alpine.min.js' %}" defer></script>
+  <script src="{% static 'web/js/jonli.js' %}" defer></script>
 </head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-{% if user.is_authenticated %}{% include "web/parts/_navbar.html" %}{% endif %}
-{% if debug_rejim and request.session.dev_asl_foydalanuvchi %}{% include "web/parts/_test_rejimi.html" %}{% endif %}
-<div class="app">
-  {% include "web/parts/_messages.html" %}
-  {% block content %}{% endblock %}
-</div>
+
+<body hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <div id="csrf-meta" data-csrf="{{ csrf_token }}" hidden></div>
+  {% if user.is_authenticated %}{% include "web/parts/_navbar.html" %}{% endif %}
+  {% if debug_rejim and request.session.dev_asl_foydalanuvchi %}{% include "web/parts/_test_rejimi.html" %}{% endif %}
+  <div class="app">
+    {% include "web/parts/_messages.html" %}
+    {% block content %}{% endblock %}
+  </div>
 </body>
+
 </html>

@@ -12,7 +12,15 @@ from django.db.models import Count, Sum
 from django.utils import timezone
 
 from accounts.models import Department, OqituvchiProfil
-from plans.models import Fan, FanSemestr, FanVariant, Guruh, OquvReja, Yuklama
+from plans.models import (
+    Fan,
+    FanSemestr,
+    FanVariant,
+    Guruh,
+    KafedraYuklamaTasdiq,
+    OquvReja,
+    Yuklama,
+)
 from plans.services import (
     TalabSatri,
     fan_semestr_talabi,
@@ -43,6 +51,17 @@ def tanlanadigan_yillar() -> list[int]:
         .distinct()
     )
     return sorted(y for y in yillar if y >= joriy)
+
+
+def yilni_tanlash(sorov_yil: str | None) -> tuple[list[int], int | None]:
+    """Validate the requested year against the offered (non-past) list."""
+    yillar = tanlanadigan_yillar()
+    if not yillar:
+        return [], None
+    if sorov_yil and sorov_yil.isdigit() and int(sorov_yil) in yillar:
+        return yillar, int(sorov_yil)
+    joriy = joriy_akademik_yil()
+    return yillar, joriy if joriy in yillar else yillar[0]
 
 
 @dataclass(frozen=True)
@@ -139,6 +158,9 @@ def _effektiv_satrlar(akademik_yil: int) -> list[FanSatri]:
         .order_by("semestr")
     )
     taqsimlangan = taqsimlangan_soatlar(semestrlar)
+    fs_taqsimlangan: dict[int, int] = defaultdict(int)
+    for (fs_pk, _), soat in taqsimlangan.items():
+        fs_taqsimlangan[fs_pk] += soat
     guruhlar: dict[int, list[FanSemestr]] = defaultdict(list)
     for fs in semestrlar:
         guruhlar[fs.variant.fan_id].append(fs)
@@ -147,11 +169,7 @@ def _effektiv_satrlar(akademik_yil: int) -> list[FanSatri]:
             fan=fslar[0].variant.fan,
             fan_semestrlar=fslar,
             tur_soatlari=_tur_yigindisi(fslar),
-            taqsimlangan_soat=sum(
-                soat
-                for (fs_pk, _), soat in taqsimlangan.items()
-                if fs_pk in {fs.pk for fs in fslar}
-            ),
+            taqsimlangan_soat=sum(fs_taqsimlangan[fs.pk] for fs in fslar),
             kafedra=fslar[0].variant.kafedra,
             tanlanmagan=False,
         )
@@ -160,23 +178,24 @@ def _effektiv_satrlar(akademik_yil: int) -> list[FanSatri]:
 
 
 def _tanlov_satrlari(akademik_yil: int) -> list[FanSatri]:
-    yildagi = FanSemestr.objects.akademik_yilda(akademik_yil)
-    fanlar = (
-        Fan.objects.tanlov_kutilmoqda()
-        .filter(variantlar__semestrlar__in=yildagi)
-        .distinct()
-        .select_related("reja")
+    semestrlar = (
+        FanSemestr.objects.akademik_yilda(akademik_yil)
+        .filter(variant__fan__in=Fan.objects.tanlov_kutilmoqda())
+        .select_related("variant__fan__reja")
+        .order_by("variant_id", "semestr")
     )
+    guruhlar: dict[int, list[FanSemestr]] = defaultdict(list)
+    for fs in semestrlar:
+        guruhlar[fs.variant.fan_id].append(fs)
     satrlar = []
-    for fan in fanlar:
-        fslar = list(yildagi.filter(variant__fan=fan).order_by("variant_id", "semestr"))
+    for fslar in guruhlar.values():
         birinchi_variant = fslar[0].variant_id
-        fslar = [fs for fs in fslar if fs.variant_id == birinchi_variant]
+        vakil_fslar = [fs for fs in fslar if fs.variant_id == birinchi_variant]
         satrlar.append(
             FanSatri(
-                fan=fan,
-                fan_semestrlar=fslar,
-                tur_soatlari=_tur_yigindisi(fslar),
+                fan=vakil_fslar[0].variant.fan,
+                fan_semestrlar=vakil_fslar,
+                tur_soatlari=_tur_yigindisi(vakil_fslar),
                 taqsimlangan_soat=0,
                 kafedra=None,
                 tanlanmagan=True,
@@ -224,8 +243,7 @@ def reja_semestrovkasi(reja: OquvReja) -> list[SemestrovkaSatri]:
     )
     satrlar = []
     for fan in fanlar:
-        variantlar = list(fan.variantlar.all())
-        variant = fan.tanlangan_variant or (variantlar[0] if variantlar else None)
+        variant = fan.effektiv_variant
         if variant is None:
             continue
         satrlar.append(
@@ -323,6 +341,7 @@ class KafedraQamrov:
     biriktirilgan_soat: int
     taqsimlangan_soat: int
     oqituvchilar_soni: int
+    tasdiq: KafedraYuklamaTasdiq | None = None
 
 
 def kafedra_qamrovi(akademik_yil: int) -> list[KafedraQamrov]:
@@ -335,15 +354,23 @@ def kafedra_qamrovi(akademik_yil: int) -> list[KafedraQamrov]:
         if satr.talab_soat:
             biriktirilgan[kafedra_id] += satr.talab_soat
         taqsimlangan[kafedra_id] += satr.taqsimlangan_soat
-    kafedralar = Department.objects.annotate(
-        oqituvchilar_soni=Count("oqituvchilar")
-    ).order_by("nomi")
+    kafedralar = (
+        Department.objects.select_related("mudir__foydalanuvchi")
+        .prefetch_related("oqituvchilar__foydalanuvchi")
+        .annotate(oqituvchilar_soni=Count("oqituvchilar"))
+        .order_by("nomi")
+    )
+    tasdiqlar = {
+        t.kafedra_id: t
+        for t in KafedraYuklamaTasdiq.objects.filter(akademik_yil=akademik_yil)
+    }
     return [
         KafedraQamrov(
             kafedra=kafedra,
             biriktirilgan_soat=biriktirilgan.get(kafedra.pk, 0),
             taqsimlangan_soat=taqsimlangan.get(kafedra.pk, 0),
             oqituvchilar_soni=kafedra.oqituvchilar_soni,
+            tasdiq=tasdiqlar.get(kafedra.pk),
         )
         for kafedra in kafedralar
     ]

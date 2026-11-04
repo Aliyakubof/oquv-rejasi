@@ -1,6 +1,8 @@
 .env
 .env/
 env
+venv/
+.venv/
 output/
 sources/
 __pycache__/
@@ -11,3 +13,4 @@ media/
 staticfiles/
 .mcp.json
 .playwright-mcp/
+*.zip

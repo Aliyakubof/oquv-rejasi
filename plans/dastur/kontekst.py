@@ -2,7 +2,7 @@
 
 from django.utils import timezone
 
-from accounts.models import Universitet
+from accounts.services import universitet_nomi
 from plans.dastur.mavzular import SOAT_MUSTAQIL_TOPSHIRIQDA, Natija, bosh_mavzular
 from plans.models import FanSemestr, FanVariant
 
@@ -94,5 +94,4 @@ def _muqova_yili(semestrlar: list[FanSemestr]) -> int:
 
 
 def _universitet_nomi() -> str:
-    universitet = Universitet.objects.first()
-    return universitet.rasmiy_nomi if universitet else "Turan International University"
+    return universitet_nomi(bosh="Turan International University")

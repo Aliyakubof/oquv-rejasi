@@ -4,24 +4,32 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 
 from accounts.models import Department
 from plans import dashboard, services
+from plans.dashboard import yilni_tanlash
 from plans.models import Fan, FanVariant
-from web.mixins import OfficeAdminTalabMixin, office_admin_talab
+from web.mixins import OfficeAdminTalabMixin, office_admin_talab, xato_matni
+
+TURLAR_METRIKASI = [
+    ("MARUZA", "Ma'ruza", "var(--mand)"),
+    ("AMALIYOT", "Amaliyot", "var(--accent)"),
+    ("LABORATORIYA", "Laboratoriya", "var(--elec)"),
+    ("SEMINAR", "Seminar", "#8b5cf6"),
+    ("KURS_ISHI", "Kurs ishi", "#f59e0b"),
+]
 
 
-def yilni_tanlash(sorov_yil: str | None) -> tuple[list[int], int | None]:
-    """Validate the requested year against the offered (non-past) list."""
-    yillar = dashboard.tanlanadigan_yillar()
-    if not yillar:
-        return [], None
-    if sorov_yil and sorov_yil.isdigit() and int(sorov_yil) in yillar:
-        return yillar, int(sorov_yil)
-    joriy = dashboard.joriy_akademik_yil()
-    return yillar, joriy if joriy in yillar else yillar[0]
+TURLAR_METRIKASI = [
+    ("MARUZA", "Ma'ruza", "var(--mand)"),
+    ("AMALIYOT", "Amaliyot", "var(--accent)"),
+    ("LABORATORIYA", "Laboratoriya", "var(--elec)"),
+    ("SEMINAR", "Seminar", "#8b5cf6"),
+    ("KURS_ISHI", "Kurs ishi", "#f59e0b"),
+]
 
 
 def _dashboard_konteksti(yil: int) -> dict[str, object]:
@@ -30,7 +38,9 @@ def _dashboard_konteksti(yil: int) -> dict[str, object]:
         "stat": dashboard.statlarni_hisoblash(services.ofis_taqsimoti(yil)),
         "jami_talabalar": dashboard.jami_talabalar(yil),
         "fan_satrlari": dashboard.ofis_fan_satrlari(yil),
-        "kafedralar": Department.objects.order_by("nomi"),
+        "kafedralar": Department.objects.all(),
+        "qamrovlar": dashboard.kafedra_qamrovi(yil),
+        "turlar_metrikasi": TURLAR_METRIKASI,
     }
 
 
@@ -38,7 +48,9 @@ class DashboardView(OfficeAdminTalabMixin, TemplateView):
     template_name = "web/office/dashboard.html"
 
     def get_template_names(self) -> list[str]:
-        if self.request.headers.get("HX-Request"):
+        if self.request.headers.get("HX-Request") and not self.request.headers.get(
+            "HX-Boosted"
+        ):
             return ["web/office/_dashboard_kontent.html"]
         return [self.template_name]
 
@@ -60,7 +72,7 @@ def variant_tanlash(request: HttpRequest, pk: int) -> HttpResponse:
     try:
         services.variantni_tanlash(fan, variant)
     except ValidationError as e:
-        xato = " ".join(e.messages)
+        xato = xato_matni(e)
     return _qator_javobi(request, fan, xato)
 
 
@@ -74,7 +86,7 @@ def kafedra_biriktirish(request: HttpRequest, pk: int) -> HttpResponse:
     try:
         services.kafedraga_biriktirish(variant, kafedra)
     except ValidationError as e:
-        xato = " ".join(e.messages)
+        xato = xato_matni(e)
     return _qator_javobi(request, variant.fan, xato)
 
 
@@ -84,10 +96,17 @@ def _qator_javobi(request: HttpRequest, fan: Fan, xato: str | None) -> HttpRespo
     Non-HTMX callers (the reja detail page) pass `redirect` and get a normal
     redirect with the outcome delivered via messages.
     """
-    if request.POST.get("redirect"):
+    redirect_url = request.POST.get("redirect")
+    if redirect_url:
         if xato:
             messages.error(request, xato)
-        return redirect(request.POST["redirect"])
+        if url_has_allowed_host_and_scheme(
+            redirect_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            return redirect(redirect_url)
+        return redirect("office:dashboard")
     _, yil = yilni_tanlash(request.POST.get("yil"))
     kontekst = _dashboard_konteksti(yil) if yil is not None else {}
     satr = next(

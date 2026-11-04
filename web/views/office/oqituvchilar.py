@@ -1,79 +1,102 @@
-"""Office-wide teacher administration and coverage list."""
+"""Office-wide teacher administration, coverage list, detail and Excel export."""
 
 from django.contrib import messages
-from django.http import HttpRequest, HttpResponse
+from django.http import FileResponse, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_POST
-from django.views.generic import FormView, TemplateView
+from django.views.generic import TemplateView
 
 from accounts.models import Department, OqituvchiProfil
-from plans import dashboard, services
+from accounts.services import mudir_tayinlash
+from plans import dashboard, eksport, services
+from plans.dashboard import yilni_tanlash
 from web.forms.oqituvchi import OqituvchiTahrirForm, OqituvchiYaratishForm
-from web.mixins import OfficeAdminTalabMixin, office_admin_talab
-from web.views.office.dashboard import yilni_tanlash
+from web.mixins import OfficeAdminTalabMixin, YilTanlovMixin, office_admin_talab
+from web.views.oqituvchi_base import (
+    OqituvchiTahrirAsosView,
+    OqituvchiYangiAsosView,
+    OqituvchiYuklamaAsosView,
+    oqituvchi_yuklama_konteksti,
+)
+
+# Re-export for any external consumers
+__all__ = [
+    "OqituvchiListView",
+    "OqituvchiTahrirView",
+    "OqituvchiYangiView",
+    "OqituvchiYuklamaView",
+    "oqituvchi_ochirish",
+    "oqituvchi_yuklama_konteksti",
+    "oqituvchilar_excel_view",
+]
 
 
-class OqituvchiListView(OfficeAdminTalabMixin, TemplateView):
+def _tanlangan_kafedra(sorov: HttpRequest) -> Department | None:
+    kafedra_id = sorov.GET.get("kafedra")
+    if not kafedra_id or not kafedra_id.isdigit():
+        return None
+    return Department.objects.filter(pk=kafedra_id).first()
+
+
+class OqituvchiListView(OfficeAdminTalabMixin, YilTanlovMixin, TemplateView):
     template_name = "web/office/oqituvchilar/list.html"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        yillar, yil = yilni_tanlash(self.request.GET.get("yil"))
-        yil = yil or dashboard.joriy_akademik_yil()
-        kafedra = self._tanlangan_kafedra()
+        kafedra = _tanlangan_kafedra(self.request)
         context.update(
             {
-                "yillar": yillar,
-                "yil": yil,
-                "kafedralar": Department.objects.order_by("nomi"),
+                "kafedralar": Department.objects.all(),
                 "kafedra": kafedra,
-                "holatlar": services.yuklama_kamomadi(yil, kafedra=kafedra),
+                "holatlar": services.yuklama_kamomadi(self.yil, kafedra=kafedra),
             }
         )
         return context
 
-    def _tanlangan_kafedra(self) -> Department | None:
-        kafedra_id = self.request.GET.get("kafedra")
-        if not kafedra_id or not kafedra_id.isdigit():
-            return None
-        return Department.objects.filter(pk=kafedra_id).first()
 
+class OqituvchiYuklamaView(OfficeAdminTalabMixin, OqituvchiYuklamaAsosView):
+    orqaga_url = "office:oqituvchi_list"
 
-class OqituvchiYangiView(OfficeAdminTalabMixin, FormView):
-    template_name = "web/office/oqituvchilar/form.html"
-    form_class = OqituvchiYaratishForm
-
-    def form_valid(self, form: OqituvchiYaratishForm) -> HttpResponse:
-        profil = form.saqlash()
-        messages.success(self.request, f"{profil} yaratildi.")
-        return redirect("office:oqituvchi_list")
-
-
-class OqituvchiTahrirView(OfficeAdminTalabMixin, FormView):
-    template_name = "web/office/oqituvchilar/form.html"
-    form_class = OqituvchiTahrirForm
-
-    def get_form_kwargs(self) -> dict[str, object]:
-        kwargs = super().get_form_kwargs()
-        kwargs["profil"] = get_object_or_404(
-            OqituvchiProfil.objects.select_related("foydalanuvchi"),
+    def profil_olish(self) -> OqituvchiProfil:
+        return get_object_or_404(
+            OqituvchiProfil.objects.toliq(),
             pk=self.kwargs["pk"],
         )
-        return kwargs
 
-    def form_valid(self, form: OqituvchiTahrirForm) -> HttpResponse:
-        form.saqlash()
-        messages.success(self.request, f"{form.profil} saqlandi.")
-        return redirect("office:oqituvchi_list")
+
+@office_admin_talab
+def oqituvchilar_excel_view(request: HttpRequest) -> HttpResponse:
+    _, yil = yilni_tanlash(request.GET.get("yil"))
+    yil = yil or dashboard.joriy_akademik_yil()
+    kafedra = _tanlangan_kafedra(request)
+    fayl_nomi = f"oqituvchilar_yuklamasi_{yil}_{yil + 1}.xlsx"
+    return FileResponse(
+        eksport.oqituvchilar_excel(yil, kafedra=kafedra),
+        as_attachment=True,
+        filename=fayl_nomi,
+    )
+
+
+class OqituvchiYangiView(OfficeAdminTalabMixin, OqituvchiYangiAsosView):
+    template_name = "web/office/oqituvchilar/form.html"
+    form_class = OqituvchiYaratishForm
+    success_url_name = "office:oqituvchi_list"
+
+
+class OqituvchiTahrirView(OfficeAdminTalabMixin, OqituvchiTahrirAsosView):
+    template_name = "web/office/oqituvchilar/form.html"
+    form_class = OqituvchiTahrirForm
+    success_url_name = "office:oqituvchi_list"
 
 
 @require_POST
 @office_admin_talab
 def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
-    profil = get_object_or_404(
-        OqituvchiProfil.objects.select_related("foydalanuvchi"), pk=pk
-    )
+    profil = get_object_or_404(OqituvchiProfil.objects.bilan_foydalanuvchi(), pk=pk)
     if profil.yuklamalar.exists():
+        boshqa_kafedra = getattr(profil, "boshqarayotgan_kafedra", None)
+        if boshqa_kafedra is not None:
+            mudir_tayinlash(boshqa_kafedra, None)
         foydalanuvchi = profil.foydalanuvchi
         foydalanuvchi.is_active = False
         foydalanuvchi.save(update_fields=["is_active"])

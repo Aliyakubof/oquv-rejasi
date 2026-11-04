@@ -2,65 +2,82 @@
 {% load ui %}
 {% block title %}{{ kafedra.nomi }} — yuklama hisoboti{% endblock %}
 {% block content %}
-<div class="print-toolbar">
-  {% if yillar %}
-  <form method="get">
-    <select name="yil" onchange="this.form.submit()">
-      {% for y in yillar %}
-      <option value="{{ y }}" {% if y == yil %}selected{% endif %}>{{ y }}/{{ y|add:1 }} o'quv yili</option>
-      {% endfor %}
-    </select>
-  </form>
-  {% endif %}
-  <a class="btn" href="{% url 'kafedra:dashboard' %}">← Panel</a>
-  <button type="button" class="btn btn-primary" onclick="window.print()">Chop etish</button>
+<div class="topbar print-toolbar">
+  <div>
+    <div class="title"><span class="badge-major">{{ kafedra.nomi }}</span>Yuklama hisoboti</div>
+  </div>
+  <div class="controls">
+    {% if yillar %}
+    <form method="get">
+      {% include "web/parts/_yil_tanlov.html" %}
+    </form>
+    {% endif %}
+    <a class="btn" href="{% url 'kafedra:hisobot_excel' %}?yil={{ yil }}" hx-boost="false">Excel (.xlsx)</a>
+    <button type="button" class="btn btn-primary" onclick="window.print()">Chop etish</button>
+  </div>
 </div>
 
-<div class="letterhead">
-  <h1>{{ kafedra.nomi }} kafedrasi — {{ yil }}/{{ yil|add:1 }} o'quv yili yuklama hisoboti</h1>
-  <div class="sana">Tuzilgan sana: {% now "d.m.Y" %}</div>
+<div class="stats print-hide" data-jonli="hisobot-summary">
+  <div class="stat"><div class="num">{{ holatlar|length }}</div><div class="lbl">O'qituvchilar soni</div></div>
+  <div class="stat ok"><div class="num">{{ jami_yuklama }}</div><div class="lbl">Jami yuklama soat</div></div>
+  <div class="stat"><div class="num">{{ jami_min }}</div><div class="lbl">Jami minimal norma</div></div>
+  <div class="stat {% if jami_yuklama < jami_min %}warn{% else %}ok{% endif %}">
+    <div class="num">{{ jami_yuklama|foiz:jami_min }}%</div>
+    <div class="lbl">Umumiy qoplanish</div>
+  </div>
 </div>
 
-<div class="report-summary">
-  <span>O'qituvchilar soni: <strong>{{ holatlar|length }}</strong></span>
-  <span>Jami yuklama: <strong>{{ jami_yuklama }} soat</strong></span>
-  <span>Jami minimal norma: <strong>{{ jami_min }} soat</strong></span>
-  <span>Umumiy qoplanish: <strong>{{ jami_yuklama|foiz:jami_min }}%</strong></span>
-</div>
+<div class="report-sheet">
+  <div class="letterhead">
+    <h1>{{ kafedra.nomi }} kafedrasi — {{ yil }}/{{ yil|add:1 }} o'quv yili yuklama hisoboti</h1>
+    <div class="sana">Tuzilgan sana: {% now "d.m.Y" %} · O'qituvchilar: {{ holatlar|length }} ta · Jami yuklama: {{ jami_yuklama }} / {{ jami_min }} soat ({{ jami_yuklama|foiz:jami_min }}%)</div>
+  </div>
 
-<div class="table-wrap narrow">
-  <table>
-    <thead>
-      <tr>
-        <th>№</th>
-        <th>F.I.Sh</th>
-        <th>Lavozim</th>
-        <th>Minimal soat</th>
-        <th>Yuklama soat</th>
-        <th>Farq</th>
-        <th>Holat</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for holat in holatlar %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ holat.oqituvchi }}</td>
-        <td>{{ holat.oqituvchi.turi.nomi }}</td>
-        <td>{{ holat.min_soat }}</td>
-        <td>{{ holat.jami_soat }}</td>
-        <td>{% if holat.kamomad %}−{{ holat.kamomad }}{% else %}0{% endif %}</td>
-        <td>{% if holat.kamomad %}<span class="tag" style="background:var(--unassigned-soft);color:var(--unassigned);">Kamomad {{ holat.kamomad }} soat</span>{% else %}<span class="tag tag-mand">To'ldi</span>{% endif %}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="7"><div class="empty-state">Kafedrada o'qituvchilar yo'q.</div></td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  <div class="table-wrap narrow cards">
+    <table data-jonli="hisobot-jadval">
+      <thead>
+        <tr>
+          <th style="width:48px;">№</th>
+          <th>F.I.Sh</th>
+          <th>Lavozim</th>
+          <th class="num">Minimal soat</th>
+          <th class="num">Yuklama soat</th>
+          <th class="num">Farq</th>
+          <th>Holat</th>
+        </tr>
+      </thead>
+      <tbody data-jonli="hisobot-tbody">
+        {% for holat in holatlar %}
+        <tr>
+          <td data-label="№" style="color:var(--text-muted);">{{ forloop.counter }}</td>
+          <td data-label="F.I.Sh"><strong>{{ holat.oqituvchi }}</strong></td>
+          <td data-label="Lavozim" style="color:var(--text-secondary);">{{ holat.oqituvchi.turi.nomi }}</td>
+          <td class="num" data-label="Minimal soat">{{ holat.min_soat }}</td>
+          <td class="num" data-label="Yuklama soat">{{ holat.jami_soat }}</td>
+          <td class="num" data-label="Farq">{% if holat.kamomad %}−{{ holat.kamomad }}{% else %}0{% endif %}</td>
+          <td data-label="Holat">{% if holat.kamomad %}<span class="tag tag-rad" style="margin-left:0;">Kamomad {{ holat.kamomad }} soat</span>{% else %}<span class="tag tag-mand" style="margin-left:0;">To'ldi</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="empty-state">Kafedrada o'qituvchilar yo'q.</div></td></tr>
+        {% endfor %}
+      </tbody>
+      {% if holatlar %}
+      <tfoot>
+        <tr>
+          <td colspan="3" style="text-align:right;font-weight:600;">Jami:</td>
+          <td class="num"><strong>{{ jami_min }}</strong></td>
+          <td class="num"><strong>{{ jami_yuklama }}</strong></td>
+          <td class="num"><strong>{{ jami_yuklama|foiz:jami_min }}%</strong></td>
+          <td></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
 
-<div class="signatures">
-  <div class="line">Kafedra mudiri</div>
-  <div class="line">O'quv bo'limi boshlig'i</div>
+  <div class="signatures">
+    <div class="line">Kafedra mudiri</div>
+    <div class="line">O'quv bo'limi boshlig'i</div>
+  </div>
 </div>
 {% endblock %}

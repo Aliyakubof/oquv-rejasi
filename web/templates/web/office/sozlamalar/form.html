@@ -1,0 +1,23 @@
+{% extends "web/base.html" %}
+{% block title %}{{ sarlavha }}{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{% url 'office:sozlamalar' %}">Sozlamalar</a>
+  <span class="sep">/</span>
+  <span class="current">{{ sarlavha }}</span>
+</nav>
+<div class="topbar">
+  <div>
+    <div class="title">{{ sarlavha }}</div>
+  </div>
+</div>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    {% include "web/parts/_form_maydonlari.html" %}
+    <button type="submit" class="btn btn-primary">Saqlash</button>
+    <a class="btn" href="{% url 'office:sozlamalar' %}">Bekor qilish</a>
+  </form>
+</div>
+{% endblock %}
+

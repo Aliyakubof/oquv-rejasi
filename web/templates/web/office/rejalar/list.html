@@ -11,10 +11,7 @@
 </div>
 <div x-data="{ qidiruv: '' }">
   <div class="controls" style="margin-bottom:10px;">
-    <div class="search">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input type="text" placeholder="Kod yoki yo'nalish" x-model="qidiruv">
-    </div>
+    {% include "web/parts/_qidiruv.html" with placeholder="Kod yoki yo'nalish" aria_label="Kod yoki yo'nalish" %}
   </div>
   <div class="table-wrap narrow cards">
     <table>
@@ -30,18 +27,32 @@
           <th></th>
         </tr>
       </thead>
-      <tbody>
+      <tbody data-jonli="rejalar-tbody">
         {% for reja in rejalar %}
         <tr data-nomi="{{ reja.yonalish_nomi|lower }} {{ reja.yonalish_kodi|lower }}"
             x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
           <td data-label="Kod"><span class="code">{{ reja.yonalish_kodi }}</span></td>
-          <td data-label="Yo'nalish"><a class="truncate" href="{% url 'office:reja_detail' reja.pk %}" title="{{ reja.yonalish_nomi }}">{{ reja.yonalish_nomi }}</a></td>
+          <td data-label="Yo'nalish">
+            <a class="reja-link" href="{% url 'office:reja_detail' reja.pk %}" title="{{ reja.yonalish_nomi }}">
+              <span class="truncate">{{ reja.yonalish_nomi }}</span>
+              <svg class="reja-link-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14"></path>
+                <path d="m12 5 7 7-7 7"></path>
+              </svg>
+            </a>
+          </td>
           <td data-label="Boshlanish yili">{{ reja.boshlanish_yili }}</td>
           <td data-label="Ta'lim shakli">{{ reja.talim_shakli|default:"—" }}</td>
           <td class="num" data-label="Talabalar">{{ reja.talabalar_soni|default:"—" }}</td>
           <td class="num" data-label="Guruhlar">{{ reja.guruhlar_soni|default:"—" }}</td>
           <td data-label="Import vaqti">{{ reja.import_vaqti|date:"d.m.Y H:i"|default:"—" }}</td>
-          <td><a class="btn" href="{% url 'office:reja_tahrir' reja.pk %}">Tahrirlash</a></td>
+          <td style="white-space:nowrap;">
+            <a class="btn" href="{% url 'office:reja_tahrir' reja.pk %}">Tahrirlash</a>
+            <form method="post" action="{% url 'office:reja_ochirish' reja.pk %}" style="display:inline" onsubmit="return confirm('{{ reja.yonalish_kodi }} ({{ reja.boshlanish_yili }}) rejasini o\'chirasizmi?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">O'chirish</button>
+            </form>
+          </td>
         </tr>
         {% empty %}
         <tr><td colspan="8"><div class="empty-state">Hozircha reja import qilinmagan.</div></td></tr>

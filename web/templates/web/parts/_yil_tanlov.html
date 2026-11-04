@@ -1,0 +1,9 @@
+{% if yillar %}
+<select name="yil" aria-label="O'quv yili"
+        {% if hx_url %}hx-get="{{ hx_url }}" hx-target="{{ hx_target }}" hx-select="{{ hx_select|default:hx_target }}" hx-swap="outerHTML" hx-push-url="true"{% endif %}
+        onchange="if(!window.htmx || (!this.hasAttribute('hx-get') && !this.form.hasAttribute('hx-get'))) this.form.requestSubmit()">
+  {% for y in yillar %}
+  <option value="{{ y }}" {% if y == yil %}selected{% endif %}>{{ y }}/{{ y|add:1 }} o'quv yili</option>
+  {% endfor %}
+</select>
+{% endif %}

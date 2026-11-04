@@ -1,0 +1,2414 @@
+[
+{
+  "model": "sessions.session",
+  "pk": "0878e6byabbvfudoob31xssnyjfbhibr",
+  "fields": {
+    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xNb70:wKF-8NGIxuzh2Cniq179_Wsmp0UuX34KJEMqotByI08",
+    "expire_date": "2026-11-15T19:21:02.570Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "dv6uxcc31qtwdtyxj8nkoar794pfrelx",
+  "fields": {
+    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xMP9C:EwdHoytzqleECqIft6e8FbfV0fbaYbmfN8j9T3qd9wk",
+    "expire_date": "2026-11-12T12:22:22.630Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "edwydbatl4ztojfgsj4rmaqci32qwndt",
+  "fields": {
+    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xM0iL:6LFCN9wDdr-KLH_vKJbFIRItrir2YnXzExj_v5llC9A",
+    "expire_date": "2026-11-11T10:17:01.629Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "fu2w5b12xwd3bf0u9e6rpq8t1voighhn",
+  "fields": {
+    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xLdie:6DPt4Obfcl4gIl2sou4Tvy6yMnvhhT9r1QbPPu6Jt_E",
+    "expire_date": "2026-11-10T09:43:48.516Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "qltmkuz1w6trr9ovccz96z4f8h4fqqvm",
+  "fields": {
+    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xM1Qs:pPolZNCHSdvCIBjPRbVvEcIfdXVFMc8xPwJWSUCXn8c",
+    "expire_date": "2026-11-11T11:03:02.787Z"
+  }
+},
+{
+  "model": "accounts.foydalanuvchi",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$xDGau7dYTUM4gBF6j7j61w$uleaV6et99g7fduwnW80tETDxBHya9FNepGC/gvcpv8=",
+    "last_login": "2026-11-01T19:21:02.562Z",
+    "is_superuser": true,
+    "telefon": "+998912961160",
+    "first_name": "admin",
+    "last_name": "superadmin",
+    "rol": "SUPERADMIN",
+    "is_active": true,
+    "is_staff": true,
+    "date_joined": "2026-10-27T09:29:10.096Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.foydalanuvchi",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$6otuqo0MoVSVIqjZla27Cy$Hs4J6iaMc+of9vsPCuLDiOG+2dzzuCvLNoDy10Zzkok=",
+    "last_login": "2026-11-01T19:11:41.388Z",
+    "is_superuser": false,
+    "telefon": "+998999988998",
+    "first_name": "test1",
+    "last_name": "test1",
+    "rol": "DEPARTMENT_ADMIN",
+    "is_active": true,
+    "is_staff": false,
+    "date_joined": "2026-10-28T09:03:55.086Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.oqituvchituri",
+  "pk": 1,
+  "fields": {
+    "nomi": "oqituvchi",
+    "min_soat": 800
+  }
+},
+{
+  "model": "accounts.department",
+  "pk": 1,
+  "fields": {
+    "nomi": "it",
+    "fakultet": "it001",
+    "mudir": 1
+  }
+},
+{
+  "model": "accounts.department",
+  "pk": 2,
+  "fields": {
+    "nomi": "oqituvchi1",
+    "fakultet": "fakultet1",
+    "mudir": null
+  }
+},
+{
+  "model": "accounts.department",
+  "pk": 3,
+  "fields": {
+    "nomi": "oqituvchi2",
+    "fakultet": "fakultet2",
+    "mudir": null
+  }
+},
+{
+  "model": "accounts.department",
+  "pk": 4,
+  "fields": {
+    "nomi": "oqituvchi3",
+    "fakultet": "fakultet3",
+    "mudir": null
+  }
+},
+{
+  "model": "accounts.department",
+  "pk": 5,
+  "fields": {
+    "nomi": "oqituvchi4",
+    "fakultet": "fakultet4",
+    "mudir": null
+  }
+},
+{
+  "model": "accounts.department",
+  "pk": 6,
+  "fields": {
+    "nomi": "oqituvchi5",
+    "fakultet": "fakultet5",
+    "mudir": null
+  }
+},
+{
+  "model": "accounts.oqituvchiprofil",
+  "pk": 1,
+  "fields": {
+    "foydalanuvchi": [
+      "+998999988998"
+    ],
+    "kafedra": 1,
+    "turi": 1
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 1,
+  "fields": {
+    "kodi": "60110200",
+    "nomi": "Maktabgacha ta'lim",
+    "bilim_sohasi_kodi": "100000",
+    "bilim_sohasi_nomi": "Ta'lim",
+    "talim_sohasi_kodi": "110000",
+    "talim_sohasi_nomi": "Ta'lim"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 2,
+  "fields": {
+    "kodi": "60110400",
+    "nomi": "Boshlang'ich ta'lim",
+    "bilim_sohasi_kodi": "100000",
+    "bilim_sohasi_nomi": "Ta'lim",
+    "talim_sohasi_kodi": "110000",
+    "talim_sohasi_nomi": "Ta'lim"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 3,
+  "fields": {
+    "kodi": "60110700",
+    "nomi": "O'zbek tili va adabiyoti",
+    "bilim_sohasi_kodi": "100000",
+    "bilim_sohasi_nomi": "Ta'lim",
+    "talim_sohasi_kodi": "110000",
+    "talim_sohasi_nomi": "Ta'lim"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 4,
+  "fields": {
+    "kodi": "60110800",
+    "nomi": "Ona tili va adabiyoti (Rus)",
+    "bilim_sohasi_kodi": "100000",
+    "bilim_sohasi_nomi": "Ta'lim",
+    "talim_sohasi_kodi": "110000",
+    "talim_sohasi_nomi": "Ta'lim"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 5,
+  "fields": {
+    "kodi": "60110900",
+    "nomi": "Xorijiy til va adabiyoti (Ingliz tili)",
+    "bilim_sohasi_kodi": "100000",
+    "bilim_sohasi_nomi": "Ta'lim",
+    "talim_sohasi_kodi": "110000",
+    "talim_sohasi_nomi": "Ta'lim"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 6,
+  "fields": {
+    "kodi": "60111200",
+    "nomi": "Jismoniy madaniyat",
+    "bilim_sohasi_kodi": "100000",
+    "bilim_sohasi_nomi": "Ta'lim",
+    "talim_sohasi_kodi": "110000",
+    "talim_sohasi_nomi": "Ta'lim"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 7,
+  "fields": {
+    "kodi": "60220300",
+    "nomi": "Tarix",
+    "bilim_sohasi_kodi": "200000",
+    "bilim_sohasi_nomi": "San'at va gumanitar fanlar",
+    "talim_sohasi_kodi": "220000",
+    "talim_sohasi_nomi": "Gumanitar fanlar (tillardan tashqari)"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 8,
+  "fields": {
+    "kodi": "60230100",
+    "nomi": "Filologiya va tillarni o'qitish (O'zbek tili)",
+    "bilim_sohasi_kodi": "200000",
+    "bilim_sohasi_nomi": "San'at va gumanitar fanlar",
+    "talim_sohasi_kodi": "230000",
+    "talim_sohasi_nomi": "Tillar"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 9,
+  "fields": {
+    "kodi": "60310200",
+    "nomi": "Xalqaro munosabatlar",
+    "bilim_sohasi_kodi": "300000",
+    "bilim_sohasi_nomi": "Ijtimoiy fanlar, jurnalistika va axborot",
+    "talim_sohasi_kodi": "310000",
+    "talim_sohasi_nomi": "Ijtimoiy va xulq-atvorga mansub fanlar"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 10,
+  "fields": {
+    "kodi": "60310300",
+    "nomi": "Psixologiya",
+    "bilim_sohasi_kodi": "300000",
+    "bilim_sohasi_nomi": "Ijtimoiy fanlar, jurnalistika va axborot",
+    "talim_sohasi_kodi": "310000",
+    "talim_sohasi_nomi": "Ijtimoiy va xulq-atvorga mansub fanlar"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 11,
+  "fields": {
+    "kodi": "60410100",
+    "nomi": "Iqtisodiyot",
+    "bilim_sohasi_kodi": "400000",
+    "bilim_sohasi_nomi": "Biznes, boshqaruv va huquq",
+    "talim_sohasi_kodi": "410000",
+    "talim_sohasi_nomi": "Biznes va boshqaruv"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 12,
+  "fields": {
+    "kodi": "60410200",
+    "nomi": "Buxgalteriya hisobi",
+    "bilim_sohasi_kodi": "400000",
+    "bilim_sohasi_nomi": "Biznes, boshqaruv va huquq",
+    "talim_sohasi_kodi": "410000",
+    "talim_sohasi_nomi": "Biznes va boshqaruv"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 13,
+  "fields": {
+    "kodi": "60410500",
+    "nomi": "Moliya va moliyaviy texnologiyalar",
+    "bilim_sohasi_kodi": "400000",
+    "bilim_sohasi_nomi": "Biznes, boshqaruv va huquq",
+    "talim_sohasi_kodi": "410000",
+    "talim_sohasi_nomi": "Biznes va boshqaruv"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 14,
+  "fields": {
+    "kodi": "60411100",
+    "nomi": "Jahon iqtisodiyoti va xalqaro iqtisodiy munosabatlar",
+    "bilim_sohasi_kodi": "400000",
+    "bilim_sohasi_nomi": "Biznes, boshqaruv va huquq",
+    "talim_sohasi_kodi": "410000",
+    "talim_sohasi_nomi": "Biznes va boshqaruv"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 15,
+  "fields": {
+    "kodi": "60510100",
+    "nomi": "Biologiya",
+    "bilim_sohasi_kodi": "500000",
+    "bilim_sohasi_nomi": "Tabiiy fanlar, matematika va statistika",
+    "talim_sohasi_kodi": "510000",
+    "talim_sohasi_nomi": "Biologik va turdosh fanlar"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 16,
+  "fields": {
+    "kodi": "60540100",
+    "nomi": "Matematika",
+    "bilim_sohasi_kodi": "500000",
+    "bilim_sohasi_nomi": "Tabiiy fanlar, matematika va statistika",
+    "talim_sohasi_kodi": "540000",
+    "talim_sohasi_nomi": "Matematika va statistika"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 17,
+  "fields": {
+    "kodi": "60610100",
+    "nomi": "Axborot tizimlari va texnologiyalari",
+    "bilim_sohasi_kodi": "600000",
+    "bilim_sohasi_nomi": "Axborot-kommunikatsiya texnologiyalari",
+    "talim_sohasi_kodi": "610000",
+    "talim_sohasi_nomi": "Axborot-kommunikatsiya texnologiyalari"
+  }
+},
+{
+  "model": "plans.talimyonalishi",
+  "pk": 18,
+  "fields": {
+    "kodi": "61010400",
+    "nomi": "Logistika",
+    "bilim_sohasi_kodi": "1000000",
+    "bilim_sohasi_nomi": "Xizmatlar",
+    "talim_sohasi_kodi": "1010000",
+    "talim_sohasi_nomi": "Xizmat ko'rsatish sohasi"
+  }
+},
+{
+  "model": "plans.oquvreja",
+  "pk": 1,
+  "fields": {
+    "bilim_sohasi_kodi": "600000",
+    "bilim_sohasi_nomi": "Axborot-kommunikatsiya texnologiyalari",
+    "talim_sohasi_kodi": "610000",
+    "talim_sohasi_nomi": "Axborot-kommunikatsiya texnologiyalari",
+    "yonalish_kodi": "60610100",
+    "yonalish_nomi": "Axborot tizimlari va texnologiyalari",
+    "boshlanish_yili": 2025,
+    "daraja": "BAKALAVR",
+    "talim_shakli": "Kunduzgi",
+    "davomiylik_yil": 4,
+    "talabalar_soni": 100,
+    "guruhlar_soni": 4,
+    "guruh_prefiksi": "",
+    "manba_fayl": "720d9e1a_--25-26 Axborot tizimlari va texnologiyalari.xlsx",
+    "import_vaqti": "2026-10-28T08:59:36.999Z"
+  }
+},
+{
+  "model": "plans.guruh",
+  "pk": 1,
+  "fields": {
+    "reja": 1,
+    "raqam": 1,
+    "nomi": "60610100-2025-1"
+  }
+},
+{
+  "model": "plans.guruh",
+  "pk": 2,
+  "fields": {
+    "reja": 1,
+    "raqam": 2,
+    "nomi": "60610100-2025-2"
+  }
+},
+{
+  "model": "plans.guruh",
+  "pk": 3,
+  "fields": {
+    "reja": 1,
+    "raqam": 3,
+    "nomi": "60610100-2025-3"
+  }
+},
+{
+  "model": "plans.guruh",
+  "pk": 4,
+  "fields": {
+    "reja": 1,
+    "raqam": 4,
+    "nomi": "60610100-2025-4"
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 1,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.01",
+    "turi": "MAJBURIY",
+    "jami_soat": 120,
+    "tanlangan_variant": 1
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 2,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.02",
+    "turi": "MAJBURIY",
+    "jami_soat": 120,
+    "tanlangan_variant": 2
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 3,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.03",
+    "turi": "MAJBURIY",
+    "jami_soat": 120,
+    "tanlangan_variant": 3
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 4,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.04",
+    "turi": "MAJBURIY",
+    "jami_soat": 240,
+    "tanlangan_variant": 4
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 5,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.05",
+    "turi": "MAJBURIY",
+    "jami_soat": 360,
+    "tanlangan_variant": 5
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 6,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.06",
+    "turi": "MAJBURIY",
+    "jami_soat": 300,
+    "tanlangan_variant": 6
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 7,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.07",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 7
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 8,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.08",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 8
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 9,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.09",
+    "turi": "MAJBURIY",
+    "jami_soat": 300,
+    "tanlangan_variant": 9
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 10,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.10",
+    "turi": "MAJBURIY",
+    "jami_soat": 120,
+    "tanlangan_variant": 10
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 11,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.11",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 11
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 12,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.12",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 12
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 13,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.13",
+    "turi": "MAJBURIY",
+    "jami_soat": 120,
+    "tanlangan_variant": 13
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 14,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.14",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 14
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 15,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.15",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 15
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 16,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.16",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 16
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 17,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.17",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 17
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 18,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.18",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 18
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 19,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.19",
+    "turi": "MAJBURIY",
+    "jami_soat": 120,
+    "tanlangan_variant": 19
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 20,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.20",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 20
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 21,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.21",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 21
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 22,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.22",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 22
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 23,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.23",
+    "turi": "MAJBURIY",
+    "jami_soat": 180,
+    "tanlangan_variant": 23
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 24,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.24",
+    "turi": "MAJBURIY",
+    "jami_soat": 120,
+    "tanlangan_variant": 24
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 25,
+  "fields": {
+    "reja": 1,
+    "raqam": "1.25",
+    "turi": "MAJBURIY",
+    "jami_soat": 120,
+    "tanlangan_variant": 25
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 26,
+  "fields": {
+    "reja": 1,
+    "raqam": "2.01",
+    "turi": "TANLOV",
+    "jami_soat": 360,
+    "tanlangan_variant": 27
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 27,
+  "fields": {
+    "reja": 1,
+    "raqam": "2.02",
+    "turi": "TANLOV",
+    "jami_soat": 240,
+    "tanlangan_variant": null
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 28,
+  "fields": {
+    "reja": 1,
+    "raqam": "2.03",
+    "turi": "TANLOV",
+    "jami_soat": 120,
+    "tanlangan_variant": null
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 29,
+  "fields": {
+    "reja": 1,
+    "raqam": "2.04",
+    "turi": "TANLOV",
+    "jami_soat": 270,
+    "tanlangan_variant": null
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 30,
+  "fields": {
+    "reja": 1,
+    "raqam": "2.05",
+    "turi": "TANLOV",
+    "jami_soat": 120,
+    "tanlangan_variant": null
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 31,
+  "fields": {
+    "reja": 1,
+    "raqam": "2.06",
+    "turi": "TANLOV",
+    "jami_soat": 300,
+    "tanlangan_variant": null
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 32,
+  "fields": {
+    "reja": 1,
+    "raqam": "2.07",
+    "turi": "TANLOV",
+    "jami_soat": 270,
+    "tanlangan_variant": null
+  }
+},
+{
+  "model": "plans.fan",
+  "pk": 33,
+  "fields": {
+    "reja": 1,
+    "raqam": "2.08",
+    "turi": "TANLOV",
+    "jami_soat": 120,
+    "tanlangan_variant": null
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 1,
+  "fields": {
+    "fan": 1,
+    "kodi": "O‘EYT104",
+    "nomi": "O‘zbekistonning eng yangi tarixi",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 32,
+    "amaliyot_soat": 0,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 16,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 2,
+  "fields": {
+    "fan": 2,
+    "kodi": "DIN104",
+    "nomi": "Dinshunoslik",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 32,
+    "amaliyot_soat": 0,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 16,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 3,
+  "fields": {
+    "fan": 3,
+    "kodi": "FAL104",
+    "nomi": "Falsafa",
+    "kafedra": 2,
+    "auditoriya_soat": 48,
+    "maruza_soat": 32,
+    "amaliyot_soat": 0,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 16,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 4,
+  "fields": {
+    "fan": 4,
+    "kodi": "XT108",
+    "nomi": "Xorijiy til 1,2 (ingliz, fransuz, nemis, yapon, koreys, xitoy)",
+    "kafedra": 2,
+    "auditoriya_soat": 96,
+    "maruza_soat": 0,
+    "amaliyot_soat": 96,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 5,
+  "fields": {
+    "fan": 5,
+    "kodi": "CAL112",
+    "nomi": "Hisob(Calculus) 1,2",
+    "kafedra": 1,
+    "auditoriya_soat": 144,
+    "maruza_soat": 72,
+    "amaliyot_soat": 72,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 6,
+  "fields": {
+    "fan": 6,
+    "kodi": "FIZ110",
+    "nomi": "Fizika 1,2",
+    "kafedra": null,
+    "auditoriya_soat": 120,
+    "maruza_soat": 60,
+    "amaliyot_soat": 30,
+    "laboratoriya_soat": 30,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 7,
+  "fields": {
+    "fan": 7,
+    "kodi": "DIFT206",
+    "nomi": "Differensial tenglamalar",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 8,
+  "fields": {
+    "fan": 8,
+    "kodi": "CHALG206",
+    "nomi": "Chiziqli algebra",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 9,
+  "fields": {
+    "fan": 9,
+    "kodi": "DAS110",
+    "nomi": "Dasturlash 1,2*",
+    "kafedra": null,
+    "auditoriya_soat": 120,
+    "maruza_soat": 60,
+    "amaliyot_soat": 30,
+    "laboratoriya_soat": 30,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 10,
+  "fields": {
+    "fan": 10,
+    "kodi": "AY104",
+    "nomi": "Akademik yozuv",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 32,
+    "amaliyot_soat": 16,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 11,
+  "fields": {
+    "fan": 11,
+    "kodi": "MBAZ206",
+    "nomi": "Ma’lumotlar bazasi",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 12,
+  "fields": {
+    "fan": 12,
+    "kodi": "KXVF206",
+    "nomi": "Kiberxavfsizlik asoslari",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 13,
+  "fields": {
+    "fan": 13,
+    "kodi": "MTA104",
+    "nomi": "Ma’lumotlar tuzilmasi va algoritmlar",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 14,
+  "fields": {
+    "fan": 14,
+    "kodi": "EVS206",
+    "nomi": "Elektronika va sxemalar 1",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 0,
+    "laboratoriya_soat": 36,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 15,
+  "fields": {
+    "fan": 15,
+    "kodi": "DIST206",
+    "nomi": "Diskret tuzilmalar",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 16,
+  "fields": {
+    "fan": 16,
+    "kodi": "KOMPT206",
+    "nomi": "Kompyuter tarmoqlari",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 17,
+  "fields": {
+    "fan": 17,
+    "kodi": "SIA206",
+    "nomi": "Sun’iy intellekt asoslari",
+    "kafedra": 1,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 18,
+  "fields": {
+    "fan": 18,
+    "kodi": "EVS206",
+    "nomi": "Ehtimollik va statistika",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 19,
+  "fields": {
+    "fan": 19,
+    "kodi": "INDLO404",
+    "nomi": "Individual loyiha*",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 0,
+    "amaliyot_soat": 48,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 20,
+  "fields": {
+    "fan": 20,
+    "kodi": "ATICHM306",
+    "nomi": "Axborot tizimini ishlab chiqish metodologiyalari",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 21,
+  "fields": {
+    "fan": 21,
+    "kodi": "BIGDATA306",
+    "nomi": "Katta hajmdagi ma’lumotlarni boshqarish (Big Data)",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 22,
+  "fields": {
+    "fan": 22,
+    "kodi": "BT306",
+    "nomi": "Bulutli texnologiyalar",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 23,
+  "fields": {
+    "fan": 23,
+    "kodi": "VT306",
+    "nomi": "Veb tizimlari",
+    "kafedra": null,
+    "auditoriya_soat": 72,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 24,
+  "fields": {
+    "fan": 24,
+    "kodi": "BJATS404",
+    "nomi": "Biznes jarayoni va AT strategitasi",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 25,
+  "fields": {
+    "fan": 25,
+    "kodi": "ATMV404",
+    "nomi": "Axborot tizimlari ma’lumotlarini vizuallashtirish",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 26,
+  "fields": {
+    "fan": 26,
+    "kodi": "SYIT2",
+    "nomi": "Sohaga yo'naltirilgan ingliz tili",
+    "kafedra": null,
+    "auditoriya_soat": 144,
+    "maruza_soat": 0,
+    "amaliyot_soat": 144,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 27,
+  "fields": {
+    "fan": 26,
+    "kodi": "TB206",
+    "nomi": "Tarmoqli boshqarish",
+    "kafedra": null,
+    "auditoriya_soat": 144,
+    "maruza_soat": 0,
+    "amaliyot_soat": 144,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 28,
+  "fields": {
+    "fan": 27,
+    "kodi": "PDT208",
+    "nomi": "Python dasturlash tili*",
+    "kafedra": null,
+    "auditoriya_soat": 96,
+    "maruza_soat": 48,
+    "amaliyot_soat": 48,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 29,
+  "fields": {
+    "fan": 27,
+    "kodi": "MT204",
+    "nomi": "Multimedia texnologiyalari",
+    "kafedra": null,
+    "auditoriya_soat": 96,
+    "maruza_soat": 48,
+    "amaliyot_soat": 48,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 30,
+  "fields": {
+    "fan": 28,
+    "kodi": "WDT304",
+    "nomi": "Web dasturlash texnologiyalari*",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 31,
+  "fields": {
+    "fan": 28,
+    "kodi": "O‘N304",
+    "nomi": "O‘yinlar nazariyasi",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 32,
+  "fields": {
+    "fan": 29,
+    "kodi": "MIY309",
+    "nomi": "Mobil ilovalar yatratish*",
+    "kafedra": null,
+    "auditoriya_soat": 108,
+    "maruza_soat": 54,
+    "amaliyot_soat": 54,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 33,
+  "fields": {
+    "fan": 29,
+    "kodi": "ITZ309",
+    "nomi": "Intellektual tizimlar",
+    "kafedra": null,
+    "auditoriya_soat": 108,
+    "maruza_soat": 54,
+    "amaliyot_soat": 54,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 34,
+  "fields": {
+    "fan": 30,
+    "kodi": "KU304",
+    "nomi": "Kriptografik usullar",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 35,
+  "fields": {
+    "fan": 30,
+    "kodi": "OT304",
+    "nomi": "Operatsion tizimlar",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 36,
+  "fields": {
+    "fan": 31,
+    "kodi": "DT310",
+    "nomi": "Dasturlash texnologiyalari*",
+    "kafedra": null,
+    "auditoriya_soat": 120,
+    "maruza_soat": 60,
+    "amaliyot_soat": 60,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 37,
+  "fields": {
+    "fan": 31,
+    "kodi": "MO‘U310",
+    "nomi": "Mashinali o‘qitish usullari",
+    "kafedra": null,
+    "auditoriya_soat": 120,
+    "maruza_soat": 60,
+    "amaliyot_soat": 60,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 38,
+  "fields": {
+    "fan": 32,
+    "kodi": "KVM309",
+    "nomi": "Kompyuter vositasida modellashtirish",
+    "kafedra": null,
+    "auditoriya_soat": 108,
+    "maruza_soat": 54,
+    "amaliyot_soat": 54,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 39,
+  "fields": {
+    "fan": 32,
+    "kodi": "KG309",
+    "nomi": "Kompyuter grafikasi",
+    "kafedra": null,
+    "auditoriya_soat": 108,
+    "maruza_soat": 54,
+    "amaliyot_soat": 54,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 40,
+  "fields": {
+    "fan": 33,
+    "kodi": "O‘Y404",
+    "nomi": "O‘yinlarni yaratish",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fanvariant",
+  "pk": 41,
+  "fields": {
+    "fan": 33,
+    "kodi": "KA404",
+    "nomi": "Kompyuter arxitekturasi",
+    "kafedra": null,
+    "auditoriya_soat": 48,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_soat": 0
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 1,
+  "fields": {
+    "variant": 1,
+    "semestr": 2,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 32,
+    "amaliyot_soat": 0,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 16,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 2,
+  "fields": {
+    "variant": 2,
+    "semestr": 1,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 32,
+    "amaliyot_soat": 0,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 16,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 3,
+  "fields": {
+    "variant": 3,
+    "semestr": 1,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 32,
+    "amaliyot_soat": 0,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 16,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 4,
+  "fields": {
+    "variant": 4,
+    "semestr": 1,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 0,
+    "amaliyot_soat": 48,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 5,
+  "fields": {
+    "variant": 4,
+    "semestr": 2,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 0,
+    "amaliyot_soat": 48,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 6,
+  "fields": {
+    "variant": 5,
+    "semestr": 1,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 7,
+  "fields": {
+    "variant": 5,
+    "semestr": 2,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 8,
+  "fields": {
+    "variant": 6,
+    "semestr": 1,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 38,
+    "amaliyot_soat": 19,
+    "laboratoriya_soat": 19,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 9,
+  "fields": {
+    "variant": 6,
+    "semestr": 2,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 22,
+    "amaliyot_soat": 11,
+    "laboratoriya_soat": 11,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 10,
+  "fields": {
+    "variant": 7,
+    "semestr": 4,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 11,
+  "fields": {
+    "variant": 8,
+    "semestr": 3,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 12,
+  "fields": {
+    "variant": 9,
+    "semestr": 1,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 38,
+    "amaliyot_soat": 19,
+    "laboratoriya_soat": 19,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 13,
+  "fields": {
+    "variant": 9,
+    "semestr": 2,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 22,
+    "amaliyot_soat": 11,
+    "laboratoriya_soat": 11,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 14,
+  "fields": {
+    "variant": 10,
+    "semestr": 2,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 32,
+    "amaliyot_soat": 16,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 15,
+  "fields": {
+    "variant": 11,
+    "semestr": 3,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 16,
+  "fields": {
+    "variant": 12,
+    "semestr": 4,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 17,
+  "fields": {
+    "variant": 13,
+    "semestr": 2,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 18,
+  "fields": {
+    "variant": 14,
+    "semestr": 3,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 0,
+    "laboratoriya_soat": 36,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 19,
+  "fields": {
+    "variant": 15,
+    "semestr": 3,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 20,
+  "fields": {
+    "variant": 16,
+    "semestr": 3,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 21,
+  "fields": {
+    "variant": 17,
+    "semestr": 4,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 22,
+  "fields": {
+    "variant": 18,
+    "semestr": 4,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 23,
+  "fields": {
+    "variant": 19,
+    "semestr": 7,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 0,
+    "amaliyot_soat": 48,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 24,
+  "fields": {
+    "variant": 20,
+    "semestr": 5,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 25,
+  "fields": {
+    "variant": 21,
+    "semestr": 6,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 26,
+  "fields": {
+    "variant": 22,
+    "semestr": 5,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 27,
+  "fields": {
+    "variant": 23,
+    "semestr": 5,
+    "kredit": 6,
+    "haftalik_soat": 5,
+    "maruza_soat": 36,
+    "amaliyot_soat": 36,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 28,
+  "fields": {
+    "variant": 24,
+    "semestr": 7,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 29,
+  "fields": {
+    "variant": 25,
+    "semestr": 7,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 30,
+  "fields": {
+    "variant": 26,
+    "semestr": 4,
+    "kredit": 2,
+    "haftalik_soat": 2,
+    "maruza_soat": 0,
+    "amaliyot_soat": 32,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 31,
+  "fields": {
+    "variant": 26,
+    "semestr": 5,
+    "kredit": 3,
+    "haftalik_soat": 2,
+    "maruza_soat": 0,
+    "amaliyot_soat": 32,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 32,
+  "fields": {
+    "variant": 26,
+    "semestr": 6,
+    "kredit": 3,
+    "haftalik_soat": 2,
+    "maruza_soat": 0,
+    "amaliyot_soat": 32,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 33,
+  "fields": {
+    "variant": 26,
+    "semestr": 7,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 0,
+    "amaliyot_soat": 48,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 34,
+  "fields": {
+    "variant": 27,
+    "semestr": 4,
+    "kredit": 2,
+    "haftalik_soat": 2,
+    "maruza_soat": 0,
+    "amaliyot_soat": 32,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 35,
+  "fields": {
+    "variant": 27,
+    "semestr": 5,
+    "kredit": 3,
+    "haftalik_soat": 2,
+    "maruza_soat": 0,
+    "amaliyot_soat": 32,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 36,
+  "fields": {
+    "variant": 27,
+    "semestr": 6,
+    "kredit": 3,
+    "haftalik_soat": 2,
+    "maruza_soat": 0,
+    "amaliyot_soat": 32,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 37,
+  "fields": {
+    "variant": 27,
+    "semestr": 7,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 0,
+    "amaliyot_soat": 48,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 38,
+  "fields": {
+    "variant": 28,
+    "semestr": 4,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 39,
+  "fields": {
+    "variant": 28,
+    "semestr": 5,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 40,
+  "fields": {
+    "variant": 29,
+    "semestr": 4,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 41,
+  "fields": {
+    "variant": 29,
+    "semestr": 5,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 42,
+  "fields": {
+    "variant": 30,
+    "semestr": 6,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 43,
+  "fields": {
+    "variant": 31,
+    "semestr": 6,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 44,
+  "fields": {
+    "variant": 32,
+    "semestr": 5,
+    "kredit": 5,
+    "haftalik_soat": 4,
+    "maruza_soat": 31,
+    "amaliyot_soat": 31,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 45,
+  "fields": {
+    "variant": 32,
+    "semestr": 6,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 23,
+    "amaliyot_soat": 23,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 46,
+  "fields": {
+    "variant": 33,
+    "semestr": 5,
+    "kredit": 5,
+    "haftalik_soat": 4,
+    "maruza_soat": 31,
+    "amaliyot_soat": 31,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 47,
+  "fields": {
+    "variant": 33,
+    "semestr": 6,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 23,
+    "amaliyot_soat": 23,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 48,
+  "fields": {
+    "variant": 34,
+    "semestr": 6,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 49,
+  "fields": {
+    "variant": 35,
+    "semestr": 6,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 50,
+  "fields": {
+    "variant": 36,
+    "semestr": 6,
+    "kredit": 5,
+    "haftalik_soat": 4,
+    "maruza_soat": 30,
+    "amaliyot_soat": 30,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 51,
+  "fields": {
+    "variant": 36,
+    "semestr": 7,
+    "kredit": 5,
+    "haftalik_soat": 4,
+    "maruza_soat": 30,
+    "amaliyot_soat": 30,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 52,
+  "fields": {
+    "variant": 37,
+    "semestr": 6,
+    "kredit": 5,
+    "haftalik_soat": 4,
+    "maruza_soat": 30,
+    "amaliyot_soat": 30,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 53,
+  "fields": {
+    "variant": 37,
+    "semestr": 7,
+    "kredit": 5,
+    "haftalik_soat": 4,
+    "maruza_soat": 30,
+    "amaliyot_soat": 30,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 54,
+  "fields": {
+    "variant": 38,
+    "semestr": 6,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 23,
+    "amaliyot_soat": 23,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 55,
+  "fields": {
+    "variant": 38,
+    "semestr": 7,
+    "kredit": 5,
+    "haftalik_soat": 4,
+    "maruza_soat": 31,
+    "amaliyot_soat": 31,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 56,
+  "fields": {
+    "variant": 39,
+    "semestr": 6,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 23,
+    "amaliyot_soat": 23,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 57,
+  "fields": {
+    "variant": 39,
+    "semestr": 7,
+    "kredit": 5,
+    "haftalik_soat": 4,
+    "maruza_soat": 31,
+    "amaliyot_soat": 31,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 58,
+  "fields": {
+    "variant": 40,
+    "semestr": 7,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.fansemestr",
+  "pk": 59,
+  "fields": {
+    "variant": 41,
+    "semestr": 7,
+    "kredit": 4,
+    "haftalik_soat": 3,
+    "maruza_soat": 24,
+    "amaliyot_soat": 24,
+    "laboratoriya_soat": 0,
+    "seminar_soat": 0,
+    "kurs_ishi_bor": false
+  }
+},
+{
+  "model": "plans.yuklama",
+  "pk": 1,
+  "fields": {
+    "fan_semestr": 21,
+    "tur": "MARUZA",
+    "oqituvchi": 1,
+    "guruh": null,
+    "talabalar_soni": null,
+    "soat": 36
+  }
+},
+{
+  "model": "plans.yuklama",
+  "pk": 2,
+  "fields": {
+    "fan_semestr": 21,
+    "tur": "AMALIYOT",
+    "oqituvchi": 1,
+    "guruh": 1,
+    "talabalar_soni": null,
+    "soat": 36
+  }
+},
+{
+  "model": "plans.yuklama",
+  "pk": 3,
+  "fields": {
+    "fan_semestr": 21,
+    "tur": "AMALIYOT",
+    "oqituvchi": 1,
+    "guruh": 2,
+    "talabalar_soni": null,
+    "soat": 36
+  }
+},
+{
+  "model": "plans.dasturtopshirish",
+  "pk": 1,
+  "fields": {
+    "variant": 17,
+    "urinish_raqami": 1,
+    "oqituvchi": 1,
+    "fayl": "dasturlar/2026/Boydadayev_Muhammadamin.docx",
+    "holat": "RAD_ETILDI",
+    "izoh": "iojiuhu",
+    "yuborilgan_vaqt": "2026-10-28T09:11:06.495Z",
+    "korib_chiqilgan_vaqt": "2026-10-28T09:11:21.295Z",
+    "korib_chiqqan": [
+      "+998912961160"
+    ]
+  }
+},
+{
+  "model": "plans.dasturtopshirish",
+  "pk": 2,
+  "fields": {
+    "variant": 17,
+    "urinish_raqami": 2,
+    "oqituvchi": 1,
+    "fayl": "dasturlar/2026/Boydadayev_Muhammadamin_xYAonpy.docx",
+    "holat": "QABUL_QILINDI",
+    "izoh": "",
+    "yuborilgan_vaqt": "2026-10-28T09:11:36.085Z",
+    "korib_chiqilgan_vaqt": "2026-10-28T09:12:10.969Z",
+    "korib_chiqqan": [
+      "+998912961160"
+    ]
+  }
+},
+{
+  "model": "admin.logentry",
+  "pk": 1,
+  "fields": {
+    "action_time": "2026-10-28T09:03:09.793Z",
+    "user": [
+      "+998912961160"
+    ],
+    "content_type": [
+      "accounts",
+      "oqituvchituri"
+    ],
+    "object_id": "1",
+    "object_repr": "oqituvchi",
+    "action_flag": 1,
+    "change_message": "[{\"added\": {}}]"
+  }
+}
+]

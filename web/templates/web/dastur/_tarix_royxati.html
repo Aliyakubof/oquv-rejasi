@@ -6,7 +6,7 @@
     {% if urinish.holat == "QABUL_QILINDI" %}<span class="tag tag-mand">QABUL QILINDI</span>
     {% elif urinish.holat == "RAD_ETILDI" %}<span class="tag tag-rad">RAD ETILDI</span>
     {% else %}<span class="tag tag-elec">KO'RIB CHIQILMOQDA</span>{% endif %}
-    <a class="btn" href="{% url fayl_url_nomi urinish.pk %}">Faylni ochish</a>
+    <a class="btn" href="{% url fayl_url_nomi urinish.pk %}" hx-boost="false">Faylni ochish</a>
   </div>
   {% if urinish.izoh %}<div class="credits" style="margin-top:4px;">{{ urinish.izoh }}</div>{% endif %}
 </div>

@@ -9,6 +9,8 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 
 from accounts.models import Department, Rol
+from plans import dashboard
+from plans.dashboard import yilni_tanlash
 
 
 class RolTalabMixin(LoginRequiredMixin):
@@ -80,3 +82,24 @@ def office_admin_talab(
         return view(request, *args, **kwargs)
 
     return wrapper
+
+
+def xato_matni(exc: Exception) -> str:
+    """Format ValidationError messages into a single user-facing string."""
+    return " ".join(exc.messages) if hasattr(exc, "messages") else str(exc)
+
+
+class YilTanlovMixin:
+    """Provides self.yil and self.yillar and injects them into template context."""
+
+    yil: int
+    yillar: list[int]
+
+    def get_context_data(self, **kwargs: object) -> dict[str, object]:
+        context = super().get_context_data(**kwargs)
+        yillar, yil = yilni_tanlash(self.request.GET.get("yil"))
+        self.yil = yil or dashboard.joriy_akademik_yil()
+        self.yillar = yillar
+        context["yil"] = self.yil
+        context["yillar"] = self.yillar
+        return context

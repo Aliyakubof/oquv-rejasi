@@ -18,6 +18,7 @@ from accounts.models import (
     OqituvchiTuri,
     Rol,
 )
+from accounts.services import mudir_tayinlash, oqituvchi_yaratish
 
 DEPARTMENT_NAMES = [
     "Axborot tizimlari va texnologiyalari",
@@ -80,10 +81,7 @@ class Command(BaseCommand):
             return
 
         head_profil = self._create_teacher_profil(index * 100, department, turlari)
-        head_profil.foydalanuvchi.rol = Rol.DEPARTMENT_ADMIN
-        head_profil.foydalanuvchi.save(update_fields=["rol"])
-        department.mudir = head_profil
-        department.save(update_fields=["mudir"])
+        mudir_tayinlash(department, head_profil)
 
         for offset in range(1, 4):
             self._create_teacher_profil(index * 100 + offset, department, turlari)
@@ -93,16 +91,11 @@ class Command(BaseCommand):
     def _create_teacher_profil(
         self, seed: int, department: Department, turlari: list[OqituvchiTuri]
     ) -> OqituvchiProfil:
-        first_name = random.choice(FIRST_NAMES)
-        last_name = random.choice(LAST_NAMES)
-        telefon = f"{PHONE_PREFIX}{seed:07d}"
-        user = Foydalanuvchi.objects.create_user(
-            telefon=telefon,
-            password=DEFAULT_PASSWORD,
-            first_name=first_name,
-            last_name=last_name,
-            rol=Rol.TEACHER,
-        )
-        return OqituvchiProfil.objects.create(
-            foydalanuvchi=user, kafedra=department, turi=random.choice(turlari)
+        return oqituvchi_yaratish(
+            telefon=f"{PHONE_PREFIX}{seed:07d}",
+            first_name=random.choice(FIRST_NAMES),
+            last_name=random.choice(LAST_NAMES),
+            parol=DEFAULT_PASSWORD,
+            kafedra=department,
+            turi=random.choice(turlari),
         )

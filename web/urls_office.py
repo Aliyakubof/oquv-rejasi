@@ -1,5 +1,6 @@
 from django.urls import path
 
+from web.views.office.audit import AuditListView
 from web.views.office.dashboard import (
     DashboardView,
     kafedra_biriktirish,
@@ -18,19 +19,34 @@ from web.views.office.kafedralar import (
     KafedraYangiView,
     kafedra_mudir,
     kafedra_ochirish,
+    kafedra_yuklama_qaytarish,
+    kafedra_yuklama_tasdiqlash,
 )
 from web.views.office.oqituvchilar import (
     OqituvchiListView,
     OqituvchiTahrirView,
     OqituvchiYangiView,
+    OqituvchiYuklamaView,
     oqituvchi_ochirish,
+    oqituvchilar_excel_view,
 )
 from web.views.office.rejalar import (
     RejaDetailView,
     RejaImportView,
     RejaListView,
     RejaTahrirView,
+    reja_ochirish,
     semestrovka_saqlash,
+)
+from web.views.office.sozlamalar import (
+    LavozimTahrirView,
+    LavozimYangiView,
+    SozlamalarView,
+    YonalishTahrirView,
+    YonalishYangiView,
+    lavozim_ochirish,
+    universitet_saqlash,
+    yonalish_ochirish,
 )
 
 urlpatterns = [
@@ -41,11 +57,13 @@ urlpatterns = [
     path("rejalar/yangi/", RejaImportView.as_view(), name="reja_yangi"),
     path("rejalar/<int:pk>/", RejaDetailView.as_view(), name="reja_detail"),
     path("rejalar/<int:pk>/tahrir/", RejaTahrirView.as_view(), name="reja_tahrir"),
+    path("rejalar/<int:pk>/ochirish/", reja_ochirish, name="reja_ochirish"),
     path(
         "rejalar/<int:pk>/semestrovka/",
         semestrovka_saqlash,
         name="semestrovka_saqlash",
     ),
+    path("audit/", AuditListView.as_view(), name="audit_list"),
     path("dasturlar/", DasturTopshirishlarView.as_view(), name="dastur_topshirishlar"),
     path("dasturlar/<int:pk>/qabul/", dastur_qabul, name="dastur_qabul"),
     path("dasturlar/<int:pk>/rad/", dastur_rad, name="dastur_rad"),
@@ -60,8 +78,24 @@ urlpatterns = [
     ),
     path("kafedralar/<int:pk>/ochirish/", kafedra_ochirish, name="kafedra_ochirish"),
     path("kafedralar/<int:pk>/mudir/", kafedra_mudir, name="kafedra_mudir"),
+    path(
+        "kafedralar/<int:pk>/tasdiqlash/",
+        kafedra_yuklama_tasdiqlash,
+        name="kafedra_tasdiqlash",
+    ),
+    path(
+        "kafedralar/<int:pk>/qaytarish/",
+        kafedra_yuklama_qaytarish,
+        name="kafedra_qaytarish",
+    ),
     path("oqituvchilar/", OqituvchiListView.as_view(), name="oqituvchi_list"),
+    path("oqituvchilar/excel/", oqituvchilar_excel_view, name="oqituvchi_excel"),
     path("oqituvchilar/yangi/", OqituvchiYangiView.as_view(), name="oqituvchi_yangi"),
+    path(
+        "oqituvchilar/<int:pk>/yuklama/",
+        OqituvchiYuklamaView.as_view(),
+        name="oqituvchi_yuklama",
+    ),
     path(
         "oqituvchilar/<int:pk>/tahrir/",
         OqituvchiTahrirView.as_view(),
@@ -69,5 +103,41 @@ urlpatterns = [
     ),
     path(
         "oqituvchilar/<int:pk>/ochirish/", oqituvchi_ochirish, name="oqituvchi_ochirish"
+    ),
+    path("sozlamalar/", SozlamalarView.as_view(), name="sozlamalar"),
+    path(
+        "sozlamalar/universitet/",
+        universitet_saqlash,
+        name="universitet_saqlash",
+    ),
+    path(
+        "sozlamalar/lavozimlar/yangi/",
+        LavozimYangiView.as_view(),
+        name="lavozim_yangi",
+    ),
+    path(
+        "sozlamalar/lavozimlar/<int:pk>/tahrir/",
+        LavozimTahrirView.as_view(),
+        name="lavozim_tahrir",
+    ),
+    path(
+        "sozlamalar/lavozimlar/<int:pk>/ochirish/",
+        lavozim_ochirish,
+        name="lavozim_ochirish",
+    ),
+    path(
+        "sozlamalar/yonalishlar/yangi/",
+        YonalishYangiView.as_view(),
+        name="yonalish_yangi",
+    ),
+    path(
+        "sozlamalar/yonalishlar/<int:pk>/tahrir/",
+        YonalishTahrirView.as_view(),
+        name="yonalish_tahrir",
+    ),
+    path(
+        "sozlamalar/yonalishlar/<int:pk>/ochirish/",
+        yonalish_ochirish,
+        name="yonalish_ochirish",
     ),
 ]

@@ -6,6 +6,15 @@ def _oquv_yili_semestrlari(kurs: int) -> tuple[int, int]:
     return 2 * kurs - 1, 2 * kurs
 
 
+def _akademik_yil_ifodasi(prefiks: str = "") -> ExpressionWrapper:
+    # Integer division on both SQLite and Postgres, so (semestr-1)/2 floors.
+    return ExpressionWrapper(
+        F(f"{prefiks}variant__fan__reja__boshlanish_yili")
+        + (F(f"{prefiks}semestr") - 1) / 2,
+        output_field=models.IntegerField(),
+    )
+
+
 class FanQuerySet(models.QuerySet):
     def oquv_yilida(self, kurs: int) -> "FanQuerySet":
         semestrlar = _oquv_yili_semestrlari(kurs)
@@ -18,6 +27,11 @@ class FanQuerySet(models.QuerySet):
         from plans.models import FanTuri
 
         return self.filter(turi=FanTuri.TANLOV, tanlangan_variant__isnull=True)
+
+    def tanlov_tanlangan(self) -> "FanQuerySet":
+        from plans.models import FanTuri
+
+        return self.filter(turi=FanTuri.TANLOV, tanlangan_variant__isnull=False)
 
 
 class FanVariantQuerySet(models.QuerySet):
@@ -36,14 +50,7 @@ class FanSemestrQuerySet(models.QuerySet):
         return self.filter(variant__fan__reja=reja)
 
     def akademik_yil_bilan(self) -> "FanSemestrQuerySet":
-        # Integer division on both SQLite and Postgres, so (semestr-1)/2 floors.
-        # Named akademik_yili to avoid clashing with the model property.
-        return self.annotate(
-            akademik_yili=ExpressionWrapper(
-                F("variant__fan__reja__boshlanish_yili") + (F("semestr") - 1) / 2,
-                output_field=models.IntegerField(),
-            )
-        )
+        return self.annotate(akademik_yili=_akademik_yil_ifodasi())
 
     def akademik_yilda(self, yil: int) -> "FanSemestrQuerySet":
         return self.akademik_yil_bilan().filter(akademik_yili=yil)
@@ -51,13 +58,7 @@ class FanSemestrQuerySet(models.QuerySet):
 
 class YuklamaQuerySet(models.QuerySet):
     def akademik_yil_bilan(self) -> "YuklamaQuerySet":
-        return self.annotate(
-            akademik_yili=ExpressionWrapper(
-                F("fan_semestr__variant__fan__reja__boshlanish_yili")
-                + (F("fan_semestr__semestr") - 1) / 2,
-                output_field=models.IntegerField(),
-            )
-        )
+        return self.annotate(akademik_yili=_akademik_yil_ifodasi("fan_semestr__"))
 
     def akademik_yilda(self, yil: int) -> "YuklamaQuerySet":
         return self.akademik_yil_bilan().filter(akademik_yili=yil)

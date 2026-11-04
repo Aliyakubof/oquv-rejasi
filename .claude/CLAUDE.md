@@ -76,15 +76,6 @@ The `docs/` folder contains structural maps of the documents this project parses
 - Raise specific exceptions with messages on parse failures — never silently skip malformed rows.
 - Return dataclasses or typed dicts from the parser, not raw tuples or openpyxl objects.
 
-## Git rules
-
-- Never commit to main. One branch per task: `feat/`, `fix/`, `refactor/`.
-- Commit after each verified checkpoint (tests green).
-- Message format: `type(scope): imperative summary`, under 72 chars.
-  Add a body explaining WHY when the reason isn't obvious.
-- Never `git add .` or `git add -A`. Run `git status`, then add named files only.
-- Never push, merge, rebase, or force-push. Ever. I do those myself.
-- Never commit commented-out code — delete it, git history keeps it.
 
 ## Rules
 

@@ -6,22 +6,37 @@
     <div class="title">Dastur topshiriqlari</div>
   </div>
   <div class="controls">
-    <form method="get">
-      <select name="holat" onchange="this.form.submit()">
-        <option value="">Barcha holatlar</option>
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;"
+          hx-get="{% url 'office:dastur_topshirishlar' %}" hx-trigger="change from:select"
+          hx-target="#dasturlar-jonli" hx-select="#dasturlar-jonli"
+          hx-swap="outerHTML" hx-push-url="true">
+      <select name="kafedra" aria-label="Kafedra" onchange="if(!window.htmx) this.form.submit()">
+        <option value="">Barcha kafedralar</option>
+        {% for k in kafedralar %}
+        <option value="{{ k.pk }}" {% if k.pk == kafedra_id %}selected{% endif %}>{{ k.nomi }}</option>
+        {% endfor %}
+      </select>
+      <select name="holat" aria-label="Holat" onchange="if(!window.htmx) this.form.submit()">
+        <option value="">Barcha topshirilganlar</option>
         <option value="KUTILMOQDA" {% if holat == "KUTILMOQDA" %}selected{% endif %}>Ko'rib chiqilmoqda</option>
         <option value="QABUL_QILINDI" {% if holat == "QABUL_QILINDI" %}selected{% endif %}>Qabul qilindi</option>
         <option value="RAD_ETILDI" {% if holat == "RAD_ETILDI" %}selected{% endif %}>Rad etildi</option>
+        <option value="TOPSHIRILMAGAN" {% if holat == "TOPSHIRILMAGAN" %}selected{% endif %}>Hali topshirilmagan ({{ topshirilmagan_soni }})</option>
       </select>
     </form>
   </div>
 </div>
-<div x-data="{ qidiruv: '' }">
+<div id="dasturlar-jonli" x-data="{ qidiruv: '' }">
   <div class="controls" style="margin-bottom:10px;">
     <div class="search">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input type="text" placeholder="Fan yoki o'qituvchi" x-model="qidiruv">
+      <input type="text" placeholder="Fan yoki o'qituvchi" aria-label="Fan yoki o'qituvchi" x-model="qidiruv">
     </div>
+    {% if topshirilmagan_soni and holat != "TOPSHIRILMAGAN" %}
+    <a class="chip-btn" href="?holat=TOPSHIRILMAGAN{% if kafedra_id %}&kafedra={{ kafedra_id }}{% endif %}">
+      Hali topshirilmagan fanlar: <strong>{{ topshirilmagan_soni }} ta</strong>
+    </a>
+    {% endif %}
   </div>
   <div class="table-wrap narrow cards">
     <table>
@@ -35,15 +50,36 @@
           <th></th>
         </tr>
       </thead>
-      <tbody>
-        {% for t in topshirishlar %}
-        {% include "web/office/dasturlar/_qator.html" %}
-        <tr><td colspan="6" style="padding:0;border-bottom:0;">
-          <div id="dastur-panel-{{ t.variant_id }}"></div>
-        </td></tr>
-        {% empty %}
-        <tr><td colspan="6"><div class="empty-state">Hozircha dastur topshirilmagan.</div></td></tr>
-        {% endfor %}
+      <tbody data-jonli="office-dasturlar-tbody">
+        {% if holat == "TOPSHIRILMAGAN" %}
+          {% for td in topshirilmaganlar %}
+          <tr data-nomi="{{ td.variant.nomi|lower }} {{ td.oqituvchi|stringformat:'s'|lower }}"
+              x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())"
+              class="qator-biriktirilmagan">
+            <td data-label="Fan">
+              <span class="code">{{ td.variant.kodi|default:"" }}</span>
+              <strong>{{ td.variant.nomi }}</strong>
+              <span class="credits">· {{ td.variant.fan.reja.yonalish_kodi }}</span>
+            </td>
+            <td data-label="Kafedra">{{ td.variant.kafedra.nomi|default:"—" }}</td>
+            <td data-label="O'qituvchi">{{ td.oqituvchi }}</td>
+            <td data-label="Yuborilgan vaqt">—</td>
+            <td data-label="Holat"><span class="tag tag-rad">TOPSHIRILMAGAN</span></td>
+            <td></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6"><div class="empty-state">Barcha ma'ruza o'qituvchilari dastur topshirgan.</div></td></tr>
+          {% endfor %}
+        {% else %}
+          {% for t in topshirishlar %}
+          {% include "web/office/dasturlar/_qator.html" %}
+          <tr class="panel-row"><td colspan="6" style="padding:0;border-bottom:0;">
+            <div id="dastur-panel-{{ t.variant_id }}"></div>
+          </td></tr>
+          {% empty %}
+          <tr><td colspan="6"><div class="empty-state">Hozircha dastur topshirilmagan.</div></td></tr>
+          {% endfor %}
+        {% endif %}
       </tbody>
     </table>
   </div>

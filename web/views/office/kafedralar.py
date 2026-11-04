@@ -11,26 +11,25 @@ from django.views.generic import CreateView, TemplateView, UpdateView
 
 from accounts.models import Department, OqituvchiProfil
 from accounts.services import mudir_tayinlash
-from plans import dashboard
+from plans import dashboard, services
+from plans.audit import audit_yoz
+from plans.dashboard import yilni_tanlash
+from plans.models import AuditAmali
 from web.forms.kafedra import KafedraForm
-from web.mixins import OfficeAdminTalabMixin, office_admin_talab
-from web.views.office.dashboard import yilni_tanlash
+from web.mixins import (
+    OfficeAdminTalabMixin,
+    YilTanlovMixin,
+    office_admin_talab,
+    xato_matni,
+)
 
 
-class KafedraListView(OfficeAdminTalabMixin, TemplateView):
+class KafedraListView(OfficeAdminTalabMixin, YilTanlovMixin, TemplateView):
     template_name = "web/office/kafedralar/list.html"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        yillar, yil = yilni_tanlash(self.request.GET.get("yil"))
-        yil = yil or dashboard.joriy_akademik_yil()
-        context.update(
-            {
-                "yillar": yillar,
-                "yil": yil,
-                "qamrovlar": dashboard.kafedra_qamrovi(yil),
-            }
-        )
+        context["qamrovlar"] = dashboard.kafedra_qamrovi(self.yil)
         return context
 
 
@@ -86,5 +85,44 @@ def kafedra_mudir(request: HttpRequest, pk: int) -> HttpResponse:
                 request, f"{kafedra.nomi}: {profil} mudir etib tayinlandi."
             )
     except ValidationError as xato:
-        messages.error(request, " ".join(xato.messages))
+        messages.error(request, xato_matni(xato))
     return redirect("office:kafedra_list")
+
+
+@require_POST
+@office_admin_talab
+def kafedra_yuklama_tasdiqlash(request: HttpRequest, pk: int) -> HttpResponse:
+    kafedra = get_object_or_404(Department, pk=pk)
+    _, yil = yilni_tanlash(request.POST.get("yil"))
+    yil = yil or dashboard.joriy_akademik_yil()
+    izoh = request.POST.get("izoh", "").strip()
+    tasdiq = services.yuklamani_tasdiqlash(kafedra, yil, request.user, izoh)
+    audit_yoz(
+        AuditAmali.TASDIQLANDI,
+        f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi tasdiqlandi va qulflandi.",
+        model_nomi="KafedraYuklamaTasdiq",
+        obyekt_id=tasdiq.pk,
+        request=request,
+    )
+    messages.success(request, f"{kafedra.nomi} yuklamasi tasdiqlandi.")
+    return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
+
+
+@require_POST
+@office_admin_talab
+def kafedra_yuklama_qaytarish(request: HttpRequest, pk: int) -> HttpResponse:
+    kafedra = get_object_or_404(Department, pk=pk)
+    _, yil = yilni_tanlash(request.POST.get("yil"))
+    yil = yil or dashboard.joriy_akademik_yil()
+    izoh = request.POST.get("izoh", "").strip()
+    tasdiq = services.yuklamani_qaytarish(kafedra, yil, request.user, izoh)
+    sabab = izoh or "Izohsiz"
+    audit_yoz(
+        AuditAmali.QAYTARILDI,
+        f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi qaytarildi. Sabab: {sabab}",
+        model_nomi="KafedraYuklamaTasdiq",
+        obyekt_id=tasdiq.pk,
+        request=request,
+    )
+    messages.warning(request, f"{kafedra.nomi} yuklamasi qaytarildi.")
+    return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")

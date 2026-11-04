@@ -39,11 +39,7 @@ Shares the parent Alpine scope (qidiruv/faqat) for search and filtering.{% endco
       {% include "web/office/_soat_breakdown_hujayralari.html" with fs=fs guruhlar_soni=satr.fan.reja.guruhlar_soni %}
       <td class="assign-cell">
         {% if forloop.first %}
-        {% if satr.kafedra %}
-        <span class="teacher-chip"><span class="avatar">{{ satr.kafedra.nomi|bosh_harflar }}</span>{{ satr.kafedra.nomi }}</span>
-        {% else %}
-        <span class="teacher-chip empty">Biriktirilmagan</span>
-        {% endif %}
+        {% include "web/parts/_kafedra_chip.html" with kafedra=satr.kafedra %}
         {% endif %}
       </td>
     </tr>

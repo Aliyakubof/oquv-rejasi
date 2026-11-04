@@ -1,15 +1,22 @@
 {% load ui %}
 {% with t=satr.turlar|kalit:tur %}
-<td class="sem-cell">
+<td class="sem-cell" data-label="{{ yorliq }}">
   {% if t %}
   {% if t.talab_soat == None %}
-  <div class="sem-fill" style="background:var(--unassigned-soft);color:var(--unassigned);" title="Talabalar yoki guruhlar soni kiritilmagan">?</div>
+  <button type="button" class="sem-fill warn sem-fill-btn"
+          title="Talabalar yoki guruhlar soni kiritilmagan"
+          hx-get="{% url 'kafedra:taqsimot_panel' satr.fan_semestr.pk %}"
+          hx-target="#panel-{{ satr.fan_semestr.pk }}" hx-swap="innerHTML"
+          hx-indicator="#panel-yuk-{{ satr.fan_semestr.pk }}">?</button>
   {% else %}
-  <div class="sem-fill" {% if t.qoldiq_soat > 0 %}style="background:var(--unassigned-soft);color:var(--unassigned);"{% endif %}
-       title="Taqsimlangan {{ t.taqsimlangan_soat }} / talab {{ t.talab_soat }}">{{ t.taqsimlangan_soat }}/{{ t.talab_soat }}</div>
+  <button type="button" class="sem-fill {% if t.qoldiq_soat > 0 %}warn{% else %}ok{% endif %} sem-fill-btn"
+          title="Taqsimlangan {{ t.taqsimlangan_soat }} / talab {{ t.talab_soat }} soat"
+          hx-get="{% url 'kafedra:taqsimot_panel' satr.fan_semestr.pk %}"
+          hx-target="#panel-{{ satr.fan_semestr.pk }}" hx-swap="innerHTML"
+          hx-indicator="#panel-yuk-{{ satr.fan_semestr.pk }}">{{ t.taqsimlangan_soat }}/{{ t.talab_soat }}</button>
   {% endif %}
   {% else %}
-  <div class="sem-empty"></div>
+  <span class="sem-dash">—</span>
   {% endif %}
 </td>
 {% endwith %}

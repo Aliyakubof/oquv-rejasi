@@ -1,11 +1,15 @@
 <div x-data="{ qidiruv: '', faqat: false, semestrovka: false }">
-  <div class="controls" style="margin-bottom:10px;">
-    <div class="search">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input type="text" placeholder="Fan nomi yoki kodi" x-model="qidiruv">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+    <div class="controls">
+      {% include "web/parts/_qidiruv.html" with placeholder="Fan nomi yoki kodi" aria_label="Fan nomi yoki kodi" %}
+      <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
+      <button type="button" class="chip-btn" :class="semestrovka && 'active'" @click="semestrovka = !semestrovka">Semestrovka</button>
     </div>
-    <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
-    <button type="button" class="chip-btn" :class="semestrovka && 'active'" @click="semestrovka = !semestrovka">Semestrovka</button>
+    <div class="legend" style="margin:0;">
+      <span><span class="dot" style="background:var(--mand);"></span>Majburiy fan</span>
+      <span><span class="dot" style="background:var(--elec);"></span>Tanlov fani</span>
+      <span><span class="dot" style="background:var(--unassigned-soft);border:1px solid var(--unassigned);"></span>Kafedraga biriktirilmagan</span>
+    </div>
   </div>
   <div class="table-wrap" x-show="!semestrovka">
     <table>
@@ -25,7 +29,7 @@
           <th class="assign-cell">Kafedra</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody data-jonli="office-fan-tbody">
         {% for satr in fan_satrlari %}
         {% include "web/office/_fan_qatori.html" %}
         {% empty %}
@@ -34,7 +38,7 @@
       </tbody>
     </table>
   </div>
-  <div class="table-wrap" x-show="semestrovka" x-cloak>
+  <div class="table-wrap" x-show="semestrovka" x-cloak data-jonli="office-fan-semestrovka">
     {% include "web/office/_fan_semestrovka.html" %}
   </div>
 </div>

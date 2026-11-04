@@ -3,7 +3,7 @@
 from django import template
 
 from accounts.models import OqituvchiProfil
-from accounts.services import universitet_olish
+from accounts.services import universitet_nomi
 
 register = template.Library()
 
@@ -11,10 +11,9 @@ register = template.Library()
 @register.filter
 def rasmiy_matn(profil: OqituvchiProfil) -> str:
     """Official doc line, e.g. 'Husainov I. – Universitet, "Kafedra" o'qituvchisi.'"""
-    universitet = universitet_olish()
-    universitet_nomi = universitet.rasmiy_nomi if universitet else "—"
+    nomi = universitet_nomi(bosh="—")
     return (
-        f"{profil.foydalanuvchi.rasmiy_qisqa_ism} – {universitet_nomi}, "
+        f"{profil.foydalanuvchi.rasmiy_qisqa_ism} – {nomi}, "
         f"“{profil.kafedra.nomi}” kafedrasi {profil.turi.nomi}."
     )
 

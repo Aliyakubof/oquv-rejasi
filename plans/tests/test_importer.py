@@ -165,9 +165,7 @@ class ImportRejaTest(TestCase):
 
     def test_klassifikatorda_yoq_yonalish_rad_etiladi(self) -> None:
         parsed = make_parsed()
-        self.assertFalse(
-            TalimYonalishi.objects.filter(kodi=parsed.yonalish_kodi).exists()
-        )
+        TalimYonalishi.objects.filter(kodi=parsed.yonalish_kodi).delete()
         with self.assertRaises(ImportXato):
             _import_reja(parsed)
 

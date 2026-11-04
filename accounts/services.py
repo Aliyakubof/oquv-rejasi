@@ -19,6 +19,12 @@ def universitet_olish() -> Universitet | None:
     return Universitet.objects.first()
 
 
+def universitet_nomi(bosh: str = "") -> str:
+    """Institution official name, or `bosh` fallback if not set."""
+    universitet = universitet_olish()
+    return universitet.rasmiy_nomi if universitet and universitet.rasmiy_nomi else bosh
+
+
 @transaction.atomic
 def oqituvchi_yaratish(
     *,
@@ -52,6 +58,9 @@ def oqituvchi_yangilash(
     turi: OqituvchiTuri,
     yangi_parol: str | None = None,
 ) -> None:
+    boshqa_kafedra = getattr(profil, "boshqarayotgan_kafedra", None)
+    if boshqa_kafedra is not None and boshqa_kafedra.pk != kafedra.pk:
+        mudir_tayinlash(boshqa_kafedra, None)
     foydalanuvchi = profil.foydalanuvchi
     foydalanuvchi.telefon = normalize_phone(telefon)
     foydalanuvchi.first_name = first_name

@@ -1,22 +1,9 @@
-{% extends "web/base.html" %}
-{% block title %}Kafedra{% endblock %}
-{% block content %}
-<nav class="breadcrumb" aria-label="Breadcrumb">
+{% extends "web/parts/base_form.html" %}
+{% block sahifa_sarlavhasi %}Kafedra{% endblock %}
+{% block breadcrumb %}
   <a href="{% url 'office:kafedra_list' %}">Kafedralar</a>
   <span class="sep">/</span>
   <span class="current">{% if form.instance.pk %}{{ form.instance.nomi }}{% else %}Yangi kafedra{% endif %}</span>
-</nav>
-<div class="topbar">
-  <div>
-    <div class="title">{% if form.instance.pk %}{{ form.instance.nomi }}{% else %}Yangi kafedra{% endif %}</div>
-  </div>
-</div>
-<div class="card">
-  <form method="post">
-    {% csrf_token %}
-    {% include "web/parts/_form_maydonlari.html" %}
-    <button type="submit" class="btn btn-primary">Saqlash</button>
-    <a class="btn" href="{% url 'office:kafedra_list' %}">Bekor qilish</a>
-  </form>
-</div>
 {% endblock %}
+{% block form_nomi %}{% if form.instance.pk %}{{ form.instance.nomi }}{% else %}Yangi kafedra{% endif %}{% endblock %}
+{% block bekor_url %}{% url 'office:kafedra_list' %}{% endblock %}

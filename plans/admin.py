@@ -7,7 +7,6 @@ from plans.models import (
     DasturTopshirish,
     Fan,
     FanSemestr,
-    FanTuri,
     FanVariant,
     Guruh,
     OquvReja,
@@ -106,7 +105,7 @@ class TanlovHolatiFilter(admin.SimpleListFilter):
         if self.value() == "kutilmoqda":
             return queryset.tanlov_kutilmoqda()
         if self.value() == "tanlangan":
-            return queryset.filter(turi=FanTuri.TANLOV, tanlangan_variant__isnull=False)
+            return queryset.tanlov_tanlangan()
         return queryset
 
 

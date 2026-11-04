@@ -1,4 +1,4 @@
-"""O'quv reja screens: list, Excel import, detail (semestrovka) and edit."""
+"""O'quv reja screens: list, Excel import, detail (semestrovka), edit and delete."""
 
 import re
 
@@ -13,11 +13,11 @@ from django.views.generic import DetailView, FormView, ListView, UpdateView
 from accounts.models import Department
 from plans import dashboard, services
 from plans.importer import ImportNatija, ImportXato
-from plans.models import OquvReja
+from plans.models import FanTuri, OquvReja, Yuklama
 from plans.services import SemestrTahrir, semestrovka_yangilash
 from plans.uploads import fayldan_import_qilish
 from web.forms.reja import RejaImportForm, RejaTahrirForm
-from web.mixins import OfficeAdminTalabMixin, office_admin_talab
+from web.mixins import OfficeAdminTalabMixin, office_admin_talab, xato_matni
 
 
 class RejaListView(OfficeAdminTalabMixin, ListView):
@@ -62,16 +62,26 @@ class RejaDetailView(OfficeAdminTalabMixin, DetailView):
         reja = self.object
         satrlar = dashboard.reja_semestrovkasi(reja)
         semestr_kesimi = dashboard.reja_semestr_kesimi(reja)
+        birinchi_semestr = min(semestr_kesimi, default=None)
+        sorov_sem = self.request.GET.get("sem")
+        tanlangan_semestr = (
+            int(sorov_sem)
+            if sorov_sem and sorov_sem.isdigit() and int(sorov_sem) in semestr_kesimi
+            else birinchi_semestr
+        )
         context.update(
             {
                 "satrlar": satrlar,
-                "majburiy_satrlar": [s for s in satrlar if s.fan.turi == "MAJBURIY"],
-                "tanlov_satrlar": [s for s in satrlar if s.fan.turi == "TANLOV"],
+                "majburiy_satrlar": [
+                    s for s in satrlar if s.fan.turi == FanTuri.MAJBURIY
+                ],
+                "tanlov_satrlar": [s for s in satrlar if s.fan.turi == FanTuri.TANLOV],
                 "semestr_raqamlari": range(1, reja.semestrlar_soni + 1),
                 "stat": dashboard.statlarni_hisoblash(services.taqsimot_hisoboti(reja)),
                 "kafedralar": Department.objects.order_by("nomi"),
                 "semestr_kesimi": semestr_kesimi,
-                "birinchi_semestr": min(semestr_kesimi, default=None),
+                "birinchi_semestr": birinchi_semestr,
+                "tanlangan_semestr": tanlangan_semestr,
             }
         )
         return context
@@ -91,6 +101,22 @@ class RejaTahrirView(OfficeAdminTalabMixin, UpdateView):
 
     def get_success_url(self) -> str:
         return reverse("office:reja_detail", kwargs={"pk": self.object.pk})
+
+
+@require_POST
+@office_admin_talab
+def reja_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
+    reja = get_object_or_404(OquvReja, pk=pk)
+    if Yuklama.objects.filter(fan_semestr__variant__fan__reja=reja).exists():
+        messages.error(
+            request,
+            f"{reja} rejasida taqsimlangan yuklamalar bor — avval ularni bekor qiling.",
+        )
+        return redirect("office:reja_list")
+    nom = str(reja)
+    reja.delete()
+    messages.success(request, f"{nom} o'chirildi.")
+    return redirect("office:reja_list")
 
 
 _FS_MARUZA = re.compile(r"^fs-(\d+)-maruza$")
@@ -131,7 +157,7 @@ def semestrovka_saqlash(request: HttpRequest, pk: int) -> HttpResponse:
     try:
         semestrovka_yangilash(reja, _tahrirlarni_oqish(request.POST))
     except ValidationError as xato:
-        messages.error(request, " ".join(xato.messages))
+        messages.error(request, xato_matni(xato))
     else:
         messages.success(request, "Semestrovka saqlandi.")
     manzil = reverse("office:reja_detail", kwargs={"pk": reja.pk})

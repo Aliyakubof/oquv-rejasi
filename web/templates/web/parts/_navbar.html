@@ -1,12 +1,17 @@
 <nav class="navbar">
   <div class="navbar-inner">
-    <a class="brand" href="{% url 'bosh_sahifa' %}">O'quv yuklamasi</a>
+    <a class="brand" href="{% url 'bosh_sahifa' %}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.95;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      O'quv yuklamasi
+    </a>
     {% if user.is_office_admin or user.is_superadmin %}
       <a class="nav-link {% if request.resolver_match.view_name == 'office:dashboard' %}active{% endif %}" href="{% url 'office:dashboard' %}">Boshqaruv paneli</a>
       <a class="nav-link {% if 'reja' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'office:reja_list' %}">O'quv rejalar</a>
       <a class="nav-link {% if 'kafedra' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'office:kafedra_list' %}">Kafedralar</a>
       <a class="nav-link {% if 'oqituvchi' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'office:oqituvchi_list' %}">O'qituvchilar</a>
       <a class="nav-link {% if 'dastur' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'office:dastur_topshirishlar' %}">Dastur topshiriqlari</a>
+      <a class="nav-link {% if 'audit' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'office:audit_list' %}">Audit</a>
+      <a class="nav-link {% if 'sozlamalar' in request.resolver_match.url_name or 'lavozim' in request.resolver_match.url_name or 'yonalish' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'office:sozlamalar' %}">Sozlamalar</a>
     {% elif user.is_department_admin %}
       <a class="nav-link {% if request.resolver_match.view_name == 'kafedra:dashboard' %}active{% endif %}" href="{% url 'kafedra:dashboard' %}">Boshqaruv paneli</a>
       <a class="nav-link {% if 'oqituvchi' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'kafedra:oqituvchi_list' %}">O'qituvchilar</a>
@@ -19,6 +24,7 @@
     {% if debug_rejim %}
       {% include "web/parts/_rol_almashtirgich.html" %}
     {% else %}
+      <a class="nav-link {% if request.resolver_match.view_name == 'parol_ozgartirish' %}active{% endif %}" href="{% url 'parol_ozgartirish' %}">Parol</a>
       <span class="user">{{ user.get_full_name }}</span>
     {% endif %}
     <form method="post" action="{% url 'chiqish' %}">

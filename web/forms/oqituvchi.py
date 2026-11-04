@@ -54,18 +54,28 @@ class OqituvchiYaratishForm(OqituvchiAsosForm):
         )
 
 
-class KafedraOqituvchiYaratishForm(OqituvchiYaratishForm):
-    """Mudir's variant: kafedra is fixed to their own, not chosen."""
+class KafedraQulflanganMixin:
+    """Mudir's form mixin: locks kafedra to their own department."""
 
-    def __init__(self, kafedra: Department, *args: object, **kwargs: object):
-        self.kafedra_qiymati = kafedra
-        super().__init__(*args, **kwargs)
-        del self.fields["kafedra"]
+    kafedra_qiymati: Department
+
+    def _kafedrani_qulflash(self) -> None:
+        if "kafedra" in self.fields:
+            del self.fields["kafedra"]
 
     def clean(self) -> dict[str, object]:
         cleaned = super().clean()
         cleaned["kafedra"] = self.kafedra_qiymati
         return cleaned
+
+
+class KafedraOqituvchiYaratishForm(KafedraQulflanganMixin, OqituvchiYaratishForm):
+    """Mudir's variant: kafedra is fixed to their own, not chosen."""
+
+    def __init__(self, kafedra: Department, *args: object, **kwargs: object):
+        self.kafedra_qiymati = kafedra
+        super().__init__(*args, **kwargs)
+        self._kafedrani_qulflash()
 
 
 class OqituvchiTahrirForm(OqituvchiAsosForm):
@@ -108,15 +118,10 @@ class OqituvchiTahrirForm(OqituvchiAsosForm):
         )
 
 
-class KafedraOqituvchiTahrirForm(OqituvchiTahrirForm):
+class KafedraOqituvchiTahrirForm(KafedraQulflanganMixin, OqituvchiTahrirForm):
     """Mudir's variant: teacher stays in the mudir's kafedra."""
 
     def __init__(self, *args: object, **kwargs: object):
         super().__init__(*args, **kwargs)
         self.kafedra_qiymati = self.profil.kafedra
-        del self.fields["kafedra"]
-
-    def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
-        cleaned["kafedra"] = self.kafedra_qiymati
-        return cleaned
+        self._kafedrani_qulflash()

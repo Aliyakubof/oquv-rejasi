@@ -1,6 +1,8 @@
-<div class="card" style="margin:8px 0 16px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <h2 style="margin:0;">{{ variant.nomi }} — dastur topshirig'i</h2>
+<div class="taqsimot-panel">
+  <div class="taqsimot-panel-head">
+    <div>
+      <div class="taqsimot-panel-title">{{ variant.nomi }} — dastur topshirig'i</div>
+    </div>
     <button type="button" class="btn" onclick="document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">Yopish</button>
   </div>
   {% if xato %}
@@ -11,9 +13,9 @@
   <div class="credits" style="margin-top:10px;">Joriy topshiriq hali ko'rib chiqilmoqda — javob kutilsin.</div>
   {% else %}
   <form hx-post="{% url 'men:dastur_topshirish' variant.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML"
-        enctype="multipart/form-data" style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+        enctype="multipart/form-data" style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     {% csrf_token %}
-    <input type="file" name="fayl" accept=".docx" required>
+    <input type="file" name="fayl" accept=".docx" aria-label="O'quv dasturi (.docx)" required>
     <button type="submit" class="btn btn-primary">Topshirish</button>
   </form>
   {% endif %}

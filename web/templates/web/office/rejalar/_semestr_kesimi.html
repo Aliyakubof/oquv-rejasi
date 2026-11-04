@@ -3,12 +3,12 @@
 semester, each listing the courses taught that term with kafedra delegation
 (editable here) and teacher delegation (read-only status + popover; teachers
 are delegated from the kafedra dashboard).{% endcomment %}
-<div x-data="{ sem: {{ birinchi_semestr|default:"null" }} }">
-<div class="controls">
+<div x-data="{ sem: '{{ tanlangan_semestr|default:'' }}' }">
+<div class="controls semester-chips">
   {% for s in semestr_raqamlari %}
   {% with satrlar=semestr_kesimi|kalit:s %}
   {% if satrlar %}
-  <button type="button" class="chip-btn" :class="sem === {{ s }} && 'active'" @click="sem = {{ s }}">S{{ s }} <span class="group-count">({{ satrlar|length }})</span></button>
+  <button type="button" class="chip-btn" :class="sem === '{{ s }}' && 'active'" @click="sem = '{{ s }}'; history.replaceState(null, '', '?tab=semestr&sem={{ s }}')">S{{ s }} <span class="group-count">({{ satrlar|length }})</span></button>
   {% endif %}
   {% endwith %}
   {% endfor %}
@@ -16,24 +16,24 @@ are delegated from the kafedra dashboard).{% endcomment %}
 {% for s in semestr_raqamlari %}
 {% with satrlar=semestr_kesimi|kalit:s %}
 {% if satrlar %}
-<div x-show="sem === {{ s }}" x-cloak class="table-wrap">
+<div x-show="sem === '{{ s }}'" x-cloak class="table-wrap narrow table-semestr-kesimi">
   <table>
     <thead>
       <tr>
         <th class="col-idx">№</th>
         <th class="col-code">Kod</th>
         <th class="col-name">Fan</th>
-        <th class="num">Kredit</th>
-        <th class="num">Ma'ruza</th>
-        <th class="num">Amaliyot</th>
-        <th class="num">Lab.</th>
-        <th class="num">Seminar</th>
-        <th class="num">Kurs ishi</th>
-        <th class="assign-cell">Kafedra</th>
-        <th class="assign-cell">O'qituvchi</th>
+        <th class="col-num num">Kredit</th>
+        <th class="col-num num">Ma'ruza</th>
+        <th class="col-num num">Amaliyot</th>
+        <th class="col-num num">Lab.</th>
+        <th class="col-num num">Seminar</th>
+        <th class="col-num num">Kurs ishi</th>
+        <th class="col-kafedra assign-cell">Kafedra</th>
+        <th class="col-oqituvchi assign-cell">O'qituvchi</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody data-jonli="reja-semestr-s{{ s }}">
       {% for satr in satrlar %}
       {% include "web/office/rejalar/_semestr_kesimi_qatori.html" %}
       {% endfor %}

@@ -66,6 +66,26 @@ class OqituvchiYangilashTests(TestCase):
         self.assertEqual(profil.foydalanuvchi.first_name, "Yangi")
         self.assertTrue(profil.foydalanuvchi.check_password("boshqa-parol-99"))
 
+    def test_mudir_boshqa_kafedraga_otsa_mudirlik_bekor_qilinadi(self) -> None:
+        eski_kafedra = _kafedra("Biologiya")
+        yangi_kafedra = _kafedra("Ekologiya")
+        profil = make_oqituvchi(kafedra=eski_kafedra)
+        mudir_tayinlash(eski_kafedra, profil)
+
+        oqituvchi_yangilash(
+            profil,
+            telefon=profil.foydalanuvchi.telefon,
+            first_name=profil.foydalanuvchi.first_name,
+            last_name=profil.foydalanuvchi.last_name,
+            kafedra=yangi_kafedra,
+            turi=profil.turi,
+        )
+
+        eski_kafedra.refresh_from_db()
+        profil.foydalanuvchi.refresh_from_db()
+        self.assertIsNone(eski_kafedra.mudir)
+        self.assertEqual(profil.foydalanuvchi.rol, Rol.TEACHER)
+
 
 class MudirTayinlashTests(TestCase):
     def setUp(self) -> None:

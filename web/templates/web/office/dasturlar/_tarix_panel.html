@@ -8,7 +8,7 @@
   {% endif %}
   {% include "web/dastur/_tarix_royxati.html" with urinishlar=urinishlar fayl_url_nomi="office:dastur_fayl" %}
   {% if t %}
-  <div style="margin-top:10px;display:flex;gap:10px;align-items:flex-start;">
+  <div style="margin-top:12px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
     {% if t.holat != "QABUL_QILINDI" %}
     <form hx-post="{% url 'office:dastur_qabul' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML">
       {% csrf_token %}
@@ -17,11 +17,11 @@
     {% endif %}
     {% if t.holat != "RAD_ETILDI" %}
     <details style="display:inline-block;">
-      <summary class="btn btn-danger" style="display:inline-block;cursor:pointer;">Rad etish</summary>
-      <form hx-post="{% url 'office:dastur_rad' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" style="margin-top:6px;">
+      <summary class="btn btn-danger" style="display:inline-flex;cursor:pointer;">Rad etish</summary>
+      <form hx-post="{% url 'office:dastur_rad' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" style="margin-top:8px;min-width:300px;">
         {% csrf_token %}
-        <textarea name="izoh" rows="2" placeholder="Sababi" required style="width:200px;display:block;"></textarea>
-        <button type="submit" class="btn btn-danger" style="margin-top:4px;">Yuborish</button>
+        <textarea name="izoh" rows="3" class="form-textarea" placeholder="Rad etish sababini kiriting..." required style="margin-bottom:6px;"></textarea>
+        <button type="submit" class="btn btn-danger">Rad etishni tasdiqlash</button>
       </form>
     </details>
     {% endif %}

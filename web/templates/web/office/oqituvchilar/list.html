@@ -7,28 +7,28 @@
     <div class="title">O'qituvchilar</div>
   </div>
   <div class="controls">
-    <form method="get" style="display:flex;gap:8px;">
-      {% if yillar %}
-      <select name="yil" onchange="this.form.submit()">
-        {% for y in yillar %}
-        <option value="{{ y }}" {% if y == yil %}selected{% endif %}>{{ y }}/{{ y|add:1 }} o'quv yili</option>
-        {% endfor %}
-      </select>
-      {% endif %}
-      <select name="kafedra" onchange="this.form.submit()">
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;"
+          hx-get="{% url 'office:oqituvchi_list' %}" hx-trigger="change from:select"
+          hx-target="#oqituvchilar-jonli" hx-select="#oqituvchilar-jonli"
+          hx-swap="outerHTML" hx-push-url="true">
+      {% include "web/parts/_yil_tanlov.html" %}
+      <select name="kafedra" aria-label="Kafedra" onchange="if(!window.htmx) this.form.submit()">
         <option value="">Barcha kafedralar</option>
         {% for k in kafedralar %}
         <option value="{{ k.pk }}" {% if k == kafedra %}selected{% endif %}>{{ k.nomi }}</option>
         {% endfor %}
       </select>
     </form>
+    <a class="btn" href="{% url 'office:oqituvchi_excel' %}?yil={{ yil }}{% if kafedra %}&kafedra={{ kafedra.pk }}{% endif %}" hx-boost="false">Excel (.xlsx)</a>
     <a class="btn btn-primary" href="{% url 'office:oqituvchi_yangi' %}">+ Yangi o'qituvchi</a>
   </div>
 </div>
+<div id="oqituvchilar-jonli">
 {% if kafedra %}
 <div class="controls" style="margin-bottom:10px;">
   <a class="chip-removable" href="?yil={{ yil }}" title="Filtrni olib tashlash">Kafedra: {{ kafedra.nomi }} <span class="x">×</span></a>
 </div>
 {% endif %}
 {% include "web/office/oqituvchilar/_jadval.html" %}
+</div>
 {% endblock %}

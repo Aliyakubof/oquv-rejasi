@@ -1,13 +1,18 @@
 {% load ui %}
-<div class="popover" x-show="ochiq" x-cloak>
-  <input type="text" placeholder="O'qituvchi qidirish" x-model="q">
+<div class="popover popover-kafedra" x-show="ochiq" x-cloak>
+  <input type="text" placeholder="O'qituvchi qidirish" aria-label="O'qituvchi qidirish" x-model="q">
   {% for profil in oqituvchilar %}
   <button type="button" class="opt"
           x-show="q === '' || $el.textContent.toLowerCase().includes(q.toLowerCase())"
           hx-post="{% url url_nomi fs.pk %}"
           hx-vals='{"oqituvchi": {{ profil.pk }}{% if slot_guruh %}, "guruh": {{ slot_guruh.pk }}, "tur": "{{ holat_tur }}"{% endif %}}'
           hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML">
-    <span class="avatar">{{ profil|stringformat:"s"|bosh_harflar }}</span>{{ profil }}
+    <span class="avatar">{{ profil|stringformat:"s"|bosh_harflar }}</span>
+    <span class="opt-info">
+      <span class="opt-ism">{{ profil }}</span>
+      <span class="opt-lavozim">{{ profil.turi.nomi }}</span>
+    </span>
+    <span class="menu-soat {% if profil.kamomad %}kam{% else %}ok{% endif %}" title="Joriy yuklama / Minimal norma">{{ profil.jami_soat|default:0 }} / {{ profil.turi.min_soat }}</span>
   </button>
   {% empty %}
   <div class="hint" style="padding:6px 8px;">Kafedrada o'qituvchi yo'q</div>

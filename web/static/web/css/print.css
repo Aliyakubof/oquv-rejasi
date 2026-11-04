@@ -1,21 +1,65 @@
-/* Printable report: A4, black-on-white, chrome hidden when printing. */
-.print-toolbar { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 14px; }
-.letterhead { text-align: center; margin-bottom: 18px; }
-.letterhead h1 { font-size: 17px; margin: 0 0 4px; }
-.letterhead .sana { color: var(--muted); font-size: 12.5px; }
-.report-summary { display: flex; gap: 24px; margin: 14px 0; font-size: 13px; flex-wrap: wrap; }
-.report-summary strong { font-size: 15px; }
-.signatures { display: flex; justify-content: space-between; margin-top: 48px; font-size: 13px; }
-.signatures .line { border-top: 1px solid var(--ink); min-width: 220px; padding-top: 4px; text-align: center; }
+/* Printable report: clean minimalist card on screen, A4 black-on-white when printing. */
+.report-sheet {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 28px 30px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.letterhead {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.letterhead h1 {
+  font-size: 16.5px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+}
+
+.letterhead .sana {
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.report-sheet .table-wrap {
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.signatures {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 40px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.signatures .line {
+  border-top: 1px solid var(--line-strong);
+  min-width: 220px;
+  padding-top: 6px;
+  text-align: center;
+}
 
 @media print {
   @page { size: A4; margin: 18mm 14mm; }
   body { background: #fff; }
+  .navbar, .test-rejimi, .messages, .print-toolbar, .print-hide { display: none !important; }
   .app { max-width: none; padding: 0; }
-  .print-toolbar { display: none; }
-  .table-wrap { max-height: none; overflow: visible; border: 0; }
+  .report-sheet { border: 0; padding: 0; box-shadow: none; }
+  .letterhead { border-bottom: 0; padding-bottom: 0; }
+  .table-wrap { max-height: none; overflow: visible; border: 0; box-shadow: none; }
   table { min-width: 0 !important; }
   thead th { position: static; }
   tr { page-break-inside: avoid; }
   .progress { display: none; }
+  .signatures .line { border-top-color: #000; color: #000; }
 }

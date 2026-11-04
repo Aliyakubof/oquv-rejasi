@@ -2,24 +2,30 @@
 {% block title %}Kirish — O'quv yuklamasi{% endblock %}
 {% block content %}
 <div class="auth-card">
-  <h1>Tizimga kirish</h1>
+  <div style="text-align:center;margin-bottom:20px;">
+    <div class="auth-logo-badge">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </svg>
+    </div>
+    <h1 style="margin:0 0 6px;">Tizimga kirish</h1>
+    <div style="color:var(--text-muted);font-size:13px;">O'quv yuklamasi platformasi</div>
+  </div>
   <form method="post">
     {% csrf_token %}
     {% if form.non_field_errors %}
     <div class="form-errors">{{ form.non_field_errors }}</div>
     {% endif %}
     <div class="form-field">
-      <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
-      {{ form.username }}
-      {{ form.username.errors }}
+      {% include "web/parts/_maydon.html" with field=form.username %}
     </div>
     <div class="form-field">
-      <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
-      {{ form.password }}
-      {{ form.password.errors }}
+      {% include "web/parts/_maydon.html" with field=form.password %}
     </div>
     <input type="hidden" name="next" value="{{ next }}">
-    <button type="submit" class="btn btn-primary">Kirish</button>
+    <button type="submit" class="btn btn-primary" style="margin-top:8px;">Kirish</button>
   </form>
 </div>
 {% endblock %}

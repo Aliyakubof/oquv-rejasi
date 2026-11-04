@@ -1,0 +1,7 @@
+{% load ui %}
+{% if kafedra %}
+<span class="teacher-chip"><span class="avatar">{{ kafedra.nomi|bosh_harflar }}</span>{{ kafedra.nomi }}</span>
+{% else %}
+<span class="teacher-chip empty">Biriktirilmagan</span>
+{% endif %}
+

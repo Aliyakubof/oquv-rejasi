@@ -1,0 +1,166 @@
+{% extends "web/base_print.html" %}
+{% load ui %}
+{% block title %}{{ profil }} — Yuklama varaqasi{% endblock %}
+{% block content %}
+<div x-data="{ tab: 'shakl1' }">
+<nav class="breadcrumb print-hide" aria-label="Breadcrumb">
+  <a href="{% url orqaga_url %}?yil={{ yil }}">O'qituvchilar</a>
+  <span class="sep">/</span>
+  <span class="current">{{ profil }}</span>
+</nav>
+<div class="topbar print-toolbar">
+  <div>
+    <div class="title"><span class="badge-major">{{ profil.kafedra.nomi }}</span>{{ profil }}</div>
+  </div>
+  <div class="controls">
+    <div class="controls print-hide">
+      <button type="button" class="chip-btn" :class="tab === 'shakl1' && 'active'" @click="tab = 'shakl1'">1-shakl (Individual reja)</button>
+      <button type="button" class="chip-btn" :class="tab === 'royxat' && 'active'" @click="tab = 'royxat'">Batafsil ro'yxat</button>
+    </div>
+    {% if yillar %}
+    <form method="get">
+      <select name="yil" aria-label="O'quv yili" onchange="this.form.requestSubmit()">
+        {% for y in yillar %}
+        <option value="{{ y }}" {% if y == yil %}selected{% endif %}>{{ y }}/{{ y|add:1 }} o'quv yili</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% endif %}
+    <a class="btn" href="{% url orqaga_url %}?yil={{ yil }}">← Orqaga</a>
+    <button type="button" class="btn btn-primary" onclick="window.print()">Chop etish</button>
+  </div>
+</div>
+
+<div class="stats print-hide" data-jonli="oqituvchi-yuklama-summary">
+  <div class="stat"><div class="num">{{ jami_soat }}</div><div class="lbl">Jami yuklama soat</div></div>
+  <div class="stat"><div class="num">{{ profil.turi.min_soat }}</div><div class="lbl">Minimal norma ({{ profil.turi.nomi }})</div></div>
+  <div class="stat {% if kamomad %}warn{% else %}ok{% endif %}">
+    <div class="num">{{ jami_soat|foiz:profil.turi.min_soat }}%</div>
+    <div class="lbl">Qoplanish</div>
+  </div>
+  <div class="stat {% if kamomad %}warn{% else %}ok{% endif %}">
+    <div class="num">{{ kamomad }}</div>
+    <div class="lbl">Kamomad soat</div>
+  </div>
+</div>
+
+{% if tur_jami %}
+<div class="tur-taqsimot-bar print-hide">
+  {% for nomi, soat in tur_jami %}
+  <span>{{ nomi }}: <strong>{{ soat }} soat</strong></span>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="report-sheet">
+  <div class="letterhead">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px;">1-SHAKL (O'QUV YUKLAMASI)</div>
+    <h1>{{ profil }} — {{ yil }}/{{ yil|add:1 }} o'quv yili shaxsiy ish rejasi</h1>
+    <div class="sana">Kafedra: {{ profil.kafedra.nomi }} · Lavozim: {{ profil.turi.nomi }} · Telefon: {{ profil.foydalanuvchi.telefon }} · Jami: {{ jami_soat }} / {{ profil.turi.min_soat }} soat</div>
+  </div>
+
+  {# 1-shakl: rasmiy ta'lim standarti jadvali #}
+  <div class="table-wrap narrow cards" x-show="tab === 'shakl1'">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36px;">№</th>
+          <th>Fan nomi</th>
+          <th>Yo'nalish</th>
+          <th class="num" style="width:50px;">Kurs</th>
+          <th class="num" style="width:60px;">Sem.</th>
+          <th>Guruh / Oqim</th>
+          <th class="num">Ma'ruza</th>
+          <th class="num">Amaliyot</th>
+          <th class="num">Lab.</th>
+          <th class="num">Seminar</th>
+          <th class="num">Kurs ishi</th>
+          <th class="num">Jami</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in shakl1_satrlar %}
+        <tr>
+          <td data-label="№" style="color:var(--text-muted);">{{ forloop.counter }}</td>
+          <td data-label="Fan"><strong>{{ s.fan }}</strong></td>
+          <td data-label="Yo'nalish"><span class="code" style="font-size:11px;">{{ s.yonalish }}</span></td>
+          <td class="num" data-label="Kurs">{{ s.kurs }}-kurs</td>
+          <td class="num" data-label="Semestr">{{ s.semestr }}</td>
+          <td data-label="Guruh">{{ s.guruh }}</td>
+          <td class="num" data-label="Ma'ruza">{{ s.maruza|default:"—" }}</td>
+          <td class="num" data-label="Amaliyot">{{ s.amaliyot|default:"—" }}</td>
+          <td class="num" data-label="Laboratoriya">{{ s.laboratoriya|default:"—" }}</td>
+          <td class="num" data-label="Seminar">{{ s.seminar|default:"—" }}</td>
+          <td class="num" data-label="Kurs ishi">{{ s.kurs_ishi|default:"—" }}</td>
+          <td class="num" data-label="Jami"><strong>{{ s.jami }}</strong></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="12"><div class="empty-state">Yuklama taqsimlanmagan.</div></td></tr>
+        {% endfor %}
+      </tbody>
+      {% if shakl1_satrlar %}
+      <tfoot>
+        <tr>
+          <td colspan="11" style="text-align:right;font-weight:600;">Jami soat:</td>
+          <td class="num"><strong>{{ jami_soat }}</strong></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+
+  {# Batafsil ro'yxat #}
+  <div class="table-wrap narrow cards" x-show="tab === 'royxat'" x-cloak>
+    <table data-jonli="oqituvchi-yuklama-jadval">
+      <thead>
+        <tr>
+          <th style="width:48px;">№</th>
+          <th>Fan</th>
+          <th>Yo'nalish</th>
+          <th>Semestr</th>
+          <th>Mashg'ulot turi</th>
+          <th>Guruh / Talabalar</th>
+          <th class="num">Soat</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for yuklama in yuklamalar %}
+        <tr>
+          <td data-label="№" style="color:var(--text-muted);">{{ forloop.counter }}</td>
+          <td data-label="Fan">
+            {% if yuklama.fan_semestr.variant.kodi %}<span class="code">{{ yuklama.fan_semestr.variant.kodi }}</span>{% endif %}
+            <strong>{{ yuklama.fan_semestr.variant.nomi }}</strong>
+          </td>
+          <td data-label="Yo'nalish"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span> {{ yuklama.fan_semestr.variant.fan.reja.yonalish_nomi }}</td>
+          <td data-label="Semestr" style="white-space:nowrap;">{{ yuklama.fan_semestr.semestr }}-semestr</td>
+          <td data-label="Mashg'ulot turi">{{ yuklama.get_tur_display }}</td>
+          <td data-label="Guruh / Talabalar">
+            {% if yuklama.guruh %}<span class="code">{{ yuklama.guruh.nomi }}</span>
+            {% elif yuklama.talabalar_soni %}{{ yuklama.talabalar_soni }} talaba
+            {% else %}Butun oqim{% endif %}
+          </td>
+          <td class="num" data-label="Soat"><strong>{{ yuklama.soat }}</strong></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="empty-state">Bu o'quv yilida o'qituvchiga yuklama taqsimlanmagan.</div></td></tr>
+        {% endfor %}
+      </tbody>
+      {% if yuklamalar %}
+      <tfoot>
+        <tr>
+          <td colspan="6" style="text-align:right;font-weight:600;">Jami:</td>
+          <td class="num"><strong>{{ jami_soat }}</strong></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+
+  <div class="signatures">
+    <div class="line">O'qituvchi ({{ profil.foydalanuvchi.rasmiy_qisqa_ism }})</div>
+    <div class="line">Kafedra mudiri</div>
+    <div class="line">O'quv-uslubiy boshqarma</div>
+  </div>
+</div>
+</div>
+{% endblock %}

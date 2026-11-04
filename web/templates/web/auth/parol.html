@@ -1,0 +1,18 @@
+{% extends "web/base.html" %}
+{% block title %}Parolni o'zgartirish{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <div class="title">Parolni o'zgartirish</div>
+  </div>
+</div>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    {% include "web/parts/_form_maydonlari.html" %}
+    <button type="submit" class="btn btn-primary">Parolni saqlash</button>
+    <a class="btn" href="{% url 'bosh_sahifa' %}">Bekor qilish</a>
+  </form>
+</div>
+{% endblock %}
+

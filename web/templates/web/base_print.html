@@ -1,14 +1,1 @@
-{% load static %}<!DOCTYPE html>
-<html lang="uz">
-<head>
-<meta charset="UTF-8">
-<title>{% block title %}Hisobot{% endblock %}</title>
-<link rel="stylesheet" href="{% static 'web/css/app.css' %}">
-<link rel="stylesheet" href="{% static 'web/css/print.css' %}">
-</head>
-<body>
-<div class="app">
-{% block content %}{% endblock %}
-</div>
-</body>
-</html>
+{% extends "web/base.html" %}

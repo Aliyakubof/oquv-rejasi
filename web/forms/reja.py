@@ -1,9 +1,12 @@
 """Forms for creating (via Excel upload) and correcting an o'quv reja."""
 
 from django import forms
+from django.db.models import Sum
 
-from plans.models import OquvReja
+from plans.models import OquvReja, SoatTuri, Yuklama
 from plans.uploads import YuklashParametrlari
+
+MAX_REJA_HAJMI = 10 * 1024 * 1024  # 10 MB
 
 
 class RejaImportForm(forms.Form):
@@ -20,6 +23,14 @@ class RejaImportForm(forms.Form):
         help_text="Masalan: DI. Bo'sh qoldirilsa yo'nalish kodi ishlatiladi",
     )
     replace = forms.BooleanField(label="Mavjud rejani almashtirish", required=False)
+
+    def clean_fayl(self) -> object:
+        fayl = self.cleaned_data["fayl"]
+        if not fayl.name.lower().endswith(".xlsx"):
+            raise forms.ValidationError("Fayl .xlsx formatida bo'lishi kerak.")
+        if fayl.size and fayl.size > MAX_REJA_HAJMI:
+            raise forms.ValidationError("Fayl hajmi 10 MB dan oshmasligi kerak.")
+        return fayl
 
     def parametrlar(self) -> YuklashParametrlari:
         return YuklashParametrlari(
@@ -60,3 +71,23 @@ class RejaTahrirForm(forms.ModelForm):
             "guruhlar_soni": "Guruhlar soni",
             "guruh_prefiksi": "Guruh prefiksi",
         }
+
+    def clean_talabalar_soni(self) -> int | None:
+        soni = self.cleaned_data.get("talabalar_soni")
+        if self.instance.pk and soni is not None:
+            eng_kop = (
+                Yuklama.objects.filter(
+                    fan_semestr__variant__fan__reja=self.instance,
+                    tur=SoatTuri.KURS_ISHI,
+                )
+                .values("fan_semestr_id")
+                .annotate(jami=Sum("talabalar_soni"))
+                .order_by("-jami")
+                .values_list("jami", flat=True)
+                .first()
+            )
+            if eng_kop and soni < eng_kop:
+                raise forms.ValidationError(
+                    f"Kurs ishiga allaqachon {eng_kop} ta talaba taqsimlangan."
+                )
+        return soni

@@ -33,6 +33,13 @@ class SoatTuri(models.TextChoices):
 # Lecture is taught once to the whole intake; these three are taught per group.
 PER_GURUH_TURLAR = (SoatTuri.AMALIYOT, SoatTuri.LABORATORIYA, SoatTuri.SEMINAR)
 
+AUDITORIYA_MAYDONLARI: dict[str, str] = {
+    SoatTuri.MARUZA: "maruza_soat",
+    SoatTuri.AMALIYOT: "amaliyot_soat",
+    SoatTuri.LABORATORIYA: "laboratoriya_soat",
+    SoatTuri.SEMINAR: "seminar_soat",
+}
+
 
 class TalimYonalishi(models.Model):
     """Official classifier row: major code -> field of study / knowledge.
@@ -157,6 +164,12 @@ class Fan(models.Model):
     def kredit(self) -> int | None:
         return derived_credits(self.jami_soat)
 
+    @property
+    def effektiv_variant(self) -> "FanVariant | None":
+        if self.tanlangan_variant_id is not None:
+            return self.tanlangan_variant
+        return self.variantlar.first()
+
     def clean(self) -> None:
         if self.tanlangan_variant and self.tanlangan_variant.fan_id != self.pk:
             raise ValidationError(
@@ -242,15 +255,10 @@ class FanSemestr(models.Model):
         return self.variant.fan.reja.boshlanish_yili + (self.semestr - 1) // 2
 
     def tur_soat(self, tur: str) -> int:
-        maydonlar = {
-            SoatTuri.MARUZA: self.maruza_soat,
-            SoatTuri.AMALIYOT: self.amaliyot_soat,
-            SoatTuri.LABORATORIYA: self.laboratoriya_soat,
-            SoatTuri.SEMINAR: self.seminar_soat,
-        }
-        if tur not in maydonlar:
+        maydon = AUDITORIYA_MAYDONLARI.get(tur)
+        if maydon is None:
             raise ValueError(f"{tur} soati talabalar sonidan hisoblanadi")
-        return maydonlar[tur]
+        return getattr(self, maydon)
 
 
 class Yuklama(models.Model):
@@ -436,3 +444,84 @@ class DasturTopshirish(models.Model):
             f"{self.variant} / {self.urinish_raqami}-urinish / "
             f"{self.get_holat_display()}"
         )
+
+
+class KafedraTasdiqHolati(models.TextChoices):
+    QORALAMA = "QORALAMA", "Qoralama"
+    TASDIQDA = "TASDIQDA", "Tasdiqqa yuborilgan"
+    TASDIQLANGAN = "TASDIQLANGAN", "Tasdiqlangan"
+    QAYTARILGAN = "QAYTARILGAN", "Qaytarilgan"
+
+
+class KafedraYuklamaTasdiq(models.Model):
+    """Department workload approval status per academic year."""
+
+    kafedra = models.ForeignKey(
+        Department, on_delete=models.CASCADE, related_name="yuklama_tasdiqlari"
+    )
+    akademik_yil = models.PositiveSmallIntegerField(db_index=True)
+    holat = models.CharField(
+        max_length=20,
+        choices=KafedraTasdiqHolati.choices,
+        default=KafedraTasdiqHolati.QORALAMA,
+    )
+    yuborilgan_vaqt = models.DateTimeField(null=True, blank=True)
+    tasdiqlangan_vaqt = models.DateTimeField(null=True, blank=True)
+    tasdiqlagan = models.ForeignKey(
+        Foydalanuvchi,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+    izoh = models.TextField(blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["kafedra", "akademik_yil"],
+                name="uniq_kafedra_yil_tasdiq",
+            )
+        ]
+        verbose_name = "Kafedra yuklama tasdig'i"
+        verbose_name_plural = "Kafedra yuklama tasdiqlari"
+
+    def __str__(self) -> str:
+        return f"{self.kafedra.nomi} ({self.akademik_yil}) — {self.get_holat_display()}"
+
+
+class AuditAmali(models.TextChoices):
+    YARATILDI = "YARATILDI", "Yaratildi"
+    TAHRIRLANDI = "TAHRIRLANDI", "Tahrirlandi"
+    OCHIRILDI = "OCHIRILDI", "O'chirildi"
+    TASDIQ_YUBORILDI = "TASDIQ_YUBORILDI", "Tasdiqqa yuborildi"
+    TASDIQLANDI = "TASDIQLANDI", "Tasdiqlandi"
+    QAYTARILDI = "QAYTARILDI", "Qaytarildi"
+
+
+class AuditYozuvi(models.Model):
+    """Activity tracking across curriculum and workload operations."""
+
+    foydalanuvchi = models.ForeignKey(
+        Foydalanuvchi,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="audit_yozuvlari",
+    )
+    amal = models.CharField(max_length=30, choices=AuditAmali.choices)
+    model_nomi = models.CharField(max_length=60, db_index=True)
+    obyekt_id = models.CharField(max_length=64, blank=True)
+    tavsif = models.TextField()
+    vaqt = models.DateTimeField(default=timezone.now, db_index=True)
+    ip_manzil = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Audit yozuvi"
+        verbose_name_plural = "Audit jurnali"
+        ordering = ["-vaqt"]
+
+    def __str__(self) -> str:
+        foyd = self.foydalanuvchi.get_full_name() if self.foydalanuvchi else "Tizim"
+        qisqa = self.tavsif[:30]
+        return f"[{self.vaqt:%d.%m %H:%M}] {foyd} — {self.get_amal_display()}: {qisqa}"

@@ -1,7 +1,7 @@
 {% extends "web/base.html" %}
 {% block title %}{{ reja }}{% endblock %}
 {% block content %}
-<div x-data="{ tab: '{{ request.GET.tab|default:"jadval" }}' }">
+<div x-data="{ tab: '{{ request.GET.tab|default:'jadval' }}', qidiruv: '', faqat: false }">
 <nav class="breadcrumb" aria-label="Breadcrumb">
   <a href="{% url 'office:reja_list' %}">O'quv rejalar</a>
   <span class="sep">/</span>
@@ -12,32 +12,31 @@
     <div class="title"><span class="badge-major">{{ reja.yonalish_kodi }}</span>{{ reja.yonalish_nomi }}</div>
   </div>
   <div class="controls">
-    <button type="button" class="chip-btn" :class="tab === 'jadval' && 'active'" @click="tab = 'jadval'">Jadval</button>
-    <button type="button" class="chip-btn" :class="tab === 'semestr' && 'active'" @click="tab = 'semestr'">Semestr bo'yicha</button>
-    <button type="button" class="chip-btn" :class="tab === 'semestrovka' && 'active'" @click="tab = 'semestrovka'">Semestrovka</button>
+    <button type="button" class="chip-btn" :class="tab === 'jadval' && 'active'" @click="tab = 'jadval'; history.replaceState(null, '', '?tab=jadval')">Jadval</button>
+    <button type="button" class="chip-btn" :class="tab === 'semestr' && 'active'" @click="tab = 'semestr'; history.replaceState(null, '', '?tab=semestr')">Semestr bo'yicha</button>
+    <button type="button" class="chip-btn" :class="tab === 'semestrovka' && 'active'" @click="tab = 'semestrovka'; history.replaceState(null, '', '?tab=semestrovka')">Semestrovka</button>
     <a class="btn btn-primary" href="{% url 'office:reja_tahrir' reja.pk %}">Tahrirlash</a>
   </div>
 </div>
 
-<div class="stats">
+<div id="reja-jonli">
+<div class="stats" id="reja-statlar" data-jonli="reja-statlar">
   <div class="stat"><div class="num">{{ reja.talabalar_soni|default:"—" }}</div><div class="lbl">Talabalar soni</div></div>
   <div class="stat">
     <div class="num">{{ reja.guruhlar_soni|default:"—" }}</div>
     <div class="lbl">Guruhlar{% if reja.guruhlar.all %}: {% for g in reja.guruhlar.all %}{{ g.nomi }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}</div>
   </div>
-  <div class="stat {% if stat.kafedraga_biriktirilmagan_soat %}warn{% else %}ok{% endif %}">
-    <div class="num">{{ stat.kafedraga_biriktirilmagan_soat }}</div>
-    <div class="lbl">Kafedraga biriktirilmagan soat</div>
-  </div>
-  <div class="stat {% if stat.taqsimlanmagan_soat %}warn{% else %}ok{% endif %}">
-    <div class="num">{{ stat.taqsimlanmagan_soat }}</div>
-    <div class="lbl">O'qituvchiga taqsimlanmagan soat</div>
-  </div>
+  {% include "web/parts/_biriktirilmagan_statlar.html" %}
 </div>
 
 <div class="legend">
   <span><span class="dot" style="background:var(--accent);"></span>Semestrdagi haftalik soat</span>
   <span><span class="dot" style="background:var(--unassigned-soft);border:1px solid var(--unassigned);"></span>Kafedraga biriktirilmagan</span>
+</div>
+
+<div class="controls" style="margin-bottom:10px;" x-show="tab === 'jadval'">
+  {% include "web/parts/_qidiruv.html" with placeholder="Fan nomi yoki kodi" aria_label="Fan nomi yoki kodi" %}
+  <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
 </div>
 
 <div class="table-wrap" x-show="tab === 'jadval'">
@@ -52,10 +51,10 @@
         <th class="assign-cell">Kafedra</th>
       </tr>
     </thead>
-    <tbody x-data="{ majburiy: true, tanlov: true }">
-      <tr class="group-row" :class="!majburiy && 'collapsed'">
+    <tbody x-data="{ majburiy: true, tanlov: true }" data-jonli="reja-jadval-tbody">
+      <tr class="group-row" :class="!majburiy && 'collapsed'" @click="majburiy = !majburiy">
         <td colspan="{{ semestr_raqamlari|length|add:5 }}">
-          <span class="toggle" @click="majburiy = !majburiy">
+          <span class="toggle">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
             Majburiy fanlar <span class="group-count">({{ majburiy_satrlar|length }} ta fan)</span>
           </span>
@@ -64,9 +63,9 @@
       {% for satr in majburiy_satrlar %}
       {% include "web/office/rejalar/_semestrovka_qatori.html" with guruh_flag="majburiy" %}
       {% endfor %}
-      <tr class="group-row" :class="!tanlov && 'collapsed'">
+      <tr class="group-row" :class="!tanlov && 'collapsed'" @click="tanlov = !tanlov">
         <td colspan="{{ semestr_raqamlari|length|add:5 }}">
-          <span class="toggle" @click="tanlov = !tanlov">
+          <span class="toggle">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
             Tanlov fanlari <span class="group-count">({{ tanlov_satrlar|length }} ta fan)</span>
           </span>
@@ -78,11 +77,12 @@
     </tbody>
   </table>
 </div>
-<div class="table-wrap" x-show="tab === 'semestrovka'" x-cloak>
+<div class="table-wrap" x-show="tab === 'semestrovka'" x-cloak data-jonli="reja-semestrovka">
   {% include "web/office/rejalar/_semestrovka_breakdown.html" %}
 </div>
 <div x-show="tab === 'semestr'" x-cloak>
   {% include "web/office/rejalar/_semestr_kesimi.html" %}
+</div>
 </div>
 </div>
 {% endblock %}

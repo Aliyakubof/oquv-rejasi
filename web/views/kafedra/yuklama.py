@@ -11,7 +11,8 @@ from django.views import View
 
 from accounts.models import OqituvchiProfil
 from plans import dashboard, delegation, services
-from plans.models import FanSemestr, Yuklama
+from plans.audit import audit_yoz
+from plans.models import AuditAmali, FanSemestr, Yuklama
 from web.forms.yuklama import (
     GuruhYuklamaForm,
     KursIshiYuklamaForm,
@@ -48,6 +49,20 @@ class PanelAsosView(KafedraMudiriTalabMixin, View):
         shablon = (
             "web/kafedra/_panel_va_qator.html" if oob else "web/kafedra/_panel.html"
         )
+        soatlar = {
+            h.oqituvchi.pk: h
+            for h in services.yuklama_kamomadi(fs.akademik_yil, kafedra=self.kafedra)
+        }
+        oqituvchilar = list(
+            OqituvchiProfil.objects.kafedrada(self.kafedra)
+            .filter(foydalanuvchi__is_active=True)
+            .toliq()
+            .order_by("foydalanuvchi__last_name", "foydalanuvchi__first_name")
+        )
+        for p in oqituvchilar:
+            holat = soatlar.get(p.pk)
+            p.jami_soat = holat.jami_soat if holat else 0
+            p.kamomad = holat.kamomad if holat else p.turi.min_soat
         return render(
             request,
             shablon,
@@ -55,9 +70,7 @@ class PanelAsosView(KafedraMudiriTalabMixin, View):
                 "fs": fs,
                 "holatlar": delegation.fan_semestr_holati(fs),
                 "satr": delegation.fs_satri(fs),
-                "oqituvchilar": OqituvchiProfil.objects.filter(
-                    kafedra=self.kafedra
-                ).select_related("foydalanuvchi"),
+                "oqituvchilar": oqituvchilar,
                 "stat": dashboard.statlarni_hisoblash(
                     services.kafedra_taqsimoti(self.kafedra, fs.akademik_yil)
                 ),
@@ -78,9 +91,28 @@ class YuklamaYaratishView(PanelAsosView):
 
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
         fs = self.fan_semestr(pk)
+        if services.kafedra_yuklama_qulflanganmi(self.kafedra, fs.akademik_yil):
+            return self.panel_javobi(
+                request,
+                fs,
+                xato="Yuklama tasdiqqa yuborilgan yoki tasdiqlangan — qulflangan.",
+                oob=True,
+            )
         form = FORMALAR[self.shakl](fs, self.kafedra, request.POST)
         if form.is_valid():
-            form.save()
+            yuklama = form.save()
+            matn = (
+                f"{self.kafedra.nomi}: {fs.variant.nomi} "
+                f"({fs.semestr}-semestr, {yuklama.get_tur_display()}) "
+                f"yuklamasi {yuklama.oqituvchi} ga taqsimlandi ({yuklama.soat} soat)."
+            )
+            audit_yoz(
+                AuditAmali.YARATILDI,
+                matn,
+                model_nomi="Yuklama",
+                obyekt_id=yuklama.pk,
+                request=request,
+            )
             return self.panel_javobi(request, fs, oob=True)
         return self.panel_javobi(request, fs, xato=_xato_matni(form), oob=True)
 
@@ -101,7 +133,26 @@ class YuklamaOchirishView(PanelAsosView):
             fan_semestr__variant__kafedra=self.kafedra,
         )
         fs = yuklama.fan_semestr
+        if services.kafedra_yuklama_qulflanganmi(self.kafedra, fs.akademik_yil):
+            return self.panel_javobi(
+                request,
+                fs,
+                xato="Yuklama tasdiqqa yuborilgan yoki tasdiqlangan — qulflangan.",
+                oob=True,
+            )
+        tavsif = (
+            f"{self.kafedra.nomi}: {fs.variant.nomi} "
+            f"({fs.semestr}-semestr, {yuklama.get_tur_display()}) "
+            f"yuklamasi ({yuklama.oqituvchi}) o'chirildi."
+        )
         yuklama.delete()
+        audit_yoz(
+            AuditAmali.OCHIRILDI,
+            tavsif,
+            model_nomi="Yuklama",
+            obyekt_id=pk,
+            request=request,
+        )
         return self.panel_javobi(request, fs, oob=True)
 
     def delete(self, request: HttpRequest, pk: int) -> HttpResponse:

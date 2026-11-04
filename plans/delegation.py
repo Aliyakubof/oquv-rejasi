@@ -96,7 +96,10 @@ class FsSatri:
 
     @property
     def qoldiq_bor(self) -> bool:
-        return any((t.qoldiq_soat or 0) > 0 for t in self.turlar.values())
+        return any(
+            t.talab_soat is None or (t.qoldiq_soat or 0) > 0
+            for t in self.turlar.values()
+        )
 
 
 def kafedra_fs_satrlari(kafedra: Department, akademik_yil: int) -> list[FsSatri]:

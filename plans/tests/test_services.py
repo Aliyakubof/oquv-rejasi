@@ -4,11 +4,13 @@ from django.test import TestCase
 from accounts.models import Department
 from plans.models import FanTuri, SoatTuri, Yuklama
 from plans.services import (
+    SemestrTahrir,
     fan_semestr_talabi,
     guruhlarni_sinxronlash,
     kafedra_taqsimoti,
     kafedraga_biriktirish,
     oqituvchi_yillik_yuklamasi,
+    semestrovka_yangilash,
     taqsimot_hisoboti,
     variantni_tanlash,
     yuklama_kamomadi,
@@ -132,6 +134,14 @@ class GuruhSinxronlashTest(TestCase):
         guruhlar = guruhlarni_sinxronlash(reja)
         self.assertEqual(guruhlar[0].nomi, "60610100-2024-1")
 
+    def test_prefiks_ozgarganda_mavjud_guruh_nomi_yangilanadi(self) -> None:
+        reja = make_reja(guruh_prefiksi="", guruhlar_soni=2)
+        guruhlarni_sinxronlash(reja)
+        reja.guruh_prefiksi = "AT"
+        reja.save(update_fields=["guruh_prefiksi"])
+        guruhlar = guruhlarni_sinxronlash(reja)
+        self.assertEqual([g.nomi for g in guruhlar], ["AT-2024-1", "AT-2024-2"])
+
     def test_yuklamali_guruh_ochirilmaydi(self) -> None:
         reja = make_reja(guruhlar_soni=2)
         guruhlarni_sinxronlash(reja)
@@ -208,6 +218,47 @@ class VariantniTanlashTest(TestCase):
         begona = make_fan(reja, raqam="1.05")
         with self.assertRaises(ValidationError):
             variantni_tanlash(tanlov, begona.tanlangan_variant)
+
+    def test_yuklamali_variant_almashtirilmaydi(self) -> None:
+        reja = make_reja()
+        fan = make_fan(reja, raqam="2.01", turi=FanTuri.TANLOV)
+        birinchi = fan.variantlar.first()
+        ikkinchi = make_variant(fan, nomi="Muqobil fan")
+        variantni_tanlash(fan, birinchi)
+        fs = make_fan_semestr(birinchi, semestr=1)
+        Yuklama.objects.create(
+            fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=make_oqituvchi()
+        )
+        with self.assertRaises(ValidationError):
+            variantni_tanlash(fan, ikkinchi)
+
+
+class SemestrovkaYangilashVariantSyncTest(TestCase):
+    def test_variant_soatlari_semestrovka_bilan_yangilanadi(self) -> None:
+        reja = make_reja()
+        fan = make_fan(reja)
+        variant = fan.tanlangan_variant
+        fs = make_fan_semestr(variant, semestr=1)
+        semestrovka_yangilash(
+            reja,
+            [
+                SemestrTahrir(
+                    fan_semestr_id=fs.pk,
+                    maruza_soat=40,
+                    amaliyot_soat=20,
+                    laboratoriya_soat=10,
+                    seminar_soat=6,
+                    kurs_ishi_bor=True,
+                )
+            ],
+        )
+        variant.refresh_from_db()
+        self.assertEqual(variant.maruza_soat, 40)
+        self.assertEqual(variant.amaliyot_soat, 20)
+        self.assertEqual(variant.laboratoriya_soat, 10)
+        self.assertEqual(variant.seminar_soat, 6)
+        self.assertEqual(variant.auditoriya_soat, 76)
+        self.assertGreater(variant.kurs_ishi_soat, 0)
 
 
 class KafedragaBiriktirishTest(TestCase):

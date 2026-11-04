@@ -1,16 +1,37 @@
-<div class="stats wide" id="statlar" {% if oob %}hx-swap-oob="true"{% endif %}>
-  <div class="stat"><div class="num">{{ stat.jami_soat }}</div><div class="lbl">Jami talab soat</div></div>
-  <div class="stat"><div class="num">{{ stat.tur_soatlari.MARUZA|default:0 }}</div><div class="lbl">Ma'ruza</div></div>
-  <div class="stat"><div class="num">{{ stat.tur_soatlari.AMALIYOT|default:0 }}</div><div class="lbl">Amaliyot</div></div>
-  <div class="stat"><div class="num">{{ stat.tur_soatlari.LABORATORIYA|default:0 }}</div><div class="lbl">Laboratoriya</div></div>
-  <div class="stat"><div class="num">{{ stat.tur_soatlari.SEMINAR|default:0 }}</div><div class="lbl">Seminar</div></div>
-  <div class="stat"><div class="num">{{ stat.tur_soatlari.KURS_ISHI|default:0 }}</div><div class="lbl">Kurs ishi</div></div>
-  <div class="stat ok"><div class="num">{{ stat.oqituvchiga_taqsimlangan_soat }}</div><div class="lbl">Taqsimlangan soat</div></div>
-  <div class="stat {% if stat.taqsimlanmagan_soat %}warn{% else %}ok{% endif %}">
-    <div class="num">{{ stat.taqsimlanmagan_soat }}</div>
-    <div class="lbl">Taqsimlanmagan soat</div>
+{% load ui %}
+<div id="statlar" data-jonli="kafedra-statlar" {% if oob %}hx-swap-oob="true"{% endif %}>
+  <div class="stats">
+    <div class="stat">
+      <div class="num">{{ stat.jami_soat }}</div>
+      <div class="lbl">Jami talab soat</div>
+    </div>
+    <div class="stat ok">
+      <div class="num">{{ stat.oqituvchiga_taqsimlangan_soat }}</div>
+      <div class="lbl">Taqsimlangan soat</div>
+    </div>
+    <div class="stat {% if stat.taqsimlanmagan_soat %}warn{% else %}ok{% endif %}">
+      <div class="num">{{ stat.taqsimlanmagan_soat }}</div>
+      <div class="lbl">Taqsimlanmagan soat</div>
+    </div>
+    <div class="stat {% if stat.taqsimlanmagan_soat %}warn{% else %}ok{% endif %}">
+      {% with f=stat.oqituvchiga_taqsimlangan_soat|foiz:stat.jami_soat %}
+      <div class="num">{{ f }}%</div>
+      <div class="lbl">Qoplanish
+        <div class="progress" style="margin-top:6px;">
+          <div class="fill {% if stat.taqsimlanmagan_soat %}warn{% endif %}" :style="'width: {{ f }}%'"></div>
+        </div>
+      </div>
+      {% endwith %}
+    </div>
   </div>
-  {% if stat.nomalum_talab_soni %}
-  <div class="stat warn"><div class="num">{{ stat.nomalum_talab_soni }}</div><div class="lbl">Soni kiritilmagan qatorlar</div></div>
-  {% endif %}
+  <div class="tur-taqsimot-bar">
+    <span>Ma'ruza: <strong>{{ stat.tur_soatlari.MARUZA|default:0 }}</strong></span>
+    <span>Amaliyot: <strong>{{ stat.tur_soatlari.AMALIYOT|default:0 }}</strong></span>
+    <span>Laboratoriya: <strong>{{ stat.tur_soatlari.LABORATORIYA|default:0 }}</strong></span>
+    <span>Seminar: <strong>{{ stat.tur_soatlari.SEMINAR|default:0 }}</strong></span>
+    <span>Kurs ishi: <strong>{{ stat.tur_soatlari.KURS_ISHI|default:0 }}</strong></span>
+    {% if stat.nomalum_talab_soni %}
+    <span class="tur-warn">Soni kiritilmagan: <strong>{{ stat.nomalum_talab_soni }}</strong></span>
+    {% endif %}
+  </div>
 </div>

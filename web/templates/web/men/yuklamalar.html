@@ -12,25 +12,27 @@
   <div class="controls">
     {% if yillar %}
     <form method="get">
-      <select name="yil" onchange="this.form.submit()">
-        {% for y in yillar %}
-        <option value="{{ y }}" {% if y == yil %}selected{% endif %}>{{ y }}/{{ y|add:1 }} o'quv yili</option>
-        {% endfor %}
-      </select>
+      {% url 'men:yuklamalar' as yuk_url %}
+      {% include "web/parts/_yil_tanlov.html" with hx_url=yuk_url hx_target="#men-yuklama-jonli" %}
     </form>
     {% endif %}
   </div>
 </div>
 
-<div class="stats">
+<div id="men-yuklama-jonli">
+<div class="stats" x-data data-jonli="men-statlar">
   <div class="stat"><div class="num">{{ jami_soat }}</div><div class="lbl">Jami yuklama soat</div></div>
   <div class="stat"><div class="num">{{ profil.turi.min_soat }}</div><div class="lbl">Minimal norma ({{ profil.turi.nomi }})</div></div>
+  <div class="stat {% if jami_soat < profil.turi.min_soat %}warn{% else %}ok{% endif %}">
+    <div class="num">{% if jami_soat < profil.turi.min_soat %}{{ profil.turi.min_soat|add:0 }}{% else %}0{% endif %}</div>
+    <div class="lbl">{% if jami_soat < profil.turi.min_soat %}Normagacha ({{ jami_soat }} / {{ profil.turi.min_soat }}){% else %}Norma bajarildi{% endif %}</div>
+  </div>
   <div class="stat {% if jami_soat < profil.turi.min_soat %}warn{% else %}ok{% endif %}">
     <div class="num">{{ jami_soat|foiz:profil.turi.min_soat }}%</div>
     <div class="lbl">Qoplanish
       <div class="progress" style="margin-top:6px;">
         {% with f=jami_soat|foiz:profil.turi.min_soat %}
-        <div class="fill {% if f < 100 %}warn{% endif %}" style="width:{{ f }}%;"></div>
+        <div class="fill {% if f < 100 %}warn{% endif %}" :style="'width: {{ f }}%'"></div>
         {% endwith %}
       </div>
     </div>
@@ -38,70 +40,82 @@
 </div>
 
 {% if tur_jami %}
-<div class="legend">
+<div class="tur-taqsimot-bar" data-jonli="men-legend">
   {% for nomi, soat in tur_jami %}
-  <span><span class="dot" style="background:var(--accent);"></span>{{ nomi }}: {{ soat }} soat</span>
+  <span>{{ nomi }}: <strong>{{ soat }} soat</strong></span>
   {% endfor %}
 </div>
 {% endif %}
 
-<div class="table-wrap narrow cards">
-  <table>
-    <thead>
-      <tr>
-        <th>Fan</th>
-        <th>Yo'nalish</th>
-        <th>Semestr</th>
-        <th>Mashg'ulot turi</th>
-        <th>Guruh / Talabalar</th>
-        <th class="num">Soat</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for yuklama in yuklamalar %}
-      <tr>
-        <td data-label="Fan">
-          <span class="code">{{ yuklama.fan_semestr.variant.kodi|default:"" }}</span>
-          <strong>{{ yuklama.fan_semestr.variant.nomi }}</strong>
-        </td>
-        <td data-label="Yo'nalish"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
-        <td data-label="Semestr">{{ yuklama.fan_semestr.semestr }}-semestr</td>
-        <td data-label="Mashg'ulot turi">{{ yuklama.get_tur_display }}</td>
-        <td data-label="Guruh / Talabalar">
-          {% if yuklama.guruh %}{{ yuklama.guruh.nomi }}
-          {% elif yuklama.talabalar_soni %}{{ yuklama.talabalar_soni }} talaba
-          {% else %}Butun oqim{% endif %}
-        </td>
-        <td class="num" data-label="Soat"><strong>{{ yuklama.soat }}</strong></td>
-        <td data-label="">
-          {% if yuklama.tur == "MARUZA" %}
-          <a class="btn" href="{% url 'men:dastur' yuklama.fan_semestr.variant_id %}">Dasturni yaratish</a>
-          <div id="dastur-durum-{{ yuklama.fan_semestr.variant_id }}">
-            {% include "web/men/_dastur_durum.html" with variant=yuklama.fan_semestr.variant %}
-          </div>
-          {% endif %}
-        </td>
-      </tr>
-      {% if yuklama.tur == "MARUZA" %}
-      <tr><td colspan="7" style="padding:0;border-bottom:0;">
-        <div id="dastur-panel-{{ yuklama.fan_semestr.variant_id }}"></div>
-      </td></tr>
+<div x-data="{ qidiruv: '' }">
+  <div class="controls" style="margin-bottom:12px;">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" placeholder="Fan, kod yoki guruh" aria-label="Fan, kod yoki guruh" x-model="qidiruv">
+    </div>
+  </div>
+  <div class="table-wrap narrow cards">
+    <table data-jonli="men-yuklama-jadval">
+      <thead>
+        <tr>
+          <th>Fan</th>
+          <th>Yo'nalish</th>
+          <th>Semestr</th>
+          <th>Mashg'ulot turi</th>
+          <th>Guruh / Talabalar</th>
+          <th class="num">Soat</th>
+          <th>O'quv dastur</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for yuklama in yuklamalar %}
+        <tr data-nomi="{{ yuklama.fan_semestr.variant.nomi|lower }} {{ yuklama.fan_semestr.variant.kodi|lower }} {% if yuklama.guruh %}{{ yuklama.guruh.nomi|lower }}{% endif %}"
+            x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
+          <td data-label="Fan">
+            {% if yuklama.fan_semestr.variant.kodi %}<span class="code">{{ yuklama.fan_semestr.variant.kodi }}</span>{% endif %}
+            <strong>{{ yuklama.fan_semestr.variant.nomi }}</strong>
+          </td>
+          <td data-label="Yo'nalish"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
+          <td data-label="Semestr" style="white-space:nowrap;color:var(--text-secondary);">{{ yuklama.fan_semestr.semestr }}-semestr</td>
+          <td data-label="Mashg'ulot turi">{{ yuklama.get_tur_display }}</td>
+          <td data-label="Guruh / Talabalar">
+            {% if yuklama.guruh %}<span class="code">{{ yuklama.guruh.nomi }}</span>
+            {% elif yuklama.talabalar_soni %}{{ yuklama.talabalar_soni }} talaba
+            {% else %}<span style="color:var(--text-secondary);">Butun oqim</span>{% endif %}
+          </td>
+          <td class="num" data-label="Soat"><strong>{{ yuklama.soat }}</strong></td>
+          <td data-label="O'quv dastur">
+            {% if yuklama.dastur_korsatilsin %}
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <a class="btn" href="{% url 'men:dastur' yuklama.fan_semestr.variant_id %}" hx-boost="false" title="O'quv dasturi (.docx) shablonini yuklab olish">Shablon (.docx)</a>
+              <div id="dastur-durum-{{ yuklama.fan_semestr.variant_id }}">
+                {% include "web/men/_dastur_durum.html" with variant=yuklama.fan_semestr.variant %}
+              </div>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% if yuklama.dastur_korsatilsin %}
+        <tr class="panel-row"><td colspan="7" style="padding:0;border-bottom:0;">
+          <div id="dastur-panel-{{ yuklama.fan_semestr.variant_id }}"></div>
+        </td></tr>
+        {% endif %}
+        {% empty %}
+        <tr><td colspan="7"><div class="empty-state">Bu o'quv yilida sizga yuklama taqsimlanmagan.</div></td></tr>
+        {% endfor %}
+      </tbody>
+      {% if yuklamalar %}
+      <tfoot>
+        <tr>
+          <td colspan="5" style="text-align:right;font-weight:600;">Jami:</td>
+          <td class="num" data-label="Jami"><strong>{{ jami_soat }}</strong></td>
+          <td></td>
+        </tr>
+      </tfoot>
       {% endif %}
-      {% empty %}
-      <tr><td colspan="7"><div class="empty-state">Bu o'quv yilida sizga yuklama taqsimlanmagan.</div></td></tr>
-      {% endfor %}
-    </tbody>
-    {% if yuklamalar %}
-    <tfoot>
-      <tr>
-        <td colspan="5" style="text-align:right;font-weight:600;">Jami:</td>
-        <td class="num" data-label="Jami"><strong>{{ jami_soat }}</strong></td>
-        <td></td>
-      </tr>
-    </tfoot>
-    {% endif %}
-  </table>
+    </table>
+  </div>
+</div>
 </div>
 {% endif %}
 {% endblock %}

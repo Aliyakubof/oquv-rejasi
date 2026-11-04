@@ -1,0 +1,180 @@
+"""Excel (.xlsx) export of teacher coverage and detailed workload rows."""
+
+from io import BytesIO
+
+import openpyxl
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
+
+from accounts.models import Department
+from plans.models import Yuklama
+from plans.services import YuklamaHolati, yuklama_kamomadi
+
+_SARLAVHA_SHRIFT = Font(bold=True, size=12)
+_USTUN_SHRIFT = Font(bold=True, size=10, color="1E293B")
+_USTUN_FON = PatternFill("solid", fgColor="F1F5F9")
+_CHEGARA_CHIZIQ = Side(style="thin", color="CBD5E1")
+_CHEGARA = Border(
+    left=_CHEGARA_CHIZIQ,
+    right=_CHEGARA_CHIZIQ,
+    top=_CHEGARA_CHIZIQ,
+    bottom=_CHEGARA_CHIZIQ,
+)
+
+
+def oqituvchilar_excel(
+    akademik_yil: int, *, kafedra: Department | None = None
+) -> BytesIO:
+    """Build a two-sheet .xlsx workbook: teacher summary + detailed Yuklama rows."""
+    holatlar = yuklama_kamomadi(akademik_yil, kafedra=kafedra)
+    kitob = openpyxl.Workbook()
+
+    umumiy_varaq = kitob.active
+    umumiy_varaq.title = "O'qituvchilar"
+    _umumiy_varaqni_toldir(umumiy_varaq, holatlar, akademik_yil, kafedra)
+
+    tafsilot_varaq = kitob.create_sheet("Yuklama tafsiloti")
+    _tafsilot_varaqni_toldir(tafsilot_varaq, akademik_yil, kafedra)
+
+    buffer = BytesIO()
+    kitob.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
+def _umumiy_varaqni_toldir(
+    ws: object,
+    holatlar: list[YuklamaHolati],
+    akademik_yil: int,
+    kafedra: Department | None,
+) -> None:
+    nom = f"{kafedra.nomi} kafedrasi" if kafedra else "Barcha kafedralar"
+    ws.append(
+        [f"{nom} — {akademik_yil}/{akademik_yil + 1} o'quv yili yuklama hisoboti"]
+    )
+    ws["A1"].font = _SARLAVHA_SHRIFT
+    ws.append([])
+
+    ustunlar = [
+        "№",
+        "F.I.Sh",
+        "Telefon",
+        "Kafedra",
+        "Lavozim",
+        "Minimal soat",
+        "Yuklama soat",
+        "Kamomad",
+        "Qoplanish (%)",
+        "Holat",
+    ]
+    ws.append(ustunlar)
+    _ustun_qatorini_bezash(ws, 3, len(ustunlar))
+
+    for idx, h in enumerate(holatlar, start=1):
+        foiz = round(h.jami_soat * 100 / h.min_soat) if h.min_soat else 0
+        holat_matni = f"Kamomad {h.kamomad} soat" if h.kamomad else "To'ldi"
+        ws.append(
+            [
+                idx,
+                str(h.oqituvchi),
+                h.oqituvchi.foydalanuvchi.telefon,
+                h.oqituvchi.kafedra.nomi,
+                h.oqituvchi.turi.nomi,
+                h.min_soat,
+                h.jami_soat,
+                h.kamomad,
+                foiz,
+                holat_matni,
+            ]
+        )
+    _kataklarni_chegaralash(ws, 4, 3 + len(holatlar), len(ustunlar))
+    _kengliklarni_moslash(ws)
+
+
+def _tafsilot_varaqni_toldir(
+    ws: object, akademik_yil: int, kafedra: Department | None
+) -> None:
+    ustunlar = [
+        "№",
+        "O'qituvchi",
+        "Kafedra",
+        "Fan kodi",
+        "Fan nomi",
+        "Yo'nalish",
+        "Semestr",
+        "Mashg'ulot turi",
+        "Guruh / Talabalar",
+        "Soat",
+    ]
+    ws.append(ustunlar)
+    _ustun_qatorini_bezash(ws, 1, len(ustunlar))
+
+    qs = (
+        Yuklama.objects.akademik_yilda(akademik_yil)
+        .select_related(
+            "oqituvchi__foydalanuvchi",
+            "oqituvchi__kafedra",
+            "fan_semestr__variant__fan__reja",
+            "guruh",
+        )
+        .order_by(
+            "oqituvchi__kafedra__nomi",
+            "oqituvchi__foydalanuvchi__last_name",
+            "fan_semestr__semestr",
+            "tur",
+        )
+    )
+    if kafedra is not None:
+        qs = qs.filter(oqituvchi__kafedra=kafedra)
+
+    yuklamalar = list(qs)
+    for idx, y in enumerate(yuklamalar, start=1):
+        if y.guruh:
+            guruh_matni = y.guruh.nomi
+        elif y.talabalar_soni:
+            guruh_matni = f"{y.talabalar_soni} talaba"
+        else:
+            guruh_matni = "Butun oqim"
+        ws.append(
+            [
+                idx,
+                str(y.oqituvchi),
+                y.oqituvchi.kafedra.nomi,
+                y.fan_semestr.variant.kodi or "",
+                y.fan_semestr.variant.nomi,
+                y.fan_semestr.variant.fan.reja.yonalish_kodi,
+                f"{y.fan_semestr.semestr}-semestr",
+                y.get_tur_display(),
+                guruh_matni,
+                y.soat,
+            ]
+        )
+    _kataklarni_chegaralash(ws, 2, 1 + len(yuklamalar), len(ustunlar))
+    _kengliklarni_moslash(ws)
+
+
+def _ustun_qatorini_bezash(ws: object, qator: int, ustun_soni: int) -> None:
+    for col in range(1, ustun_soni + 1):
+        katak = ws.cell(row=qator, column=col)
+        katak.font = _USTUN_SHRIFT
+        katak.fill = _USTUN_FON
+        katak.border = _CHEGARA
+        katak.alignment = Alignment(vertical="center")
+
+
+def _kataklarni_chegaralash(
+    ws: object, bosh_qator: int, oxirgi_qator: int, ustun_soni: int
+) -> None:
+    for row in range(bosh_qator, oxirgi_qator + 1):
+        for col in range(1, ustun_soni + 1):
+            ws.cell(row=row, column=col).border = _CHEGARA
+
+
+def _kengliklarni_moslash(ws: object) -> None:
+    for col_cells in ws.columns:
+        harf = get_column_letter(col_cells[0].column)
+        uzunlik = max(
+            (len(str(c.value or "")) for c in col_cells if c.row > 1),
+            default=10,
+        )
+        ws.column_dimensions[harf].width = min(max(uzunlik + 4, 10), 42)

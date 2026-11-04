@@ -25,9 +25,11 @@ class YuklamaAsosForm(forms.ModelForm):
     ):
         super().__init__(*args, **kwargs)
         self.instance.fan_semestr = fan_semestr
-        self.fields["oqituvchi"].queryset = OqituvchiProfil.objects.filter(
-            kafedra=kafedra
-        ).select_related("foydalanuvchi")
+        self.fields["oqituvchi"].queryset = (
+            OqituvchiProfil.objects.kafedrada(kafedra)
+            .bilan_foydalanuvchi()
+            .filter(foydalanuvchi__is_active=True)
+        )
 
     def _get_validation_exclusions(self) -> set[str]:
         # fan_semestr/tur are set programmatically; keep them in full_clean so

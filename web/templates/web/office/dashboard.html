@@ -17,14 +17,16 @@
 </div>
 <div style="position:relative;">
   <div id="yuklanish" class="skeleton-overlay htmx-indicator">{% include "web/parts/_skeleton_jadval.html" %}</div>
-  <div id="kontent">
+  <div id="kontent" {% if not yil %}data-jonli="office-kontent"{% endif %}>
     {% if yil %}
       {% include "web/office/_dashboard_kontent.html" %}
     {% else %}
-      <div class="empty-state">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <div class="card empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:10px;">
           <path d="M3 7l2-3h14l2 3M3 7v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7h18M8 11h8"/>
         </svg>
+        <div style="margin-bottom:14px;">Hozircha o'quv rejalar yuklanmagan. Ishni boshlash uchun yangi o'quv reja (.xlsx) faylini import qiling.</div>
+        <a class="btn btn-primary" href="{% url 'office:reja_yangi' %}">+ Yangi reja yuklash</a>
       </div>
     {% endif %}
   </div>

@@ -1,20 +1,30 @@
 from io import BytesIO
-from pathlib import Path
 
 import openpyxl
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
-from plans.importer import ImportXato, parse_xlsx
-from plans.models import OquvReja
+from plans.importer import ImportXato
+from plans.models import OquvReja, TalimYonalishi
 from plans.tests.factories import make_yonalish
+from plans.tests.test_parser import _standard_layout
 from plans.uploads import YuklashParametrlari, fayldan_import_qilish
 
-BHA = (
-    Path(__file__).resolve().parents[2]
-    / "sources"
-    / "(24-25) Buxgalteriya hisobi eng, it 21.08.2024.xlsx"
-)
+
+def _namuna_xlsx_baytlari() -> bytes:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    qatorlar = _standard_layout(
+        8,
+        "Ta'lim yo'nalishi: 60410200 - Buxgalteriya hisobi",
+        "4 yil",
+        "2025-2026",
+    )
+    for (row, col), value in qatorlar.items():
+        ws.cell(row=row, column=col, value=value)
+    xotira = BytesIO()
+    wb.save(xotira)
+    return xotira.getvalue()
 
 
 def _parametrlar(**kwargs: object) -> YuklashParametrlari:
@@ -31,9 +41,9 @@ def _parametrlar(**kwargs: object) -> YuklashParametrlari:
 
 class FayldanImportTests(TestCase):
     def test_haqiqiy_fayl_import_qilinadi(self) -> None:
-        yonalish_kodi = parse_xlsx(BHA, boshlanish_yili=2025).yonalish_kodi
-        make_yonalish(kodi=yonalish_kodi)
-        fayl = SimpleUploadedFile("BHA.xlsx", BHA.read_bytes())
+        if not TalimYonalishi.objects.filter(kodi="60410200").exists():
+            make_yonalish(kodi="60410200")
+        fayl = SimpleUploadedFile("BHA.xlsx", _namuna_xlsx_baytlari())
 
         natija = fayldan_import_qilish(fayl, _parametrlar())
 

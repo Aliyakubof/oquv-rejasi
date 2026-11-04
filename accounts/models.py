@@ -104,6 +104,9 @@ class OqituvchiTuri(models.Model):
     nomi = models.CharField(max_length=100, unique=True)
     min_soat = models.PositiveIntegerField(help_text="Yuklama: minimal soat")
 
+    class Meta:
+        ordering = ["nomi"]
+
     def __str__(self) -> str:
         return self.nomi
 
@@ -134,8 +137,24 @@ class Department(models.Model):
         related_name="boshqarayotgan_kafedra",
     )
 
+    class Meta:
+        ordering = ["nomi"]
+
     def __str__(self) -> str:
         return self.nomi
+
+
+class OqituvchiProfilQuerySet(models.QuerySet):
+    """Department-scoped and pre-joined teacher queries."""
+
+    def kafedrada(self, kafedra: Department | int) -> "OqituvchiProfilQuerySet":
+        return self.filter(kafedra=kafedra)
+
+    def bilan_foydalanuvchi(self) -> "OqituvchiProfilQuerySet":
+        return self.select_related("foydalanuvchi")
+
+    def toliq(self) -> "OqituvchiProfilQuerySet":
+        return self.select_related("foydalanuvchi", "kafedra", "turi")
 
 
 class OqituvchiProfil(models.Model):
@@ -150,6 +169,8 @@ class OqituvchiProfil(models.Model):
     turi = models.ForeignKey(
         OqituvchiTuri, on_delete=models.PROTECT, related_name="oqituvchilar"
     )
+
+    objects = OqituvchiProfilQuerySet.as_manager()
 
     def __str__(self) -> str:
         return str(self.foydalanuvchi)

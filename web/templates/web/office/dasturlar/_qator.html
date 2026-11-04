@@ -17,6 +17,7 @@
   <td style="white-space:nowrap;">
     <button type="button" class="btn"
             hx-get="{% url 'office:dastur_tarixi' t.variant_id %}"
-            hx-target="#dastur-panel-{{ t.variant_id }}" hx-swap="innerHTML">Tarixni ko'rish</button>
+            hx-target="#dastur-panel-{{ t.variant_id }}" hx-swap="innerHTML"
+            hx-on::before-request="const p = document.getElementById('dastur-panel-{{ t.variant_id }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">Tarixni ko'rish</button>
   </td>
 </tr>

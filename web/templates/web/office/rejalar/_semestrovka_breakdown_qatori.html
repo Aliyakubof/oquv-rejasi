@@ -3,7 +3,7 @@
 the first semester only; `reja` and `satr` are inherited from the including
 context. Each hour input posts as fs-<pk>-<tur>.{% endcomment %}
 {% for fs in satr.semestr_soatlari.values %}
-<tr class="{% if satr.biriktirilmagan %}qator-biriktirilmagan{% endif %}">
+<tr x-show="{{ guruh_flag|default:'true' }}" class="{% if satr.biriktirilmagan %}qator-biriktirilmagan{% endif %}">
   <td class="col-idx">{% if forloop.first %}{{ satr.fan.raqam }}{% endif %}</td>
   <td class="col-code"><span class="code">{% if forloop.first %}{{ satr.variant.kodi|default:"—" }}{% endif %}</span></td>
   <td class="col-name">{% if forloop.first %}{{ satr.variant.nomi }}{% if satr.tanlanmagan %} <span class="tag tag-elec">TANLANMAGAN</span>{% endif %}{% endif %}</td>
@@ -11,17 +11,13 @@ context. Each hour input posts as fs-<pk>-<tur>.{% endcomment %}
   <td class="credits num">{% if fs.kredit %}{{ fs.kredit }} kr{% else %}—{% endif %}</td>
   <td class="sem-cell">{% if fs.haftalik_soat %}<div class="sem-fill">{{ fs.haftalik_soat }}</div>{% else %}<div class="sem-empty"></div>{% endif %}</td>
   <td class="sem-cell"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-maruza" value="{{ fs.maruza_soat }}" title="Ma'ruza — butun oqimga"></td>
-  <td class="sem-cell"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-amaliyot" value="{{ fs.amaliyot_soat }}" title="Amaliyot — bitta guruh uchun (× {{ reja.guruhlar_soni|default:"?" }})"></td>
-  <td class="sem-cell"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-lab" value="{{ fs.laboratoriya_soat }}" title="Laboratoriya — bitta guruh uchun (× {{ reja.guruhlar_soni|default:"?" }})"></td>
-  <td class="sem-cell"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-seminar" value="{{ fs.seminar_soat }}" title="Seminar — bitta guruh uchun (× {{ reja.guruhlar_soni|default:"?" }})"></td>
-  <td class="sem-cell" style="text-align:center;"><input type="checkbox" name="fs-{{ fs.pk }}-kursishi" {% if fs.kurs_ishi_bor %}checked{% endif %}></td>
+  <td class="sem-cell"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-amaliyot" value="{{ fs.amaliyot_soat }}" title="Amaliyot — bitta guruh uchun (× {{ reja.guruhlar_soni|default:'?' }})"></td>
+  <td class="sem-cell"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-lab" value="{{ fs.laboratoriya_soat }}" title="Laboratoriya — bitta guruh uchun (× {{ reja.guruhlar_soni|default:'?' }})"></td>
+  <td class="sem-cell"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-seminar" value="{{ fs.seminar_soat }}" title="Seminar — bitta guruh uchun (× {{ reja.guruhlar_soni|default:'?' }})"></td>
+  <td class="sem-cell" style="text-align:center;"><input type="checkbox" name="fs-{{ fs.pk }}-kursishi" title="Kurs ishi" aria-label="Kurs ishi" {% if fs.kurs_ishi_bor %}checked{% endif %}></td>
   <td class="assign-cell">
     {% if forloop.first %}
-    {% if satr.kafedra %}
-    <span class="teacher-chip"><span class="avatar">{{ satr.kafedra.nomi|bosh_harflar }}</span>{{ satr.kafedra.nomi }}</span>
-    {% else %}
-    <span class="teacher-chip empty">Biriktirilmagan</span>
-    {% endif %}
+    {% include "web/parts/_kafedra_chip.html" with kafedra=satr.kafedra %}
     {% endif %}
   </td>
 </tr>
