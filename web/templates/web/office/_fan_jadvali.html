@@ -1,15 +1,8 @@
 <div x-data="{ qidiruv: '', faqat: false, semestrovka: false }">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
-    <div class="controls">
-      {% include "web/parts/_qidiruv.html" with placeholder="Fan nomi yoki kodi" aria_label="Fan nomi yoki kodi" %}
-      <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
-      <button type="button" class="chip-btn" :class="semestrovka && 'active'" @click="semestrovka = !semestrovka">Semestrovka</button>
-    </div>
-    <div class="legend" style="margin:0;">
-      <span><span class="dot" style="background:var(--mand);"></span>Majburiy fan</span>
-      <span><span class="dot" style="background:var(--elec);"></span>Tanlov fani</span>
-      <span><span class="dot" style="background:var(--unassigned-soft);border:1px solid var(--unassigned);"></span>Kafedraga biriktirilmagan</span>
-    </div>
+  <div class="controls" style="margin-bottom:10px;">
+    {% include "web/parts/_qidiruv.html" with placeholder="Fan nomi yoki kodi" aria_label="Fan nomi yoki kodi" %}
+    <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
+    <button type="button" class="chip-btn" :class="semestrovka && 'active'" @click="semestrovka = !semestrovka">Semestrovka</button>
   </div>
   <div class="table-wrap" x-show="!semestrovka">
     <table>

@@ -1,8 +1,10 @@
 import json
 
 from django.conf import settings
-from django.db.models import Sum
+from django.db import transaction
+from django.db.models import Count, Sum
 from django.http import HttpRequest, JsonResponse
+from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -17,8 +19,8 @@ def check_api_auth(request: HttpRequest) -> bool:
     """Validate request authentication via session or API token."""
     if request.user.is_authenticated and (
         request.user.is_staff
-        or request.user.is_office_admin
-        or request.user.is_superadmin
+        or getattr(request.user, "is_office_admin", False)
+        or getattr(request.user, "is_superadmin", False)
     ):
         return True
 
@@ -27,15 +29,15 @@ def check_api_auth(request: HttpRequest) -> bool:
         auth_header = request.headers.get("Authorization", "").strip()
         if auth_header.startswith("Bearer "):
             token = auth_header.split(" ", 1)[1].strip()
-            if token == expected_key:
+            if constant_time_compare(token, expected_key):
                 return True
         elif auth_header.startswith("Token "):
             token = auth_header.split(" ", 1)[1].strip()
-            if token == expected_key:
+            if constant_time_compare(token, expected_key):
                 return True
 
         x_api_key = request.headers.get("X-API-KEY", "").strip()
-        if x_api_key and x_api_key == expected_key:
+        if x_api_key and constant_time_compare(x_api_key, expected_key):
             return True
 
     return False
@@ -62,8 +64,9 @@ class RejalarApiView(BaseApiView):
 
     def get(self, request: HttpRequest) -> JsonResponse:
         boshlanish_yili = request.GET.get("yil")
-        qs = OquvReja.objects.prefetch_related("fanlar").order_by(
-            "-boshlanish_yili", "yonalish_kodi"
+        qs = (
+            OquvReja.objects.annotate(fanlar_soni=Count("fanlar"))
+            .order_by("-boshlanish_yili", "yonalish_kodi")
         )
         if boshlanish_yili and boshlanish_yili.isdigit():
             qs = qs.filter(boshlanish_yili=int(boshlanish_yili))
@@ -83,7 +86,7 @@ class RejalarApiView(BaseApiView):
                     "talabalar_soni": r.talabalar_soni,
                     "guruhlar_soni": r.guruhlar_soni,
                     "guruh_prefiksi": r.guruh_prefiksi,
-                    "fanlar_soni": r.fanlar.count(),
+                    "fanlar_soni": r.fanlar_soni,
                 }
             )
         return JsonResponse({"count": len(results), "results": results})
@@ -95,7 +98,10 @@ class KafedralarApiView(BaseApiView):
     def get(self, request: HttpRequest) -> JsonResponse:
         qs = (
             Department.objects.select_related("mudir__foydalanuvchi")
-            .prefetch_related("oqituvchilar", "fanlar")
+            .annotate(
+                oqituvchilar_soni=Count("oqituvchilar", distinct=True),
+                fanlar_soni=Count("fanlar", distinct=True),
+            )
             .order_by("nomi")
         )
         results = []
@@ -107,8 +113,8 @@ class KafedralarApiView(BaseApiView):
                     "nomi": k.nomi,
                     "fakultet": k.fakultet,
                     "mudir": mudir_nomi,
-                    "oqituvchilar_soni": k.oqituvchilar.count(),
-                    "fanlar_soni": k.fanlar.count(),
+                    "oqituvchilar_soni": k.oqituvchilar_soni,
+                    "fanlar_soni": k.fanlar_soni,
                 }
             )
         return JsonResponse({"count": len(results), "results": results})
@@ -163,15 +169,11 @@ class YuklamalarApiView(BaseApiView):
             qs = qs.filter(fan_semestr__variant__kafedra_id=int(kafedra_id))
         if oqituvchi_id and oqituvchi_id.isdigit():
             qs = qs.filter(oqituvchi_id=int(oqituvchi_id))
+        if yil and yil.isdigit():
+            qs = qs.filter(fan_semestr__akademik_yil=int(yil))
 
-        target_yil = int(yil) if (yil and yil.isdigit()) else None
         results = []
-
         for y in qs:
-            akademik_yil = y.fan_semestr.akademik_yil
-            if target_yil and akademik_yil != target_yil:
-                continue
-
             variant = y.fan_semestr.variant
             reja = variant.fan.reja
             results.append(
@@ -183,7 +185,7 @@ class YuklamalarApiView(BaseApiView):
                     "fan_nomi": variant.nomi,
                     "fan_kodi": variant.kodi,
                     "semestr": y.fan_semestr.semestr,
-                    "akademik_yil": akademik_yil,
+                    "akademik_yil": y.fan_semestr.akademik_yil,
                     "tur": y.tur,
                     "tur_nomi": y.get_tur_display(),
                     "oqituvchi_id": y.oqituvchi_id,
@@ -202,7 +204,7 @@ class HemisSyncApiView(BaseApiView):
     def post(self, request: HttpRequest) -> JsonResponse:
         try:
             data = json.loads(request.body.decode("utf-8"))
-        except Exception:
+        except (json.JSONDecodeError, UnicodeDecodeError):
             return JsonResponse({"xato": "Noto'g'ri JSON formati."}, status=400)
 
         if isinstance(data, list):
@@ -217,58 +219,70 @@ class HemisSyncApiView(BaseApiView):
         yangilangan = []
         xatolar = []
 
-        for item in items:
-            if not isinstance(item, dict):
-                continue
+        with transaction.atomic():
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
 
-            reja = None
-            reja_id = item.get("id") or item.get("reja_id")
-            if reja_id:
-                reja = OquvReja.objects.filter(id=reja_id).first()
-            elif "yonalish_kodi" in item and "boshlanish_yili" in item:
-                reja = OquvReja.objects.filter(
-                    yonalish_kodi=item["yonalish_kodi"],
-                    boshlanish_yili=item["boshlanish_yili"],
-                ).first()
+                reja = None
+                reja_id = item.get("id") or item.get("reja_id")
+                if reja_id:
+                    reja = OquvReja.objects.filter(id=reja_id).first()
+                elif "yonalish_kodi" in item and "boshlanish_yili" in item:
+                    reja = OquvReja.objects.filter(
+                        yonalish_kodi=item["yonalish_kodi"],
+                        boshlanish_yili=item["boshlanish_yili"],
+                    ).first()
 
-            if not reja:
-                xatolar.append(f"O'quv reja topilmadi: {item}")
-                continue
+                if not reja:
+                    xatolar.append(f"O'quv reja topilmadi: {item}")
+                    continue
 
-            ozgardi = False
-            if "talabalar_soni" in item and item["talabalar_soni"] is not None:
-                reja.talabalar_soni = int(item["talabalar_soni"])
-                ozgardi = True
-            if "guruhlar_soni" in item and item["guruhlar_soni"] is not None:
-                reja.guruhlar_soni = int(item["guruhlar_soni"])
-                ozgardi = True
-            if "guruh_prefiksi" in item and item["guruh_prefiksi"] is not None:
-                reja.guruh_prefiksi = str(item["guruh_prefiksi"]).strip()
-                ozgardi = True
+                ozgardi = False
+                try:
+                    if "talabalar_soni" in item and item["talabalar_soni"] is not None:
+                        val = int(item["talabalar_soni"])
+                        if val < 0:
+                            raise ValueError("talabalar_soni manfiy bo'lishi mumkin emas")
+                        reja.talabalar_soni = val
+                        ozgardi = True
+                    if "guruhlar_soni" in item and item["guruhlar_soni"] is not None:
+                        val = int(item["guruhlar_soni"])
+                        if val < 0:
+                            raise ValueError("guruhlar_soni manfiy bo'lishi mumkin emas")
+                        reja.guruhlar_soni = val
+                        ozgardi = True
+                except (ValueError, TypeError) as err:
+                    xatolar.append(f"Noto'g'ri son formati ({err}): {item}")
+                    continue
 
-            if ozgardi:
-                reja.save()
-                guruhlarni_sinxronlash(reja)
-                yangilangan.append(
-                    {
-                        "id": reja.id,
-                        "yonalish_kodi": reja.yonalish_kodi,
-                        "yonalish_nomi": reja.yonalish_nomi,
-                        "boshlanish_yili": reja.boshlanish_yili,
-                        "talabalar_soni": reja.talabalar_soni,
-                        "guruhlar_soni": reja.guruhlar_soni,
-                        "guruhlar": [g.nomi for g in reja.guruhlar.all()],
-                    }
+                if "guruh_prefiksi" in item and item["guruh_prefiksi"] is not None:
+                    reja.guruh_prefiksi = str(item["guruh_prefiksi"]).strip()
+                    ozgardi = True
+
+                if ozgardi:
+                    reja.save()
+                    guruhlarni_sinxronlash(reja)
+                    yangilangan.append(
+                        {
+                            "id": reja.id,
+                            "yonalish_kodi": reja.yonalish_kodi,
+                            "yonalish_nomi": reja.yonalish_nomi,
+                            "boshlanish_yili": reja.boshlanish_yili,
+                            "talabalar_soni": reja.talabalar_soni,
+                            "guruhlar_soni": reja.guruhlar_soni,
+                            "guruhlar": [g.nomi for g in reja.guruhlar.all()],
+                        }
+                    )
+
+            if yangilangan:
+                kodlar = ", ".join(str(r["yonalish_kodi"]) for r in yangilangan)
+                audit_yoz(
+                    AuditAmali.TAHRIRLANDI,
+                    f"HEMIS Sync: {len(yangilangan)} ta reja sinxronlandi ({kodlar})",
+                    model_nomi="OquvReja",
+                    request=request,
                 )
-
-        if yangilangan:
-            kodlar = ", ".join(str(r["yonalish_kodi"]) for r in yangilangan)
-            audit_yoz(
-                AuditAmali.TAHRIRLANDI,
-                f"HEMIS Sync: {len(yangilangan)} ta reja sinxronlandi ({kodlar})",
-                model_nomi="OquvReja",
-                request=request,
-            )
 
         return JsonResponse(
             {

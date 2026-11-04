@@ -1,17 +1,16 @@
-<div class="stats" id="statlar" data-jonli="office-statlar" {% if oob %}hx-swap-oob="true" {% endif %}>
-  <div class="stat">
-    <div class="num">{{ stat.jami_soat }}</div>
-    <div class="lbl">Jami yuklama (soat)</div>
-  </div>
-  <div class="stat">
-    <div class="num">{{ jami_talabalar }}</div>
-    <div class="lbl">Jami talabalar</div>
-  </div>
+<div class="stats wide" id="statlar" data-jonli="office-statlar" {% if oob %}hx-swap-oob="true"{% endif %}>
+  <div class="stat"><div class="num">{{ jami_talabalar }}</div><div class="lbl">Talabalar</div></div>
+  <div class="stat"><div class="num">{{ stat.jami_soat }}</div><div class="lbl">Jami soat</div></div>
+  <div class="stat"><div class="num">{{ stat.tur_soatlari.MARUZA|default:0 }}</div><div class="lbl">Ma'ruza</div></div>
+  <div class="stat"><div class="num">{{ stat.tur_soatlari.AMALIYOT|default:0 }}</div><div class="lbl">Amaliyot</div></div>
+  <div class="stat"><div class="num">{{ stat.tur_soatlari.LABORATORIYA|default:0 }}</div><div class="lbl">Laboratoriya</div></div>
+  <div class="stat"><div class="num">{{ stat.tur_soatlari.SEMINAR|default:0 }}</div><div class="lbl">Seminar</div></div>
+  <div class="stat"><div class="num">{{ stat.tur_soatlari.KURS_ISHI|default:0 }}</div><div class="lbl">Kurs ishi</div></div>
   {% include "web/parts/_biriktirilmagan_statlar.html" %}
   {% if stat.nomalum_talab_soni %}
   <div class="stat warn">
     <div class="num">{{ stat.nomalum_talab_soni }}</div>
-    <div class="lbl">Soni kiritilmagan qatorlar</div>
+    <div class="lbl">Soni kiritilmagan qatorlar (talabalar/guruhlar)</div>
   </div>
   {% endif %}
 </div>

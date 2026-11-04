@@ -13,13 +13,24 @@ def audit_yoz(
     tavsif: str,
     *,
     foydalanuvchi: Foydalanuvchi | None = None,
+    obyekt: Any | None = None,
     model_nomi: str = "",
     obyekt_id: Any = "",
+    ip_manzil: str | None = None,
     request: HttpRequest | None = None,
 ) -> AuditYozuvi:
-    """Record an audit trail event."""
-    ip_manzil = None
-    if request is not None:
+    """Record an audit trail event.
+
+    Supports passing an `obyekt` directly to auto-derive `model_nomi` and `obyekt_id`,
+    as well as passing `ip_manzil` directly or resolving it from `request`.
+    """
+    if obyekt is not None:
+        if not model_nomi:
+            model_nomi = getattr(obyekt, "__class__", type(obyekt)).__name__
+        if not obyekt_id:
+            obyekt_id = getattr(obyekt, "pk", getattr(obyekt, "id", ""))
+
+    if ip_manzil is None and request is not None:
         if (
             foydalanuvchi is None
             and hasattr(request, "user")

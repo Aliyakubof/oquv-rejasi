@@ -1,64 +1,25 @@
 {% load ui %}
-<div class="analitika-card">
-  <div class="analitika-card-head">
-    <div class="analitika-title">
-      <div class="analitika-title-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"></line>
-          <line x1="12" y1="20" x2="12" y2="4"></line>
-          <line x1="6" y1="20" x2="6" y2="14"></line>
-        </svg>
-      </div>
-      <div>
-        <span>Yuklama taqsimoti va analitika</span>
-        <div style="font-size:12px;font-weight:400;color:var(--text-muted);margin-top:2px;">O'quv yili kesimida soatlar nisbati va kafedralar qamrovi</div>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span class="hour-tag" style="background:#eef2ff;color:var(--ink);border-color:#d6dff5;">
-        Jami: <strong>{{ stat.jami_soat }}</strong> soat
-      </span>
-    </div>
-  </div>
+<div class="card" style="margin-bottom:18px;padding:16px 20px;">
+  <div style="font-weight:600;font-size:14px;margin-bottom:12px;color:var(--ink);">Yuklama taqsimoti va analitika</div>
   
-  <div class="analitika-grid">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:24px;">
     {# 1. Soat turlari kesimi #}
-    <div class="analitika-subcard">
-      <div class="analitika-subhead">
-        <span>Mashg'ulot turlari bo'yicha soatlar nisbati</span>
-        <span style="font-size:11px;font-weight:500;color:var(--text-muted);">Taqsimot ulushi</span>
-      </div>
-
-      {# Multi-segment stacked progress bar #}
-      <div class="composite-bar">
-        {% for tur, nomi, rang in turlar_metrikasi %}
-          {% with soat=stat.tur_soatlari|kalit:tur|default:0 %}
-          {% with f=soat|foiz:stat.jami_soat %}
-            {% if f > 0 %}
-            <div class="composite-segment" style="width:{{ f }}%;background:{{ rang }};" title="{{ nomi }}: {{ soat }} soat ({{ f }}%)"></div>
-            {% endif %}
-          {% endwith %}
-          {% endwith %}
-        {% endfor %}
-      </div>
-
-      <div class="tur-list">
+    <div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;font-weight:500;">Mashg'ulot turlari bo'yicha soatlar nisbati</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
         {% for tur, nomi, rang in turlar_metrikasi %}
         {% with soat=stat.tur_soatlari|kalit:tur|default:0 %}
         {% with f=soat|foiz:stat.jami_soat %}
-        <div class="tur-item">
-          <div class="tur-item-top">
-            <span class="tur-badge-wrap">
-              <span class="tur-color-dot" style="background:{{ rang }};"></span>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span style="display:flex;align-items:center;gap:6px;">
+              <span style="width:8px;height:8px;border-radius:2px;background:{{ rang }};display:inline-block;"></span>
               {{ nomi }}
             </span>
-            <div class="tur-hours-wrap">
-              <span class="tur-hours-text"><strong>{{ soat }}</strong> soat</span>
-              <span class="percent-pill">{{ f }}%</span>
-            </div>
+            <span class="num"><strong>{{ soat }}</strong> soat ({{ f }}%)</span>
           </div>
-          <div class="tur-progress-track">
-            <div class="tur-progress-fill" style="width:{{ f }}%;background:{{ rang }};"></div>
+          <div class="progress" style="height:6px;background:var(--panel-alt);">
+            <div class="fill" style="width:{{ f }}%;background:{{ rang }};"></div>
           </div>
         </div>
         {% endwith %}
@@ -68,45 +29,25 @@
     </div>
 
     {# 2. Kafedralar bo'yicha qamrov #}
-    <div class="analitika-subcard">
-      <div class="analitika-subhead">
-        <span>Kafedralar bo'yicha yuklama qamrovi</span>
-        <span style="font-size:11px;font-weight:500;color:var(--text-muted);">Biriktirilgan kafedralar</span>
-      </div>
-
-      <div class="kafedra-scroll-list">
+    <div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;font-weight:500;">Kafedralar bo'yicha yuklama qamrovi</div>
+      <div style="display:flex;flex-direction:column;gap:8px;max-height:190px;overflow-y:auto;padding-right:6px;">
         {% for q in qamrovlar %}
         {% with f=q.taqsimlangan_soat|foiz:q.biriktirilgan_soat %}
-        <div class="kafedra-coverage-item">
-          <div class="kafedra-item-top">
-            <span class="kafedra-name-wrap" title="{{ q.kafedra.nomi }}">
-              <span class="kafedra-avatar-mini">{{ q.kafedra.nomi|bosh_harflar }}</span>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;" title="{{ q.kafedra.nomi }}">
               {{ q.kafedra.nomi }}
             </span>
-            {% if q.biriktirilgan_soat > 0 %}
-              {% if f >= 100 %}
-                <span class="kafedra-status-pill ok">100% to'liq</span>
-              {% elif f > 0 %}
-                <span class="kafedra-status-pill warn">{{ f }}% taqsimlandi</span>
-              {% else %}
-                <span class="kafedra-status-pill empty">Taqsimlanmagan</span>
-              {% endif %}
-            {% else %}
-              <span class="kafedra-status-pill empty">Biriktirilmagan</span>
-            {% endif %}
+            <span class="num"><strong>{{ q.taqsimlangan_soat }}</strong> / {{ q.biriktirilgan_soat }} ({{ f }}%)</span>
           </div>
-          <div class="kafedra-hours-line">
-            <span>Taqsimlangan soat:</span>
-            <span><strong>{{ q.taqsimlangan_soat }}</strong> / {{ q.biriktirilgan_soat }} soat</span>
-          </div>
-          <div class="tur-progress-track">
-            <div class="tur-progress-fill"
-                 style="width:{{ f }}%;background:{% if f >= 100 %}var(--mand){% elif f > 0 %}#f59e0b{% else %}#cbd5e1{% endif %};"></div>
+          <div class="progress" style="height:6px;background:var(--panel-alt);">
+            <div class="fill {% if f < 100 %}warn{% endif %}" style="width:{{ f }}%;"></div>
           </div>
         </div>
         {% endwith %}
         {% empty %}
-        <div class="empty-state" style="padding:24px 0;">Kafedralar hali biriktirilmagan</div>
+        <div class="empty-state" style="padding:10px 0;">Kafedralar hali biriktirilmagan</div>
         {% endfor %}
       </div>
     </div>

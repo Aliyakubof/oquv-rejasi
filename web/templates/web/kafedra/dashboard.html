@@ -15,88 +15,77 @@
   </div>
 </div>
 <div id="kafedra-dashboard-jonli">
-  <div class="card"
-    style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 18px;">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <strong>Yuklama holati:</strong>
-      {% if tasdiq.holat == "TASDIQLANGAN" %}
+<div class="card" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 18px;">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <strong>Yuklama holati:</strong>
+    {% if tasdiq.holat == "TASDIQLANGAN" %}
       <span class="tag tag-mand">TASDIQLANGAN</span>
-      <span style="font-size:13px;color:var(--text-muted);">{{ tasdiq.tasdiqlangan_vaqt|date:"d.m.Y H:i" }} da
-        tasdiqlandi. Yuklama qulflangan.</span>
-      {% elif tasdiq.holat == "TASDIQDA" %}
+      <span style="font-size:13px;color:var(--text-muted);">{{ tasdiq.tasdiqlangan_vaqt|date:"d.m.Y H:i" }} da tasdiqlandi. Yuklama qulflangan.</span>
+    {% elif tasdiq.holat == "TASDIQDA" %}
       <span class="tag tag-elec">TASDIQQA YUBORILGAN</span>
       <span style="font-size:13px;color:var(--text-muted);">O'quv bo'limi ko'rib chiqmoqda. Taqsimot qulflangan.</span>
-      {% elif tasdiq.holat == "QAYTARILGAN" %}
+    {% elif tasdiq.holat == "QAYTARILGAN" %}
       <span class="tag tag-rad">QAYTARILGAN</span>
-      <span style="font-size:13px;color:var(--text-danger);">Sabab: {{ tasdiq.izoh|default:"Xatoliklarni to'g'irlab
-        qayta yuboring." }}</span>
-      {% else %}
+      <span style="font-size:13px;color:var(--text-danger);">Sabab: {{ tasdiq.izoh|default:"Xatoliklarni to'g'irlab qayta yuboring." }}</span>
+    {% else %}
       <span class="tag" style="background:var(--panel-alt);border:1px solid var(--line);">QORALAMA</span>
-      <span style="font-size:13px;color:var(--text-muted);">Taqsimot yakunlangach, o'quv bo'limiga tasdiqqa
-        yuboring.</span>
-      {% endif %}
-    </div>
-    {% if not qulflangan %}
-    <form method="post" action="{% url 'kafedra:tasdiqqa_yuborish' %}">
-      {% csrf_token %}
-      <input type="hidden" name="yil" value="{{ yil }}">
-      <button type="submit" class="btn btn-primary"
-        onclick="return confirm('Yuklamani o\'quv bo\'limiga tasdiqlash uchun yuborasizmi? Yuborilgach, yuklamani o\'zgartirib bo\'lmaydi.');">
-        ✓ Tasdiqqa yuborish
-      </button>
-    </form>
+      <span style="font-size:13px;color:var(--text-muted);">Taqsimot yakunlangach, o'quv bo'limiga tasdiqqa yuboring.</span>
     {% endif %}
   </div>
-  {% include "web/kafedra/_statlar.html" %}
-  <div x-data="{ qidiruv: '', faqat_qoldiq: false }">
-    <div class="controls" style="justify-content:space-between;margin-bottom:12px;">
-      <div class="controls">
-        {% include "web/parts/_qidiruv.html" with placeholder="Fan nomi, kodi yoki yo'nalish" aria_label="Fan nomi, kodi
-        yoki yo'nalish" %}
-        <button type="button" class="chip-btn" :class="faqat_qoldiq && 'active'"
-          @click="faqat_qoldiq = !faqat_qoldiq">Faqat qoldiq soati borlar</button>
+  {% if not qulflangan %}
+  <form method="post" action="{% url 'kafedra:tasdiqqa_yuborish' %}">
+    {% csrf_token %}
+    <input type="hidden" name="yil" value="{{ yil }}">
+    <button type="submit" class="btn btn-primary" onclick="return confirm('Yuklamani o\'quv bo\'limiga tasdiqlash uchun yuborasizmi? Yuborilgach, yuklamani o\'zgartirib bo\'lmaydi.');">
+      ✓ Tasdiqqa yuborish
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% include "web/kafedra/_statlar.html" %}
+<div x-data="{ qidiruv: '', faqat_qoldiq: false }">
+  <div class="controls" style="justify-content:space-between;margin-bottom:12px;">
+    <div class="controls">
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" placeholder="Fan nomi, kodi yoki yo'nalish" aria-label="Fan nomi, kodi yoki yo'nalish" x-model="qidiruv">
       </div>
-      <div class="legend" style="margin:0;">
-        <span><span class="dot" style="background:var(--mand);"></span>To'liq taqsimlangan</span>
-        <span><span class="dot"
-            style="background:var(--unassigned-soft);border:1px solid var(--unassigned);"></span>Qoldiq soat bor</span>
-      </div>
+      <button type="button" class="chip-btn" :class="faqat_qoldiq && 'active'" @click="faqat_qoldiq = !faqat_qoldiq">Faqat qoldiq soati borlar</button>
     </div>
-    <div class="table-wrap narrow cards">
-      <table>
-        <thead>
-          <tr>
-            <th>Fan</th>
-            <th>Semestr</th>
-            <th class="sem-h">Ma'ruza</th>
-            <th class="sem-h">Amaliyot</th>
-            <th class="sem-h">Lab.</th>
-            <th class="sem-h">Seminar</th>
-            <th class="sem-h">Kurs ishi</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody data-jonli="kafedra-fs-tbody">
-          {% for satr in fs_satrlar %}
-          {% include "web/kafedra/_fs_qatori.html" %}
-          <tr class="panel-row">
-            <td colspan="8" style="padding:0;border-bottom:0;">
-              <div id="panel-yuk-{{ satr.fan_semestr.pk }}" class="htmx-indicator" style="padding:12px 16px;">
-                <div class="skeleton-bar" style="width:32%;height:12px;"></div>
-              </div>
-              <div id="panel-{{ satr.fan_semestr.pk }}"></div>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="8">
-              <div class="empty-state">Bu o'quv yilida kafedraga biriktirilgan fanlar yo'q.</div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="legend" style="margin:0;">
+      <span><span class="dot" style="background:var(--mand);"></span>To'liq taqsimlangan</span>
+      <span><span class="dot" style="background:var(--unassigned-soft);border:1px solid var(--unassigned);"></span>Qoldiq soat bor</span>
     </div>
   </div>
+  <div class="table-wrap narrow cards">
+    <table>
+      <thead>
+        <tr>
+          <th>Fan</th>
+          <th>Semestr</th>
+          <th class="sem-h">Ma'ruza</th>
+          <th class="sem-h">Amaliyot</th>
+          <th class="sem-h">Lab.</th>
+          <th class="sem-h">Seminar</th>
+          <th class="sem-h">Kurs ishi</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody data-jonli="kafedra-fs-tbody">
+        {% for satr in fs_satrlar %}
+        {% include "web/kafedra/_fs_qatori.html" %}
+        <tr class="panel-row"><td colspan="8" style="padding:0;border-bottom:0;">
+          <div id="panel-yuk-{{ satr.fan_semestr.pk }}" class="htmx-indicator" style="padding:12px 16px;">
+            <div class="skeleton-bar" style="width:32%;height:12px;"></div>
+          </div>
+          <div id="panel-{{ satr.fan_semestr.pk }}"></div>
+        </td></tr>
+        {% empty %}
+        <tr><td colspan="8"><div class="empty-state">Bu o'quv yilida kafedraga biriktirilgan fanlar yo'q.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 </div>
 {% endblock %}

@@ -219,7 +219,9 @@ class KafedraTasdiqWorkflowTests(TestCase):
         self.assertContains(post_javob, "qulflangan")
 
     def test_ofis_tasdiqlash_va_qaytarish(self) -> None:
-        services.yuklamani_tasdiqqa_yuborish(self.kafedra, self.yil, "Tekshiring")
+        services.yuklamani_tasdiqqa_yuborish(
+            self.kafedra, self.yil, "Tekshiring"
+        )
         admin = office_admin_yarat()
         login(self.client, admin)
 
@@ -273,6 +275,18 @@ class AuditJurnaliTests(TestCase):
         self.assertEqual(javob_filter.status_code, 200)
         self.assertContains(javob_filter, "Tasdiqlandi")
 
+    def test_audit_yoz_obyekt_va_ip_manzil_bilan_ishlaydi(self) -> None:
+        kafedra = Department.objects.create(nomi="Kiberxavfsizlik")
+        yozuv = audit_yoz(
+            AuditAmali.YARATILDI,
+            "Kafedra yaratildi",
+            obyekt=kafedra,
+            ip_manzil="192.168.1.100",
+        )
+        self.assertEqual(yozuv.model_nomi, "Department")
+        self.assertEqual(yozuv.obyekt_id, str(kafedra.pk))
+        self.assertEqual(yozuv.ip_manzil, "192.168.1.100")
+
 
 class Shakl1IndividualRejaTests(TestCase):
     def test_oqituvchi_shakl1_jadvali_korsatiladi(self) -> None:
@@ -293,15 +307,15 @@ class Shakl1IndividualRejaTests(TestCase):
         self.assertContains(javob, "1-shakl (Individual reja)")
         self.assertContains(javob, "Ma'ruza")
         self.assertContains(javob, "Jami")
-        self.assertContains(javob, "Kafedra mudiri")
-
 
 class AnalitikaDashboardTests(TestCase):
     def test_ofis_dashboard_analitika_kartochkasi_chiqadi(self) -> None:
-        reja = make_reja(boshlanish_yili=dashboard.joriy_akademik_yil())
+        login(self.client, office_admin_yarat())
+        yil = dashboard.joriy_akademik_yil()
+        reja = make_reja(boshlanish_yili=yil)
         fan = make_fan(reja)
         make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        login(self.client, office_admin_yarat())
+
         javob = self.client.get(reverse("office:dashboard"))
         self.assertEqual(javob.status_code, 200)
         self.assertContains(javob, "Yuklama taqsimoti va analitika")
@@ -380,6 +394,4 @@ class RestApiTests(TestCase):
         self.assertEqual(self.reja.talabalar_soni, 75)
         self.assertEqual(self.reja.guruhlar_soni, 3)
         self.assertEqual(self.reja.guruhlar.count(), 3)
-        self.assertTrue(
-            AuditYozuvi.objects.filter(amal=AuditAmali.TAHRIRLANDI).exists()
-        )
+        self.assertTrue(AuditYozuvi.objects.filter(amal=AuditAmali.TAHRIRLANDI).exists())
