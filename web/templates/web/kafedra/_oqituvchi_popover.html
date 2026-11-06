@@ -6,7 +6,7 @@
           x-show="q === '' || $el.textContent.toLowerCase().includes(q.toLowerCase())"
           hx-post="{% url url_nomi fs.pk %}"
           hx-vals='{"oqituvchi": {{ profil.pk }}{% if slot_guruh %}, "guruh": {{ slot_guruh.pk }}, "tur": "{{ holat_tur }}"{% endif %}}'
-          hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML">
+          hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
     <span class="avatar">{{ profil|stringformat:"s"|bosh_harflar }}</span>
     <span class="opt-info">
       <span class="opt-ism">{{ profil }}</span>

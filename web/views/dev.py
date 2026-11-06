@@ -13,13 +13,15 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.models import Department, Foydalanuvchi, OqituvchiProfil, Rol
+from plans.dashboard import joriy_akademik_yil
+from plans.models import Yuklama
 
 ASL_KEY = "dev_asl_foydalanuvchi"
 BACKEND = "django.contrib.auth.backends.ModelBackend"
@@ -97,24 +99,30 @@ def _ofis_adminlar() -> list[Foydalanuvchi]:
 
 
 def _mudirli_kafedralar() -> list[Department]:
-    """Only kafedras that have a mudir — those are the heads that can log in.
+    """Only kafedras that have an active mudir — those are the heads that can log in.
 
     Filtering by rol=DEPARTMENT_ADMIN instead would list heads whose kafedra
     link is missing, and KafedraMudiriTalabMixin bounces those straight out.
     """
     return list(
         Department.objects.exclude(mudir=None)
+        .filter(mudir__foydalanuvchi__is_active=True)
         .select_related("mudir__foydalanuvchi")
         .order_by("nomi")
     )
 
 
 def _oqituvchilar() -> list[OqituvchiProfil]:
+    joriy_yuklamalar = Yuklama.objects.akademik_yilda(joriy_akademik_yil())
     return list(
         OqituvchiProfil.objects.filter(
             foydalanuvchi__rol=Rol.TEACHER, foydalanuvchi__is_active=True
         )
         .select_related("foydalanuvchi", "kafedra", "turi")
-        .annotate(jami_soat=Coalesce(Sum("yuklamalar__soat"), 0))
+        .annotate(
+            jami_soat=Coalesce(
+                Sum("yuklamalar__soat", filter=Q(yuklamalar__in=joriy_yuklamalar)), 0
+            )
+        )
         .order_by("kafedra__nomi", "foydalanuvchi__last_name")
     )

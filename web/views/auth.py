@@ -11,6 +11,7 @@ from django.views.generic import FormView
 
 from accounts.models import Rol
 from web.forms.auth import ParolOzgartirishForm, TelefonKirishForm
+from web.mixins import _boshqarayotgan_kafedra
 
 ROL_SAHIFALARI = {
     Rol.SUPERADMIN: "office:dashboard",
@@ -44,4 +45,9 @@ class ParolOzgartirishView(LoginRequiredMixin, FormView):
 
 @login_required
 def bosh_sahifa(request: HttpRequest) -> HttpResponse:
+    if (
+        request.user.rol == Rol.DEPARTMENT_ADMIN
+        and _boshqarayotgan_kafedra(request) is None
+    ):
+        return redirect("men:yuklamalar")
     return redirect(ROL_SAHIFALARI.get(request.user.rol, "kirish"))

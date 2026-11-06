@@ -71,6 +71,9 @@ class PanelAsosView(KafedraMudiriTalabMixin, View):
                 "holatlar": delegation.fan_semestr_holati(fs),
                 "satr": delegation.fs_satri(fs),
                 "oqituvchilar": oqituvchilar,
+                "qulflangan": services.kafedra_yuklama_qulflanganmi(
+                    self.kafedra, fs.akademik_yil
+                ),
                 "stat": dashboard.statlarni_hisoblash(
                     services.kafedra_taqsimoti(self.kafedra, fs.akademik_yil)
                 ),

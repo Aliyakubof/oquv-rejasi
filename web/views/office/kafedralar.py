@@ -79,13 +79,28 @@ def kafedra_mudir(request: HttpRequest, pk: int) -> HttpResponse:
     try:
         mudir_tayinlash(kafedra, profil)
         if profil is None:
+            audit_yoz(
+                AuditAmali.TAHRIRLANDI,
+                f"{kafedra.nomi}: kafedra mudiri bekor qilindi.",
+                obyekt=kafedra,
+                request=request,
+            )
             messages.success(request, f"{kafedra.nomi}: mudir bekor qilindi.")
         else:
+            audit_yoz(
+                AuditAmali.TAHRIRLANDI,
+                f"{kafedra.nomi}: {profil} kafedra mudiri etib tayinlandi.",
+                obyekt=kafedra,
+                request=request,
+            )
             messages.success(
                 request, f"{kafedra.nomi}: {profil} mudir etib tayinlandi."
             )
     except ValidationError as xato:
         messages.error(request, xato_matni(xato))
+    _, yil = yilni_tanlash(request.POST.get("yil"))
+    if yil:
+        return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
     return redirect("office:kafedra_list")
 
 

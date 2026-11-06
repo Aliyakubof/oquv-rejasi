@@ -18,10 +18,10 @@
   {% include "web/kafedra/_tur_katak.html" with tur="SEMINAR" yorliq="Seminar" %}
   {% include "web/kafedra/_tur_katak.html" with tur="KURS_ISHI" yorliq="Kurs ishi" %}
   <td style="text-align:right;white-space:nowrap;">
-    <button type="button" class="btn {% if satr.qoldiq_bor %}btn-primary{% endif %}"
+    <button type="button" class="btn {% if satr.qoldiq_bor and not qulflangan %}btn-primary{% endif %}"
             hx-get="{% url 'kafedra:taqsimot_panel' satr.fan_semestr.pk %}"
             hx-target="#panel-{{ satr.fan_semestr.pk }}" hx-swap="innerHTML"
             hx-indicator="#panel-yuk-{{ satr.fan_semestr.pk }}" hx-disabled-elt="this"
-            hx-on::before-request="const p = document.getElementById('panel-{{ satr.fan_semestr.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">Taqsimlash</button>
+            hx-on::before-request="const p = document.getElementById('panel-{{ satr.fan_semestr.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">{% if qulflangan %}Ko'rish{% else %}Taqsimlash{% endif %}</button>
   </td>
 </tr>

@@ -2,6 +2,7 @@
 {% load ui %}
 {% block title %}{{ kafedra.nomi }} — yuklama hisoboti{% endblock %}
 {% block content %}
+<div id="kafedra-hisobot-jonli">
 <div class="topbar print-toolbar">
   <div>
     <div class="title"><span class="badge-major">{{ kafedra.nomi }}</span>Yuklama hisoboti</div>
@@ -9,7 +10,8 @@
   <div class="controls">
     {% if yillar %}
     <form method="get">
-      {% include "web/parts/_yil_tanlov.html" %}
+      {% url 'kafedra:hisobot' as hisobot_url %}
+      {% include "web/parts/_yil_tanlov.html" with hx_url=hisobot_url hx_target="#kafedra-hisobot-jonli" %}
     </form>
     {% endif %}
     <a class="btn" href="{% url 'kafedra:hisobot_excel' %}?yil={{ yil }}" hx-boost="false">Excel (.xlsx)</a>
@@ -79,5 +81,6 @@
     <div class="line">Kafedra mudiri</div>
     <div class="line">O'quv bo'limi boshlig'i</div>
   </div>
+</div>
 </div>
 {% endblock %}

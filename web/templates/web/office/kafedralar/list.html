@@ -2,6 +2,7 @@
 {% load ui %}
 {% block title %}Kafedralar{% endblock %}
 {% block content %}
+<div id="office-kafedralar-jonli">
 <div class="topbar">
   <div>
     <div class="title">Kafedralar</div>
@@ -10,7 +11,7 @@
     {% if yillar %}
     <form method="get">
       {% url 'office:kafedra_list' as kaf_url %}
-      {% include "web/parts/_yil_tanlov.html" with hx_url=kaf_url hx_target="#kafedralar-tbody" %}
+      {% include "web/parts/_yil_tanlov.html" with hx_url=kaf_url hx_target="#office-kafedralar-jonli" %}
     </form>
     {% endif %}
     <a class="btn btn-primary" href="{% url 'office:kafedra_yangi' %}">+ Yangi kafedra</a>
@@ -53,10 +54,9 @@
               {% endif %}
               {% for profil in q.kafedra.oqituvchilar.all %}
               <form method="post" action="{% url 'office:kafedra_mudir' q.kafedra.pk %}"
-                    hx-post="{% url 'office:kafedra_mudir' q.kafedra.pk %}"
-                    hx-target="#kafedralar-tbody" hx-select="#kafedralar-tbody" hx-swap="outerHTML"
                     x-show="q_m === '' || $el.textContent.toLowerCase().includes(q_m.toLowerCase())">
                 {% csrf_token %}
+                <input type="hidden" name="yil" value="{{ yil }}">
                 <input type="hidden" name="profil" value="{{ profil.pk }}">
                 <button type="submit" class="opt"><span class="avatar">{{ profil|stringformat:"s"|bosh_harflar }}</span>{{ profil }}</button>
               </form>
@@ -64,10 +64,9 @@
               <div class="hint" style="padding:6px 8px;">Kafedrada o'qituvchi yo'q</div>
               {% endfor %}
               {% if q.kafedra.mudir %}
-              <form method="post" action="{% url 'office:kafedra_mudir' q.kafedra.pk %}"
-                    hx-post="{% url 'office:kafedra_mudir' q.kafedra.pk %}"
-                    hx-target="#kafedralar-tbody" hx-select="#kafedralar-tbody" hx-swap="outerHTML">
+              <form method="post" action="{% url 'office:kafedra_mudir' q.kafedra.pk %}">
                 {% csrf_token %}
+                <input type="hidden" name="yil" value="{{ yil }}">
                 <input type="hidden" name="profil" value="">
                 <button type="submit" class="opt clear">Mudirni bekor qilish</button>
               </form>
@@ -125,10 +124,11 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7"><div class="empty-state">Kafedralar hali yaratilmagan.</div></td></tr>
+        <tr><td colspan="8"><div class="empty-state">Kafedralar hali yaratilmagan.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+</div>
 </div>
 {% endblock %}

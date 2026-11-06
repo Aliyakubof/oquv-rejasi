@@ -16,6 +16,7 @@ from web.mixins import (
     KafedraMudiriTalabMixin,
     YilTanlovMixin,
     _boshqarayotgan_kafedra,
+    kafedra_mudiri_talab,
     xato_matni,
 )
 
@@ -43,11 +44,10 @@ class KafedraDashboardView(KafedraMudiriTalabMixin, YilTanlovMixin, TemplateView
 
 
 @require_POST
+@kafedra_mudiri_talab
 def tasdiqqa_yuborish_view(request: HttpRequest) -> HttpResponse:
     kafedra = _boshqarayotgan_kafedra(request)
-    if not kafedra:
-        messages.error(request, "Kafedra topilmadi.")
-        return redirect("kafedra:dashboard")
+    assert kafedra is not None
     _, yil = yilni_tanlash(request.POST.get("yil"))
     yil = yil or dashboard.joriy_akademik_yil()
     izoh = request.POST.get("izoh", "").strip()

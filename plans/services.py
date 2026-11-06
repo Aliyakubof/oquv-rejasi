@@ -160,17 +160,16 @@ def oqituvchi_yillik_yuklamasi(oqituvchi: OqituvchiProfil, akademik_yil: int) ->
 def yuklama_kamomadi(
     akademik_yil: int, *, kafedra: Department | None = None
 ) -> list[YuklamaHolati]:
-    """Every teacher's annual hours vs min_soat; zero-hour teachers included."""
-    oqituvchilar = OqituvchiProfil.objects.select_related(
-        "foydalanuvchi", "turi", "kafedra"
-    )
+    """Every active teacher's annual hours vs min_soat; zero-hour teachers included."""
+    oqituvchilar = OqituvchiProfil.objects.filter(
+        foydalanuvchi__is_active=True
+    ).select_related("foydalanuvchi", "turi", "kafedra")
     if kafedra is not None:
         oqituvchilar = oqituvchilar.filter(kafedra=kafedra)
-    soatlar = dict(
-        Yuklama.objects.akademik_yilda(akademik_yil)
-        .values_list("oqituvchi_id")
-        .annotate(jami=Sum("soat"))
-    )
+    yuklama_qs = Yuklama.objects.akademik_yilda(akademik_yil)
+    if kafedra is not None:
+        yuklama_qs = yuklama_qs.filter(oqituvchi__kafedra=kafedra)
+    soatlar = dict(yuklama_qs.values_list("oqituvchi_id").annotate(jami=Sum("soat")))
     holatlar = [
         YuklamaHolati(
             oqituvchi=o, jami_soat=soatlar.get(o.pk, 0), min_soat=o.turi.min_soat
@@ -340,6 +339,8 @@ def yuklamani_tasdiqqa_yuborish(
     tasdiq = kafedra_tasdiq_holati(kafedra, akademik_yil)
     if tasdiq.holat == KafedraTasdiqHolati.TASDIQLANGAN:
         raise ValidationError("Yuklama allaqachon tasdiqlangan.")
+    if tasdiq.holat == KafedraTasdiqHolati.TASDIQDA:
+        raise ValidationError("Yuklama allaqachon tasdiqqa yuborilgan.")
     tasdiq.holat = KafedraTasdiqHolati.TASDIQDA
     tasdiq.yuborilgan_vaqt = timezone.now()
     tasdiq.izoh = izoh
@@ -358,8 +359,7 @@ def yuklamani_tasdiqlash(
     tasdiq.holat = KafedraTasdiqHolati.TASDIQLANGAN
     tasdiq.tasdiqlangan_vaqt = timezone.now()
     tasdiq.tasdiqlagan = admin
-    if izoh:
-        tasdiq.izoh = izoh
+    tasdiq.izoh = izoh
     tasdiq.save()
     return tasdiq
 

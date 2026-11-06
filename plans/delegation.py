@@ -44,6 +44,10 @@ class TurHolati:
             return None
         return self.talab_soat - self.taqsimlangan_soat
 
+    @property
+    def band_oqituvchi_idlar(self) -> set[int]:
+        return {y.oqituvchi_id for y in self.kurs_ishi_yuklamalar}
+
 
 def fan_semestr_holati(fs: FanSemestr) -> list[TurHolati]:
     reja = fs.variant.fan.reja

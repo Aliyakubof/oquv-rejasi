@@ -79,3 +79,15 @@ class KursIshiYuklamaForm(YuklamaAsosForm):
         super().__init__(*args, **kwargs)
         self.instance.tur = SoatTuri.KURS_ISHI
         self.fields["talabalar_soni"].required = True
+
+    def clean_oqituvchi(self) -> OqituvchiProfil:
+        oqituvchi = self.cleaned_data["oqituvchi"]
+        if Yuklama.objects.filter(
+            fan_semestr=self.instance.fan_semestr,
+            tur=SoatTuri.KURS_ISHI,
+            oqituvchi=oqituvchi,
+        ).exists():
+            raise forms.ValidationError(
+                "Bu o'qituvchiga ushbu fandan kurs ishi allaqachon biriktirilgan."
+            )
+        return oqituvchi

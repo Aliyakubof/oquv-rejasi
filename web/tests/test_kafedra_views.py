@@ -1,17 +1,18 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from accounts.models import Department
+from accounts.models import Department, Rol
 from plans.dashboard import joriy_akademik_yil
 from plans.models import SoatTuri, Yuklama
-from plans.services import guruhlarni_sinxronlash
+from plans.services import guruhlarni_sinxronlash, yuklamani_tasdiqqa_yuborish
 from plans.tests.factories import (
     make_fan,
     make_fan_semestr,
     make_oqituvchi,
     make_reja,
 )
-from web.tests.helpers import login, mudir_yarat
+from web.tests.helpers import foydalanuvchi_yarat, login, mudir_yarat
+from web.views.jonli import holat_versiyasi
 
 
 class KafedraAsosTest(TestCase):
@@ -46,6 +47,13 @@ class KafedraDashboardTests(KafedraAsosTest):
             [s.fan_semestr.pk for s in javob.context["fs_satrlar"]], [self.fs.pk]
         )
 
+    def test_kafedrasiz_mudir_redirect_loop_bolmaydi(self) -> None:
+        user = foydalanuvchi_yarat(Rol.DEPARTMENT_ADMIN)
+        login(self.client, user)
+        javob = self.client.get(reverse("kafedra:dashboard"), follow=True)
+        self.assertEqual(javob.status_code, 200)
+        self.assertContains(javob, "Sizga kafedra biriktirilmagan.")
+
 
 class TaqsimotPanelTests(KafedraAsosTest):
     def test_panel_ochiladi(self) -> None:
@@ -60,6 +68,20 @@ class TaqsimotPanelTests(KafedraAsosTest):
         begona_fs = make_fan_semestr(begona.tanlangan_variant, semestr=1)
         javob = self.client.get(reverse("kafedra:taqsimot_panel", args=[begona_fs.pk]))
         self.assertEqual(javob.status_code, 404)
+
+    def test_qulflangan_panel_tahrir_tugmalarini_yashiradi(self) -> None:
+        Yuklama.objects.create(
+            fan_semestr=self.fs, tur=SoatTuri.MARUZA, oqituvchi=self.oqituvchi
+        )
+        v1 = holat_versiyasi()
+        yuklamani_tasdiqqa_yuborish(self.kafedra, self.joriy)
+        v2 = holat_versiyasi()
+        self.assertNotEqual(v1, v2)
+
+        javob = self.client.get(reverse("kafedra:taqsimot_panel", args=[self.fs.pk]))
+        self.assertContains(javob, "Qulflangan")
+        self.assertNotContains(javob, "chip-remove-btn")
+        self.assertNotContains(javob, "+ O&#x27;qituvchi biriktirish")
 
 
 class YuklamaYaratishTests(KafedraAsosTest):
@@ -92,6 +114,20 @@ class YuklamaYaratishTests(KafedraAsosTest):
         )
         yuklama = Yuklama.objects.get(fan_semestr=self.fs, tur=SoatTuri.KURS_ISHI)
         self.assertEqual(yuklama.soat, 60)
+
+    def test_takroriy_kurs_ishi_oqituvchisi_xato(self) -> None:
+        Yuklama.objects.create(
+            fan_semestr=self.fs,
+            tur=SoatTuri.KURS_ISHI,
+            oqituvchi=self.oqituvchi,
+            talabalar_soni=10,
+        )
+        javob = self.client.post(
+            reverse("kafedra:kurs_ishi_yaratish", args=[self.fs.pk]),
+            {"oqituvchi": self.oqituvchi.pk, "talabalar_soni": 10},
+        )
+        self.assertEqual(Yuklama.objects.filter(tur=SoatTuri.KURS_ISHI).count(), 1)
+        self.assertContains(javob, "allaqachon biriktirilgan")
 
     def test_takroriy_guruh_sloti_xato(self) -> None:
         Yuklama.objects.create(
@@ -145,6 +181,31 @@ class KafedraOqituvchilarTests(KafedraAsosTest):
         javob = self.client.get(reverse("kafedra:oqituvchi_list"))
         self.assertContains(javob, str(self.oqituvchi))
         self.assertNotContains(javob, str(begona))
+
+    def test_faolsiz_oqituvchi_royxatda_chiqmaydi(self) -> None:
+        faolsiz = make_oqituvchi(kafedra=self.kafedra)
+        faolsiz.foydalanuvchi.is_active = False
+        faolsiz.foydalanuvchi.save(update_fields=["is_active"])
+        javob = self.client.get(reverse("kafedra:oqituvchi_list"))
+        self.assertNotContains(javob, str(faolsiz))
+
+    def test_shakl1_maruza_va_kurs_ishi_guruh_matni(self) -> None:
+        Yuklama.objects.create(
+            fan_semestr=self.fs,
+            tur=SoatTuri.KURS_ISHI,
+            oqituvchi=self.oqituvchi,
+            talabalar_soni=15,
+        )
+        Yuklama.objects.create(
+            fan_semestr=self.fs,
+            tur=SoatTuri.MARUZA,
+            oqituvchi=self.oqituvchi,
+        )
+        javob = self.client.get(
+            reverse("kafedra:oqituvchi_yuklama", args=[self.oqituvchi.pk]),
+            {"yil": self.joriy},
+        )
+        self.assertContains(javob, "Oqim (15 talaba)")
 
     def test_yaratish_oz_kafedrasiga_boglanadi(self) -> None:
         from accounts.models import Foydalanuvchi, OqituvchiTuri

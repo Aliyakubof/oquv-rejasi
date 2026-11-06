@@ -8,7 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Prefetch, Q, Sum
 from django.utils import timezone
 
 from accounts.models import Department, OqituvchiProfil
@@ -356,8 +356,20 @@ def kafedra_qamrovi(akademik_yil: int) -> list[KafedraQamrov]:
         taqsimlangan[kafedra_id] += satr.taqsimlangan_soat
     kafedralar = (
         Department.objects.select_related("mudir__foydalanuvchi")
-        .prefetch_related("oqituvchilar__foydalanuvchi")
-        .annotate(oqituvchilar_soni=Count("oqituvchilar"))
+        .prefetch_related(
+            Prefetch(
+                "oqituvchilar",
+                queryset=OqituvchiProfil.objects.filter(
+                    foydalanuvchi__is_active=True
+                ).select_related("foydalanuvchi"),
+            )
+        )
+        .annotate(
+            oqituvchilar_soni=Count(
+                "oqituvchilar",
+                filter=Q(oqituvchilar__foydalanuvchi__is_active=True),
+            )
+        )
         .order_by("nomi")
     )
     tasdiqlar = {

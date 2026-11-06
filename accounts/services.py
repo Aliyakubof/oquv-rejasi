@@ -78,6 +78,8 @@ def oqituvchi_yangilash(
 def mudir_tayinlash(kafedra: Department, profil: OqituvchiProfil | None) -> None:
     """Set (or clear, with profil=None) the department head, syncing roles."""
     if profil is not None:
+        if not profil.foydalanuvchi.is_active:
+            raise ValidationError("Faolsizlantirilgan o'qituvchi mudir bo'la olmaydi.")
         if profil.kafedra_id != kafedra.pk:
             raise ValidationError("O'qituvchi boshqa kafedraga tegishli.")
         boshqa = getattr(profil, "boshqarayotgan_kafedra", None)

@@ -64,9 +64,8 @@ class RejalarApiView(BaseApiView):
 
     def get(self, request: HttpRequest) -> JsonResponse:
         boshlanish_yili = request.GET.get("yil")
-        qs = (
-            OquvReja.objects.annotate(fanlar_soni=Count("fanlar"))
-            .order_by("-boshlanish_yili", "yonalish_kodi")
+        qs = OquvReja.objects.annotate(fanlar_soni=Count("fanlar")).order_by(
+            "-boshlanish_yili", "yonalish_kodi"
         )
         if boshlanish_yili and boshlanish_yili.isdigit():
             qs = qs.filter(boshlanish_yili=int(boshlanish_yili))
@@ -243,13 +242,17 @@ class HemisSyncApiView(BaseApiView):
                     if "talabalar_soni" in item and item["talabalar_soni"] is not None:
                         val = int(item["talabalar_soni"])
                         if val < 0:
-                            raise ValueError("talabalar_soni manfiy bo'lishi mumkin emas")
+                            raise ValueError(
+                                "talabalar_soni manfiy bo'lishi mumkin emas"
+                            )
                         reja.talabalar_soni = val
                         ozgardi = True
                     if "guruhlar_soni" in item and item["guruhlar_soni"] is not None:
                         val = int(item["guruhlar_soni"])
                         if val < 0:
-                            raise ValueError("guruhlar_soni manfiy bo'lishi mumkin emas")
+                            raise ValueError(
+                                "guruhlar_soni manfiy bo'lishi mumkin emas"
+                            )
                         reja.guruhlar_soni = val
                         ozgardi = True
                 except (ValueError, TypeError) as err:

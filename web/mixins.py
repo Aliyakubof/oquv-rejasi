@@ -84,6 +84,26 @@ def office_admin_talab(
     return wrapper
 
 
+def kafedra_mudiri_talab(
+    view: Callable[..., HttpResponse],
+) -> Callable[..., HttpResponse]:
+    """Function-view counterpart of KafedraMudiriTalabMixin."""
+
+    @wraps(view)
+    def wrapper(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+        if not request.user.is_authenticated:
+            return redirect("kirish")
+        if request.user.rol not in (Rol.DEPARTMENT_ADMIN, Rol.SUPERADMIN):
+            messages.error(request, "Bu sahifaga kirish huquqingiz yo'q.")
+            return redirect("bosh_sahifa")
+        if _boshqarayotgan_kafedra(request) is None:
+            messages.error(request, "Sizga kafedra biriktirilmagan.")
+            return redirect("bosh_sahifa")
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
 def xato_matni(exc: Exception) -> str:
     """Format ValidationError messages into a single user-facing string."""
     return " ".join(exc.messages) if hasattr(exc, "messages") else str(exc)

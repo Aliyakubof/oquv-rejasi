@@ -10,9 +10,23 @@ from django.views.generic import FormView, TemplateView
 
 from accounts.models import OqituvchiProfil
 from plans import dashboard
+from plans.audit import audit_yoz
 from plans.dashboard import yilni_tanlash
-from plans.models import SoatTuri, Yuklama
+from plans.models import AuditAmali, SoatTuri, Yuklama
 from web.mixins import YilTanlovMixin
+
+
+def _shakl1_guruh_matni(qator: dict[str, object]) -> str:
+    guruh_nomi = qator.get("_guruh_nomi")
+    if guruh_nomi:
+        return str(guruh_nomi)
+    talabalar = int(qator.get("_talabalar_soni", 0))
+    maruza_bor = int(qator.get("maruza", 0)) > 0
+    if maruza_bor and talabalar > 0:
+        return f"Oqim ({talabalar} talaba)"
+    if talabalar > 0:
+        return f"{talabalar} talaba"
+    return "Oqim"
 
 
 def oqituvchi_yuklama_konteksti(
@@ -36,18 +50,15 @@ def oqituvchi_yuklama_konteksti(
         if kalit not in shakl1_qatorlar:
             reja = fs.variant.fan.reja
             kurs = (fs.semestr + 1) // 2
-            guruh_matni = (
-                y.guruh.nomi
-                if y.guruh
-                else (f"{y.talabalar_soni} talaba" if y.talabalar_soni else "Oqim")
-            )
             shakl1_qatorlar[kalit] = {
                 "fan": fs.variant.nomi,
                 "kodi": fs.variant.kodi,
                 "yonalish": f"{reja.yonalish_kodi} {reja.yonalish_nomi}",
                 "kurs": kurs,
                 "semestr": fs.semestr,
-                "guruh": guruh_matni,
+                "guruh": "Oqim",
+                "_guruh_nomi": y.guruh.nomi if y.guruh else "",
+                "_talabalar_soni": 0,
                 "maruza": 0,
                 "amaliyot": 0,
                 "laboratoriya": 0,
@@ -55,12 +66,17 @@ def oqituvchi_yuklama_konteksti(
                 "kurs_ishi": 0,
                 "jami": 0,
             }
+        if y.talabalar_soni:
+            shakl1_qatorlar[kalit]["_talabalar_soni"] = (
+                int(shakl1_qatorlar[kalit]["_talabalar_soni"]) + y.talabalar_soni
+            )
         tur_kalit = y.tur.lower()
         if tur_kalit in shakl1_qatorlar[kalit]:
             shakl1_qatorlar[kalit][tur_kalit] = (
                 int(shakl1_qatorlar[kalit][tur_kalit]) + y.soat
             )
         shakl1_qatorlar[kalit]["jami"] = int(shakl1_qatorlar[kalit]["jami"]) + y.soat
+        shakl1_qatorlar[kalit]["guruh"] = _shakl1_guruh_matni(shakl1_qatorlar[kalit])
 
     jami_soat = sum(y.soat for y in yuklamalar)
     return {
@@ -101,6 +117,12 @@ class OqituvchiYangiAsosView(FormView):
 
     def form_valid(self, form: Form) -> HttpResponse:
         profil = form.saqlash()  # type: ignore[attr-defined]
+        audit_yoz(
+            AuditAmali.YARATILDI,
+            f"O'qituvchi yaratildi: {profil} ({profil.kafedra.nomi}).",
+            obyekt=profil,
+            request=self.request,
+        )
         messages.success(self.request, f"{profil} yaratildi.")
         return redirect(self.success_url_name)
 
@@ -121,5 +143,12 @@ class OqituvchiTahrirAsosView(FormView):
 
     def form_valid(self, form: Form) -> HttpResponse:
         form.saqlash()  # type: ignore[attr-defined]
-        messages.success(self.request, f"{form.profil} saqlandi.")  # type: ignore[attr-defined]
+        profil = form.profil  # type: ignore[attr-defined]
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            f"O'qituvchi ma'lumotlari tahrirlandi: {profil} ({profil.kafedra.nomi}).",
+            obyekt=profil,
+            request=self.request,
+        )
+        messages.success(self.request, f"{profil} saqlandi.")
         return redirect(self.success_url_name)

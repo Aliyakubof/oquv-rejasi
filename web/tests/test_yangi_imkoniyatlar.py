@@ -219,9 +219,7 @@ class KafedraTasdiqWorkflowTests(TestCase):
         self.assertContains(post_javob, "qulflangan")
 
     def test_ofis_tasdiqlash_va_qaytarish(self) -> None:
-        services.yuklamani_tasdiqqa_yuborish(
-            self.kafedra, self.yil, "Tekshiring"
-        )
+        services.yuklamani_tasdiqqa_yuborish(self.kafedra, self.yil, "Tekshiring")
         admin = office_admin_yarat()
         login(self.client, admin)
 
@@ -307,6 +305,7 @@ class Shakl1IndividualRejaTests(TestCase):
         self.assertContains(javob, "1-shakl (Individual reja)")
         self.assertContains(javob, "Ma'ruza")
         self.assertContains(javob, "Jami")
+
 
 class AnalitikaDashboardTests(TestCase):
     def test_ofis_dashboard_analitika_kartochkasi_chiqadi(self) -> None:
@@ -394,4 +393,6 @@ class RestApiTests(TestCase):
         self.assertEqual(self.reja.talabalar_soni, 75)
         self.assertEqual(self.reja.guruhlar_soni, 3)
         self.assertEqual(self.reja.guruhlar.count(), 3)
-        self.assertTrue(AuditYozuvi.objects.filter(amal=AuditAmali.TAHRIRLANDI).exists())
+        self.assertTrue(
+            AuditYozuvi.objects.filter(amal=AuditAmali.TAHRIRLANDI).exists()
+        )

@@ -15,7 +15,7 @@
   </div>
 </div>
 <div id="kafedra-dashboard-jonli">
-<div class="card" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 18px;">
+<div class="card" data-jonli="kafedra-tasdiq" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 18px;">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
     <strong>Yuklama holati:</strong>
     {% if tasdiq.holat == "TASDIQLANGAN" %}
@@ -74,7 +74,9 @@
       <tbody data-jonli="kafedra-fs-tbody">
         {% for satr in fs_satrlar %}
         {% include "web/kafedra/_fs_qatori.html" %}
-        <tr class="panel-row"><td colspan="8" style="padding:0;border-bottom:0;">
+        <tr class="panel-row"
+            data-nomi="{{ satr.fan_semestr.variant.nomi|lower }} {{ satr.fan_semestr.variant.kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_nomi|lower }}"
+            x-show="(!faqat_qoldiq || document.getElementById('fs-qator-{{ satr.fan_semestr.pk }}')?.dataset.qoldiq === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))"><td colspan="8" style="padding:0;border-bottom:0;">
           <div id="panel-yuk-{{ satr.fan_semestr.pk }}" class="htmx-indicator" style="padding:12px 16px;">
             <div class="skeleton-bar" style="width:32%;height:12px;"></div>
           </div>

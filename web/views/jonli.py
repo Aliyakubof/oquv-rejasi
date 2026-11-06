@@ -19,6 +19,7 @@ from plans.models import (
     FanSemestr,
     FanVariant,
     Guruh,
+    KafedraYuklamaTasdiq,
     OquvReja,
     TalimYonalishi,
     Yuklama,
@@ -63,6 +64,16 @@ def holat_versiyasi() -> str:
         tuple(
             DasturTopshirish.objects.values_list(
                 "pk", "holat", "izoh", "korib_chiqilgan_vaqt"
+            ).order_by("pk")
+        ),
+        tuple(
+            KafedraYuklamaTasdiq.objects.values_list(
+                "pk",
+                "kafedra_id",
+                "akademik_yil",
+                "holat",
+                "izoh",
+                "tasdiqlangan_vaqt",
             ).order_by("pk")
         ),
         tuple(
