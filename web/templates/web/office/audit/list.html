@@ -6,14 +6,17 @@
     <div class="title">Audit jurnali (O'zgarishlar tarixi)</div>
   </div>
   <div class="controls">
-    <form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <form method="get" class="audit-filter-form">
       <select name="amal" aria-label="Amal turi" onchange="this.form.requestSubmit()">
         <option value="">Barcha amallar</option>
         {% for kod, label in amallar %}
         <option value="{{ kod }}" {% if kod == tanlangan_amal %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-      <input type="text" name="q" placeholder="Qidirish..." value="{{ q }}" style="padding:6px 12px;border:1px solid var(--line);border-radius:6px;">
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" name="q" placeholder="Qidirish..." value="{{ q }}" aria-label="Audit qidirish">
+      </div>
       <button type="submit" class="btn">Qidirish</button>
       {% if tanlangan_amal or q %}
       <a href="{% url 'office:audit_list' %}" class="btn">Tozalash</a>

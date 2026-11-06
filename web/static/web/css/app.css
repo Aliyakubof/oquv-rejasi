@@ -260,6 +260,43 @@ select:focus {
   box-shadow: 0 0 0 3px var(--input-focus-ring);
 }
 
+/* Audit Filter Toolbar */
+.audit-filter-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.audit-filter-form select {
+  min-width: 170px;
+  height: 38px;
+}
+
+.audit-filter-form .search input {
+  width: 220px;
+  height: 38px;
+}
+
+.audit-filter-form .btn {
+  height: 38px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .audit-filter-form {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .audit-filter-form select,
+  .audit-filter-form .search,
+  .audit-filter-form .search input {
+    width: 100%;
+  }
+}
+
 .chip-btn {
   border: 1px solid var(--line-strong);
   background: #ffffff;
@@ -2072,4 +2109,324 @@ tfoot td {
     text-align: center;
     width: 100%;
   }
+}
+
+/* ================= Analitika & Dashboard Enhancements ================= */
+.analitika-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(26, 42, 110, 0.03);
+}
+
+.analitika-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.analitika-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.015em;
+}
+
+.analitika-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.analitika-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 860px) {
+  .analitika-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analitika-subcard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.analitika-subhead {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Composite Stacked Bar */
+.composite-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: #e2e8f0;
+  margin-bottom: 16px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.composite-segment {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* Individual Hour Type Rows */
+.tur-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tur-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.15s ease;
+}
+
+.tur-item:hover {
+  border-color: #cbd5e1;
+}
+
+.tur-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  margin-bottom: 6px;
+}
+
+.tur-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.tur-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.tur-hours-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tur-hours-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tur-hours-text strong {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.percent-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: var(--text-secondary);
+}
+
+.tur-progress-track {
+  height: 5px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.tur-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Kafedra Coverage Items */
+.kafedra-scroll-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 330px;
+  overflow-y: auto;
+  padding-right: 6px;
+  flex: 1;
+}
+
+.kafedra-scroll-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.kafedra-scroll-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kafedra-scroll-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.kafedra-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.kafedra-coverage-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.15s ease;
+}
+
+.kafedra-coverage-item:hover {
+  border-color: #cbd5e1;
+}
+
+.kafedra-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+
+.kafedra-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.kafedra-avatar-mini {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kafedra-status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.kafedra-status-pill.ok {
+  background: var(--mand-soft);
+  color: var(--mand);
+  border: 1px solid var(--mand-border);
+}
+
+.kafedra-status-pill.warn {
+  background: var(--elec-soft);
+  color: var(--elec);
+  border: 1px solid var(--elec-border);
+}
+
+.kafedra-status-pill.empty {
+  background: #f1f5f9;
+  color: var(--text-muted);
+}
+
+.kafedra-hours-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.kafedra-hours-line strong {
+  color: var(--text-main);
+}
+
+/* Badges for tables */
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 12.5px;
+  border: 1px solid #e2e8f0;
+}
+
+.hour-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 12.5px;
+  border: 1px solid #e2e8f0;
+}
+
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
 }
