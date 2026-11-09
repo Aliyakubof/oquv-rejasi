@@ -11,13 +11,15 @@
       <span class="credits">· {{ satr.fan_semestr.variant.fan.reja.yonalish_kodi }} ({{ satr.fan_semestr.variant.fan.reja.guruhlar_soni|default:"?" }} guruh)</span>
     </div>
   </td>
-  <td data-label="Semestr" style="white-space:nowrap;color:var(--text-secondary);">{{ satr.fan_semestr.semestr }}-semestr</td>
+  <td data-label="Semestr" class="col-center" style="white-space:nowrap;text-align:center;">
+    <span class="hour-tag">{{ satr.fan_semestr.semestr }}-semestr</span>
+  </td>
   {% include "web/kafedra/_tur_katak.html" with tur="MARUZA" yorliq="Ma'ruza" %}
   {% include "web/kafedra/_tur_katak.html" with tur="AMALIYOT" yorliq="Amaliyot" %}
   {% include "web/kafedra/_tur_katak.html" with tur="LABORATORIYA" yorliq="Lab." %}
   {% include "web/kafedra/_tur_katak.html" with tur="SEMINAR" yorliq="Seminar" %}
   {% include "web/kafedra/_tur_katak.html" with tur="KURS_ISHI" yorliq="Kurs ishi" %}
-  <td style="text-align:right;white-space:nowrap;">
+  <td class="col-center" style="text-align:center;white-space:nowrap;">
     <button type="button" class="btn {% if satr.qoldiq_bor and not qulflangan %}btn-primary{% endif %}"
             hx-get="{% url 'kafedra:taqsimot_panel' satr.fan_semestr.pk %}"
             hx-target="#panel-{{ satr.fan_semestr.pk }}" hx-swap="innerHTML"

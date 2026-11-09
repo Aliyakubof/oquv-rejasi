@@ -7,19 +7,31 @@
   </div>
 </div>
 
-<div class="card" style="margin-bottom:24px;max-width:720px;">
-  <h2 style="margin-top:0;">Universitet ma'lumotlari</h2>
-  <form method="post" action="{% url 'office:universitet_saqlash' %}" class="controls" style="align-items:flex-end;">
+<div class="card settings-card" style="margin-bottom:24px;max-width:760px;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <div class="analitika-title-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 3l10 7H2l10-7z"/>
+      </svg>
+    </div>
+    <div>
+      <div style="font-size:15px;font-weight:700;color:var(--ink);">Universitet ma'lumotlari</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Tizim hisobotlari va 1-shakl hujjatlarida aks etuvchi rasmiy muassasa nomi</div>
+    </div>
+  </div>
+  <form method="post" action="{% url 'office:universitet_saqlash' %}" class="controls" style="align-items:flex-end;gap:12px;">
     {% csrf_token %}
-    <div style="flex:1;min-width:260px;">
-      <label for="{{ universitet_form.rasmiy_nomi.id_for_label }}" style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">{{ universitet_form.rasmiy_nomi.label }}</label>
+    <div style="flex:1;min-width:280px;">
+      <label for="{{ universitet_form.rasmiy_nomi.id_for_label }}" style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">
+        {{ universitet_form.rasmiy_nomi.label }}
+      </label>
       {{ universitet_form.rasmiy_nomi }}
     </div>
-    <button type="submit" class="btn btn-primary">Saqlash</button>
+    <button type="submit" class="btn btn-primary" style="height:38px;padding:0 22px;white-space:nowrap;">Saqlash</button>
   </form>
 </div>
 
-<div class="topbar" style="margin-top:16px;">
+<div class="topbar" style="margin-top:20px;">
   <div>
     <h2>Lavozimlar va minimal yuklama normalari</h2>
   </div>
@@ -31,24 +43,30 @@
   <table>
     <thead>
       <tr>
-        <th>Lavozim nomi</th>
-        <th class="num">Minimal soat</th>
-        <th class="num">O'qituvchilar soni</th>
-        <th></th>
+        <th style="min-width:200px;">Lavozim nomi</th>
+        <th class="col-center" style="text-align:center;width:170px;">Minimal soat</th>
+        <th class="col-center" style="text-align:center;width:170px;">O'qituvchilar soni</th>
+        <th class="col-center" style="text-align:center;width:180px;">Amallar</th>
       </tr>
     </thead>
     <tbody data-jonli="sozlamalar-lavozimlar">
       {% for l in lavozimlar %}
       <tr>
         <td data-label="Lavozim"><strong>{{ l.nomi }}</strong></td>
-        <td class="num" data-label="Minimal soat">{{ l.min_soat }} soat</td>
-        <td class="num" data-label="O'qituvchilar">{{ l.oqituvchilar_soni }}</td>
-        <td style="white-space:nowrap;">
-          <a class="btn" href="{% url 'office:lavozim_tahrir' l.pk %}">Tahrirlash</a>
-          <form method="post" action="{% url 'office:lavozim_ochirish' l.pk %}" style="display:inline" onsubmit="return confirm('{{ l.nomi }} lavozimini o\'chirasizmi?');">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger">O'chirish</button>
-          </form>
+        <td class="col-center" data-label="Minimal soat" style="text-align:center;">
+          <span class="hour-tag">{{ l.min_soat }} soat</span>
+        </td>
+        <td class="col-center" data-label="O'qituvchilar" style="text-align:center;">
+          <span class="badge-count">{{ l.oqituvchilar_soni }}</span>
+        </td>
+        <td class="col-center" data-label="Amallar" style="text-align:center;">
+          <div class="row-actions" style="justify-content:center;">
+            <a class="btn" href="{% url 'office:lavozim_tahrir' l.pk %}">Tahrirlash</a>
+            <form method="post" action="{% url 'office:lavozim_ochirish' l.pk %}" style="display:inline" onsubmit="return confirm('{{ l.nomi }} lavozimini o\'chirasizmi?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">O'chirish</button>
+            </form>
+          </div>
         </td>
       </tr>
       {% empty %}
@@ -70,26 +88,32 @@
   <table>
     <thead>
       <tr>
-        <th>Kod</th>
-        <th>Yo'nalish nomi</th>
-        <th>Bilim sohasi</th>
-        <th>Ta'lim sohasi</th>
-        <th></th>
+        <th class="col-center" style="text-align:center;width:120px;">Kod</th>
+        <th style="min-width:220px;">Yo'nalish nomi</th>
+        <th class="col-center" style="text-align:center;">Bilim sohasi</th>
+        <th class="col-center" style="text-align:center;">Ta'lim sohasi</th>
+        <th class="col-center" style="text-align:center;width:180px;">Amallar</th>
       </tr>
     </thead>
     <tbody data-jonli="sozlamalar-yonalishlar">
       {% for y in yonalishlar %}
       <tr>
-        <td data-label="Kod"><span class="code">{{ y.kodi }}</span></td>
+        <td class="col-center" data-label="Kod" style="text-align:center;"><span class="code">{{ y.kodi }}</span></td>
         <td data-label="Yo'nalish"><strong>{{ y.nomi }}</strong></td>
-        <td data-label="Bilim sohasi"><span class="code">{{ y.bilim_sohasi_kodi }}</span> {{ y.bilim_sohasi_nomi }}</td>
-        <td data-label="Ta'lim sohasi"><span class="code">{{ y.talim_sohasi_kodi }}</span> {{ y.talim_sohasi_nomi }}</td>
-        <td style="white-space:nowrap;">
-          <a class="btn" href="{% url 'office:yonalish_tahrir' y.pk %}">Tahrirlash</a>
-          <form method="post" action="{% url 'office:yonalish_ochirish' y.pk %}" style="display:inline" onsubmit="return confirm('{{ y.kodi }} yo\'nalishini o\'chirasizmi?');">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger">O'chirish</button>
-          </form>
+        <td class="col-center" data-label="Bilim sohasi" style="text-align:center;">
+          <span class="code" style="margin-right:4px;">{{ y.bilim_sohasi_kodi }}</span> {{ y.bilim_sohasi_nomi }}
+        </td>
+        <td class="col-center" data-label="Ta'lim sohasi" style="text-align:center;">
+          <span class="code" style="margin-right:4px;">{{ y.talim_sohasi_kodi }}</span> {{ y.talim_sohasi_nomi }}
+        </td>
+        <td class="col-center" data-label="Amallar" style="text-align:center;">
+          <div class="row-actions" style="justify-content:center;">
+            <a class="btn" href="{% url 'office:yonalish_tahrir' y.pk %}">Tahrirlash</a>
+            <form method="post" action="{% url 'office:yonalish_ochirish' y.pk %}" style="display:inline" onsubmit="return confirm('{{ y.kodi }} yo\'nalishini o\'chirasizmi?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">O'chirish</button>
+            </form>
+          </div>
         </td>
       </tr>
       {% empty %}
