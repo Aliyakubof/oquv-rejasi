@@ -75,5 +75,20 @@
     </tbody>
   </table>
 </div>
+{% if is_paginated %}
+<div class="controls" style="justify-content:space-between;margin-top:14px;">
+  <span class="credits">
+    Sahifa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} (Jami: {{ page_obj.paginator.count }} ta yozuv)
+  </span>
+  <div class="controls">
+    {% if page_obj.has_previous %}
+    <a class="btn" href="?page={{ page_obj.previous_page_number }}{% if tanlangan_amal %}&amal={{ tanlangan_amal }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}">← Oldingi</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+    <a class="btn" href="?page={{ page_obj.next_page_number }}{% if tanlangan_amal %}&amal={{ tanlangan_amal }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}">Keyingi →</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 

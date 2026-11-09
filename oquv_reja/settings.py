@@ -10,12 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import sys
 from pathlib import Path
 
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+IS_TEST = "test" in sys.argv
 
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env", overwrite=True)
@@ -49,7 +51,10 @@ if not DEBUG:
 
 # Application definition
 
-HEMIS_API_KEY = env("HEMIS_API_KEY", default="hemis-secret-key-2026")
+HEMIS_API_KEY = env(
+    "HEMIS_API_KEY",
+    default="hemis-secret-key-2026" if (DEBUG or IS_TEST) else "",
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -154,3 +159,6 @@ MEDIA_ROOT = BASE_DIR / "media"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+if IS_TEST:
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

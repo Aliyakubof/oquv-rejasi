@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from django.db.models import QuerySet, Sum
+from django.db.models import QuerySet
 from django.http import HttpRequest
 
 from plans.models import (
@@ -170,6 +170,7 @@ class FanSemestrInline(admin.TabularInline):
 class FanVariantAdmin(admin.ModelAdmin):
     list_display = ("kodi", "nomi", "fan", "kafedra")
     list_filter = ("kafedra", "fan__reja")
+    list_select_related = ("fan__reja", "kafedra")
     search_fields = ("kodi", "nomi")
     inlines = [FanSemestrInline]
 
@@ -181,13 +182,25 @@ class FanSemestrAdmin(admin.ModelAdmin):
     search_fields = ("variant__nomi", "variant__kodi")
 
     def get_queryset(self, request: HttpRequest) -> QuerySet:
-        return super().get_queryset(request).select_related("variant__fan__reja")
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("variant__fan__reja")
+            .prefetch_related("yuklamalar")
+        )
 
     def has_add_permission(self, request: HttpRequest) -> bool:
         return False
 
     def has_change_permission(self, request: HttpRequest, obj: object = None) -> bool:
         return False
+
+    @staticmethod
+    def _jamlar(obj: FanSemestr) -> dict[str, int]:
+        jamlar: dict[str, int] = {}
+        for yuklama in obj.yuklamalar.all():
+            jamlar[yuklama.tur] = jamlar.get(yuklama.tur, 0) + yuklama.soat
+        return jamlar
 
     @admin.display(description="Talab")
     def talab(self, obj: FanSemestr) -> str:
@@ -196,13 +209,13 @@ class FanSemestrAdmin(admin.ModelAdmin):
 
     @admin.display(description="Taqsimlangan")
     def taqsimlangan(self, obj: FanSemestr) -> str:
-        jamlar = obj.yuklamalar.values("tur").annotate(jami=Sum("soat"))
-        return self._soat_matni({q["tur"]: q["jami"] for q in jamlar})
+        jamlar = self._jamlar(obj)
+        return self._soat_matni(jamlar)
 
     @admin.display(description="Qoldiq")
     def qoldiq(self, obj: FanSemestr) -> str:
         talab = fan_semestr_talabi(obj, obj.variant.fan.reja)
-        jamlar = dict(obj.yuklamalar.values_list("tur").annotate(jami=Sum("soat")))
+        jamlar = self._jamlar(obj)
         qoldiq = {
             tur: None if soat is None else soat - jamlar.get(tur, 0)
             for tur, soat in talab.items()

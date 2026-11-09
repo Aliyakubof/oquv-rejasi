@@ -39,8 +39,15 @@ class KafedraYangiView(OfficeAdminTalabMixin, CreateView):
     success_url = reverse_lazy("office:kafedra_list")
 
     def form_valid(self, form: KafedraForm) -> HttpResponse:
+        javob = super().form_valid(form)
+        audit_yoz(
+            AuditAmali.YARATILDI,
+            f"Kafedra yaratildi: {self.object.nomi}.",
+            obyekt=self.object,
+            request=self.request,
+        )
         messages.success(self.request, "Kafedra yaratildi.")
-        return super().form_valid(form)
+        return javob
 
 
 class KafedraTahrirView(OfficeAdminTalabMixin, UpdateView):
@@ -50,8 +57,15 @@ class KafedraTahrirView(OfficeAdminTalabMixin, UpdateView):
     success_url = reverse_lazy("office:kafedra_list")
 
     def form_valid(self, form: KafedraForm) -> HttpResponse:
+        javob = super().form_valid(form)
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            f"Kafedra tahrirlandi: {self.object.nomi}.",
+            obyekt=self.object,
+            request=self.request,
+        )
         messages.success(self.request, "Kafedra saqlandi.")
-        return super().form_valid(form)
+        return javob
 
 
 @require_POST
@@ -59,8 +73,17 @@ class KafedraTahrirView(OfficeAdminTalabMixin, UpdateView):
 def kafedra_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     kafedra = get_object_or_404(Department, pk=pk)
     try:
+        nomi = kafedra.nomi
+        kafedra_id = kafedra.pk
         kafedra.delete()
-        messages.success(request, f"{kafedra.nomi} o'chirildi.")
+        audit_yoz(
+            AuditAmali.OCHIRILDI,
+            f"Kafedra o'chirildi: {nomi}.",
+            model_nomi="Department",
+            obyekt_id=kafedra_id,
+            request=request,
+        )
+        messages.success(request, f"{nomi} o'chirildi.")
     except ProtectedError:
         messages.error(
             request,

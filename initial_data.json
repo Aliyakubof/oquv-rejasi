@@ -1,45 +1,5 @@
 [
 {
-  "model": "sessions.session",
-  "pk": "0878e6byabbvfudoob31xssnyjfbhibr",
-  "fields": {
-    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xNb70:wKF-8NGIxuzh2Cniq179_Wsmp0UuX34KJEMqotByI08",
-    "expire_date": "2026-11-15T19:21:02.570Z"
-  }
-},
-{
-  "model": "sessions.session",
-  "pk": "dv6uxcc31qtwdtyxj8nkoar794pfrelx",
-  "fields": {
-    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xMP9C:EwdHoytzqleECqIft6e8FbfV0fbaYbmfN8j9T3qd9wk",
-    "expire_date": "2026-11-12T12:22:22.630Z"
-  }
-},
-{
-  "model": "sessions.session",
-  "pk": "edwydbatl4ztojfgsj4rmaqci32qwndt",
-  "fields": {
-    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xM0iL:6LFCN9wDdr-KLH_vKJbFIRItrir2YnXzExj_v5llC9A",
-    "expire_date": "2026-11-11T10:17:01.629Z"
-  }
-},
-{
-  "model": "sessions.session",
-  "pk": "fu2w5b12xwd3bf0u9e6rpq8t1voighhn",
-  "fields": {
-    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xLdie:6DPt4Obfcl4gIl2sou4Tvy6yMnvhhT9r1QbPPu6Jt_E",
-    "expire_date": "2026-11-10T09:43:48.516Z"
-  }
-},
-{
-  "model": "sessions.session",
-  "pk": "qltmkuz1w6trr9ovccz96z4f8h4fqqvm",
-  "fields": {
-    "session_data": ".eJxVjEsOwjAMBe-SNYqSOCkOS_acoXJtlxRQKvWzQtwdReoCtm9m3tv0tG-l31dd-knMxXhz-t0G4qfWBuRB9T5bnuu2TINtij3oam-z6Ot6uH8HhdbSaonKkMIQxUXwXrozEo04ggJGlztglpwBHUHICsReEwIGcCm5yObzBeBWNzw:1xM1Qs:pPolZNCHSdvCIBjPRbVvEcIfdXVFMc8xPwJWSUCXn8c",
-    "expire_date": "2026-11-11T11:03:02.787Z"
-  }
-},
-{
   "model": "accounts.foydalanuvchi",
   "fields": {
     "password": "pbkdf2_sha256$1000000$xDGau7dYTUM4gBF6j7j61w$uleaV6et99g7fduwnW80tETDxBHya9FNepGC/gvcpv8=",

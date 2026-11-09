@@ -18,7 +18,7 @@
   {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.KURS_ISHI %}
   <td class="num"><strong>{{ satr.jami_soat }}</strong></td>
   <td class="num">{{ satr.taqsimlangan_soat }}</td>
-  <td class="assign-cell cell-relative" x-data="{ ochiq: false, q: '' }" @click.outside="ochiq = false">
+  <td class="assign-cell cell-relative" x-data="{ ochiq: false, q: '' }" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
     {% if xato %}<div class="hint" style="color:var(--unassigned);margin:0 0 4px;">{{ xato }}</div>{% endif %}
     {% if satr.tanlanmagan %}
     <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">Variant tanlanmagan</button>

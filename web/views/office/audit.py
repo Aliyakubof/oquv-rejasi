@@ -1,5 +1,6 @@
 """Audit trail viewer for Office Admins."""
 
+from django.db.models import QuerySet
 from django.views.generic import ListView
 
 from plans.models import AuditAmali, AuditYozuvi
@@ -12,7 +13,7 @@ class AuditListView(OfficeAdminTalabMixin, ListView):
     context_object_name = "yozuvlar"
     paginate_by = 50
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[AuditYozuvi]:
         qs = AuditYozuvi.objects.select_related("foydalanuvchi").order_by("-vaqt")
         amal = self.request.GET.get("amal")
         if amal and amal in AuditAmali.values:

@@ -5,6 +5,7 @@ from io import BytesIO
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 
 from accounts.models import Department
 from plans.models import Yuklama
@@ -43,7 +44,7 @@ def oqituvchilar_excel(
 
 
 def _umumiy_varaqni_toldir(
-    ws: object,
+    ws: Worksheet,
     holatlar: list[YuklamaHolati],
     akademik_yil: int,
     kafedra: Department | None,
@@ -91,24 +92,9 @@ def _umumiy_varaqni_toldir(
     _kengliklarni_moslash(ws)
 
 
-def _tafsilot_varaqni_toldir(
-    ws: object, akademik_yil: int, kafedra: Department | None
-) -> None:
-    ustunlar = [
-        "№",
-        "O'qituvchi",
-        "Kafedra",
-        "Fan kodi",
-        "Fan nomi",
-        "Yo'nalish",
-        "Semestr",
-        "Mashg'ulot turi",
-        "Guruh / Talabalar",
-        "Soat",
-    ]
-    ws.append(ustunlar)
-    _ustun_qatorini_bezash(ws, 1, len(ustunlar))
-
+def _tafsilot_yuklamalari(
+    akademik_yil: int, kafedra: Department | None
+) -> list[Yuklama]:
     qs = (
         Yuklama.objects.akademik_yilda(akademik_yil)
         .select_related(
@@ -126,15 +112,34 @@ def _tafsilot_varaqni_toldir(
     )
     if kafedra is not None:
         qs = qs.filter(oqituvchi__kafedra=kafedra)
+    return list(qs)
 
-    yuklamalar = list(qs)
+
+def _tafsilot_varaqni_toldir(
+    ws: Worksheet, akademik_yil: int, kafedra: Department | None
+) -> None:
+    ustunlar = [
+        "№",
+        "O'qituvchi",
+        "Kafedra",
+        "Fan kodi",
+        "Fan nomi",
+        "Yo'nalish",
+        "Semestr",
+        "Mashg'ulot turi",
+        "Guruh / Talabalar",
+        "Soat",
+    ]
+    ws.append(ustunlar)
+    _ustun_qatorini_bezash(ws, 1, len(ustunlar))
+
+    yuklamalar = _tafsilot_yuklamalari(akademik_yil, kafedra)
     for idx, y in enumerate(yuklamalar, start=1):
-        if y.guruh:
-            guruh_matni = y.guruh.nomi
-        elif y.talabalar_soni:
-            guruh_matni = f"{y.talabalar_soni} talaba"
-        else:
-            guruh_matni = "Butun oqim"
+        guruh_matni = (
+            y.guruh.nomi
+            if y.guruh
+            else (f"{y.talabalar_soni} talaba" if y.talabalar_soni else "Butun oqim")
+        )
         ws.append(
             [
                 idx,
@@ -153,7 +158,7 @@ def _tafsilot_varaqni_toldir(
     _kengliklarni_moslash(ws)
 
 
-def _ustun_qatorini_bezash(ws: object, qator: int, ustun_soni: int) -> None:
+def _ustun_qatorini_bezash(ws: Worksheet, qator: int, ustun_soni: int) -> None:
     for col in range(1, ustun_soni + 1):
         katak = ws.cell(row=qator, column=col)
         katak.font = _USTUN_SHRIFT
@@ -163,14 +168,14 @@ def _ustun_qatorini_bezash(ws: object, qator: int, ustun_soni: int) -> None:
 
 
 def _kataklarni_chegaralash(
-    ws: object, bosh_qator: int, oxirgi_qator: int, ustun_soni: int
+    ws: Worksheet, bosh_qator: int, oxirgi_qator: int, ustun_soni: int
 ) -> None:
     for row in range(bosh_qator, oxirgi_qator + 1):
         for col in range(1, ustun_soni + 1):
             ws.cell(row=row, column=col).border = _CHEGARA
 
 
-def _kengliklarni_moslash(ws: object) -> None:
+def _kengliklarni_moslash(ws: Worksheet) -> None:
     for col_cells in ws.columns:
         harf = get_column_letter(col_cells[0].column)
         uzunlik = max(

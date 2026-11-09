@@ -24,9 +24,9 @@
     {% if debug_rejim %}
       {% include "web/parts/_rol_almashtirgich.html" %}
     {% else %}
-      <a class="nav-link {% if request.resolver_match.view_name == 'parol_ozgartirish' %}active{% endif %}" href="{% url 'parol_ozgartirish' %}">Parol</a>
       <span class="user">{{ user.get_full_name }}</span>
     {% endif %}
+    <a class="nav-link {% if request.resolver_match.view_name == 'parol_ozgartirish' %}active{% endif %}" href="{% url 'parol_ozgartirish' %}">Parol</a>
     <form method="post" action="{% url 'chiqish' %}" hx-boost="false">
       {% csrf_token %}
       <button type="submit" class="logout-btn">Chiqish</button>

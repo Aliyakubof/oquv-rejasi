@@ -16,6 +16,33 @@ SHAHAR = "Namangan"
 TN_SONI = 8
 
 
+def _soatlar_va_mavzular(variant: FanVariant, mustaqil_soat: int) -> dict[str, object]:
+    return {
+        "hours": {
+            "lecture": _soat_matni(variant.maruza_soat),
+            "practice": _soat_matni(variant.amaliyot_soat),
+            "lab": _soat_matni(variant.laboratoriya_soat),
+            "seminar": _soat_matni(variant.seminar_soat),
+            "self_study": _soat_matni(mustaqil_soat),
+            "coursework": _soat_matni(variant.kurs_ishi_soat),
+        },
+        "purpose": "",
+        "tasks": "",
+        "prerequisites": ["", "", ""],
+        "outcomes": {
+            "professional": [Natija(f"TN{i}", "") for i in range(1, TN_SONI + 1)],
+            "skills": [Natija(f"TN{i}", "") for i in range(1, TN_SONI + 1)],
+        },
+        "lectures": bosh_mavzular(variant.maruza_soat, "M"),
+        "practicals": bosh_mavzular(variant.amaliyot_soat, "A"),
+        "labs": bosh_mavzular(variant.laboratoriya_soat, "L"),
+        "seminars": bosh_mavzular(variant.seminar_soat, "S"),
+        "self_study_tasks": bosh_mavzular(
+            mustaqil_soat, "", soat_mavzuda=SOAT_MUSTAQIL_TOPSHIRIQDA
+        ),
+    }
+
+
 def dastur_kontekst(variant: FanVariant) -> dict[str, object]:
     fan = variant.fan
     reja = fan.reja
@@ -47,28 +74,7 @@ def dastur_kontekst(variant: FanVariant) -> dict[str, object]:
         "plan_number": _kod_bilan(reja.yonalish_kodi, fan.raqam),
         "total_hours": _soat_matni(fan.jami_soat or 0),
         "classroom_total": _soat_matni(variant.auditoriya_soat),
-        "hours": {
-            "lecture": _soat_matni(variant.maruza_soat),
-            "practice": _soat_matni(variant.amaliyot_soat),
-            "lab": _soat_matni(variant.laboratoriya_soat),
-            "seminar": _soat_matni(variant.seminar_soat),
-            "self_study": _soat_matni(mustaqil_soat),
-            "coursework": _soat_matni(variant.kurs_ishi_soat),
-        },
-        "purpose": "",
-        "tasks": "",
-        "prerequisites": ["", "", ""],
-        "outcomes": {
-            "professional": [Natija(f"TN{i}", "") for i in range(1, TN_SONI + 1)],
-            "skills": [Natija(f"TN{i}", "") for i in range(1, TN_SONI + 1)],
-        },
-        "lectures": bosh_mavzular(variant.maruza_soat, "M"),
-        "practicals": bosh_mavzular(variant.amaliyot_soat, "A"),
-        "labs": bosh_mavzular(variant.laboratoriya_soat, "L"),
-        "seminars": bosh_mavzular(variant.seminar_soat, "S"),
-        "self_study_tasks": bosh_mavzular(
-            mustaqil_soat, "", soat_mavzuda=SOAT_MUSTAQIL_TOPSHIRIQDA
-        ),
+        **_soatlar_va_mavzular(variant, mustaqil_soat),
     }
 
 

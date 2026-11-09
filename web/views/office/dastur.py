@@ -7,13 +7,14 @@ from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
 from accounts.models import Department
+from plans.audit import audit_yoz
 from plans.dastur.topshirish import (
     dastur_qabul_qilish,
     dastur_rad_etish,
     joriy_topshirishlar,
     topshirilmagan_dasturlar,
 )
-from plans.models import DasturTopshirish, FanVariant
+from plans.models import AuditAmali, DasturTopshirish, FanVariant
 from web.forms.dastur import DasturRadEtishForm
 from web.mixins import OfficeAdminTalabMixin, office_admin_talab, xato_matni
 
@@ -93,6 +94,12 @@ def dastur_qabul(request: HttpRequest, pk: int) -> HttpResponse:
     xato = None
     try:
         dastur_qabul_qilish(topshirish, request.user)
+        audit_yoz(
+            AuditAmali.TASDIQLANDI,
+            f"Fan dasturi qabul qilindi: {topshirish.variant.nomi}.",
+            obyekt=topshirish,
+            request=request,
+        )
     except ValidationError as e:
         xato = xato_matni(e)
     return _javob(request, topshirish.variant, xato=xato)
@@ -106,7 +113,14 @@ def dastur_rad(request: HttpRequest, pk: int) -> HttpResponse:
     xato = None
     if form.is_valid():
         try:
-            dastur_rad_etish(topshirish, request.user, form.cleaned_data["izoh"])
+            izoh = form.cleaned_data["izoh"]
+            dastur_rad_etish(topshirish, request.user, izoh)
+            audit_yoz(
+                AuditAmali.QAYTARILDI,
+                f"Fan dasturi rad etildi: {topshirish.variant.nomi}. Sabab: {izoh}",
+                obyekt=topshirish,
+                request=request,
+            )
         except ValidationError as e:
             xato = xato_matni(e)
     else:

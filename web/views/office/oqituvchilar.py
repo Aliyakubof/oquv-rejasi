@@ -9,7 +9,9 @@ from django.views.generic import TemplateView
 from accounts.models import Department, OqituvchiProfil
 from accounts.services import mudir_tayinlash
 from plans import dashboard, eksport, services
+from plans.audit import audit_yoz
 from plans.dashboard import yilni_tanlash
+from plans.models import AuditAmali
 from web.forms.oqituvchi import OqituvchiTahrirForm, OqituvchiYaratishForm
 from web.mixins import OfficeAdminTalabMixin, YilTanlovMixin, office_admin_talab
 from web.views.oqituvchi_base import (
@@ -93,6 +95,8 @@ class OqituvchiTahrirView(OfficeAdminTalabMixin, OqituvchiTahrirAsosView):
 @office_admin_talab
 def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     profil = get_object_or_404(OqituvchiProfil.objects.bilan_foydalanuvchi(), pk=pk)
+    nom = str(profil)
+    profil_id = profil.pk
     if profil.yuklamalar.exists():
         boshqa_kafedra = getattr(profil, "boshqarayotgan_kafedra", None)
         if boshqa_kafedra is not None:
@@ -100,11 +104,24 @@ def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
         foydalanuvchi = profil.foydalanuvchi
         foydalanuvchi.is_active = False
         foydalanuvchi.save(update_fields=["is_active"])
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            f"O'qituvchi faolsizlantirildi: {nom}.",
+            obyekt=profil,
+            request=request,
+        )
         messages.warning(
             request,
-            f"{profil} yuklamalarga ega — hisob o'chirilmasdan faolsizlantirildi.",
+            f"{nom} yuklamalarga ega — hisob o'chirilmasdan faolsizlantirildi.",
         )
     else:
         profil.foydalanuvchi.delete()
-        messages.success(request, f"{profil} o'chirildi.")
+        audit_yoz(
+            AuditAmali.OCHIRILDI,
+            f"O'qituvchi o'chirildi: {nom}.",
+            model_nomi="OqituvchiProfil",
+            obyekt_id=profil_id,
+            request=request,
+        )
+        messages.success(request, f"{nom} o'chirildi.")
     return redirect("office:oqituvchi_list")

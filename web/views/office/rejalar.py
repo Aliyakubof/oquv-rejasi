@@ -12,8 +12,9 @@ from django.views.generic import DetailView, FormView, ListView, UpdateView
 
 from accounts.models import Department
 from plans import dashboard, services
+from plans.audit import audit_yoz
 from plans.importer import ImportNatija, ImportXato
-from plans.models import FanTuri, OquvReja, Yuklama
+from plans.models import AuditAmali, FanTuri, OquvReja, Yuklama
 from plans.services import SemestrTahrir, semestrovka_yangilash
 from plans.uploads import fayldan_import_qilish
 from web.forms.reja import RejaImportForm, RejaTahrirForm
@@ -38,6 +39,13 @@ class RejaImportView(OfficeAdminTalabMixin, FormView):
         except ImportXato as xato:
             form.add_error(None, str(xato))
             return self.form_invalid(form)
+        amal = AuditAmali.YARATILDI if natija.yaratildi else AuditAmali.TAHRIRLANDI
+        audit_yoz(
+            amal,
+            f"O'quv reja import qilindi: {natija.reja} ({natija.fan_soni} fan).",
+            obyekt=natija.reja,
+            request=self.request,
+        )
         self._xabarlar(natija)
         return redirect("office:reja_detail", pk=natija.reja.pk)
 
@@ -96,6 +104,12 @@ class RejaTahrirView(OfficeAdminTalabMixin, UpdateView):
     def form_valid(self, form: RejaTahrirForm) -> HttpResponse:
         javob = super().form_valid(form)
         services.guruhlarni_sinxronlash(self.object)
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            f"O'quv reja tahrirlandi: {self.object}.",
+            obyekt=self.object,
+            request=self.request,
+        )
         messages.success(self.request, "Reja saqlandi, guruhlar yangilandi.")
         return javob
 
@@ -114,7 +128,15 @@ def reja_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
         )
         return redirect("office:reja_list")
     nom = str(reja)
+    reja_id = reja.pk
     reja.delete()
+    audit_yoz(
+        AuditAmali.OCHIRILDI,
+        f"O'quv reja o'chirildi: {nom}.",
+        model_nomi="OquvReja",
+        obyekt_id=reja_id,
+        request=request,
+    )
     messages.success(request, f"{nom} o'chirildi.")
     return redirect("office:reja_list")
 
@@ -159,6 +181,12 @@ def semestrovka_saqlash(request: HttpRequest, pk: int) -> HttpResponse:
     except ValidationError as xato:
         messages.error(request, xato_matni(xato))
     else:
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            f"Semestrovka soatlari tahrirlandi: {reja}.",
+            obyekt=reja,
+            request=request,
+        )
         messages.success(request, "Semestrovka saqlandi.")
     manzil = reverse("office:reja_detail", kwargs={"pk": reja.pk})
     return redirect(f"{manzil}?tab=semestrovka")
