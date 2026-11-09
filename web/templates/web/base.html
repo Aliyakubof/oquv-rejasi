@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=28">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=29">
   <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=4">
   <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
   <script>
@@ -60,22 +60,25 @@
     };
 
     // Foydalanuvchi birinchi marta kirganda (login / sayt ochilganda) 3 sekund loading qilsin
-    // Boshqa paytlarda sahifa yuklanishi bilan loading darhol tugasin (kuttirmasin)
+    // Boshqa paytlarda sahifa yuklanishi bilan loading tugasin (kuttirmasin)
     function handleInitialPageLoad() {
       PageLoader.init();
-      const isFirstEntry = !sessionStorage.getItem('app_user_entered') ||
-                           (document.referrer && document.referrer.includes('/kirish'));
+      const isLoginOrFirstEntry = !sessionStorage.getItem('site_visited') ||
+                                  sessionStorage.getItem('just_logged_in') === '1' ||
+                                  (document.referrer && document.referrer.includes('/kirish'));
 
-      if (isFirstEntry) {
-        // Tizimga birinchi kirganda roppa-rosa 3 sekund loading
-        sessionStorage.setItem('app_user_entered', 'true');
-        PageLoader.show(3000);
+      if (isLoginOrFirstEntry) {
+        sessionStorage.setItem('site_visited', '1');
+        sessionStorage.removeItem('just_logged_in');
+        PageLoader.show(3500);
         setTimeout(() => {
           PageLoader.hide();
         }, 3000);
       } else {
-        // Boshqa paytlarda yuklanishi bilan darhol tugasin
-        PageLoader.hide();
+        // Boshqa paytlarda sahifa yuklanishi bilan qisqa va silliq (400ms) ko'rsatib darhol yopilsin
+        setTimeout(() => {
+          PageLoader.hide();
+        }, 400);
       }
     }
 
@@ -87,9 +90,7 @@
 
     window.addEventListener('pageshow', () => {
       PageLoader.init();
-      if (sessionStorage.getItem('app_user_entered')) {
-        PageLoader.hide();
-      }
+      PageLoader.hide();
       document.querySelectorAll('.is-loading').forEach((b) => {
         b.classList.remove('is-loading');
         b.removeAttribute('aria-busy');
@@ -180,10 +181,9 @@
       // Agar inline onclick confirm bo'lsa va bekor qilinsa
       if (e.defaultPrevented) return;
 
-      // Agar kirish (login) tugmasi bo'lsa, sessionStorage dagi flagni tozalaymiz
-      // shunda yangi kirganda 3 sekund markaziy loading chiqadi
-      if (btn.closest('.auth-card')) {
-        sessionStorage.removeItem('app_user_entered');
+      // Agar kirish (login) tugmasi bo'lsa
+      if (btn.closest('.auth-card') || (btn.textContent || '').toLowerCase().includes('kirish')) {
+        sessionStorage.setItem('just_logged_in', '1');
       }
 
       e.preventDefault();
@@ -213,11 +213,12 @@
       }, 2000);
     });
 
-    // Logout tugmasi bosilganda ham keyingi kirish uchun flagni tozalash
+    // Logout tugmasi bosilganda keyingi kirish uchun flaglarni tozalash
     document.addEventListener('click', (e) => {
       const logoutBtn = e.target.closest('.logout-btn');
       if (logoutBtn) {
-        sessionStorage.removeItem('app_user_entered');
+        sessionStorage.removeItem('site_visited');
+        sessionStorage.removeItem('just_logged_in');
       }
     });
 
@@ -356,7 +357,10 @@
         // Sahifa navigatsiyasi paytida markaziy yuklanishni ko'rsatish
         PageLoader.show(4000);
 
-        window.location.assign(href);
+        // Brauzerga markaziy loadingni ekranga chizib olish (paint) uchun 60ms beramiz
+        setTimeout(() => {
+          window.location.assign(href);
+        }, 60);
       }, true);
     })();
   </script>
@@ -365,8 +369,8 @@
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-  <!-- Asosiy markaziy yuklanish indikatori (Center Page Loader - standart yopiq) -->
-  <div id="main-page-loader" class="page-loader-overlay is-hidden">
+  <!-- Asosiy markaziy aylanuvchi yuklanish indikatori (Center Page Loader) -->
+  <div id="main-page-loader" class="page-loader-overlay">
     <div class="page-loader-spinner-wrap">
       <div class="page-loader-spinner"></div>
       <div class="page-loader-text">Yuklanmoqda...</div>
