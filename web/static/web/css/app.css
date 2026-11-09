@@ -60,6 +60,12 @@
   --accent: #1a2a6e;
   --accent-soft: #eef2ff;
   --ink-soft: #263b91;
+  --brand: #1a2a6e;
+  --panel-alt: #f8fafc;
+  --panel-tint: #f1f5ff;
+  --ok: #15803d;
+  --rad: #b91c1c;
+  --text-danger: #b91c1c;
 
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -2661,6 +2667,30 @@ tfoot td {
 .action-item svg {
   color: var(--brand);
   flex-shrink: 0;
+}
+
+.action-item-success svg,
+.action-item-success .action-title {
+  color: var(--mand);
+}
+
+.action-item-success:hover {
+  background: var(--mand-soft);
+}
+
+.action-item-danger svg,
+.action-item-danger .action-title {
+  color: var(--unassigned);
+}
+
+.action-item-danger:hover {
+  background: var(--unassigned-soft);
+}
+
+.action-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 6px;
 }
 
 .action-text {

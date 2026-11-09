@@ -899,13 +899,16 @@ def _check_uncalculated_formulas(
     under data_only=True — reopen without it to tell "genuinely blank" from
     "formula Excel never evaluated"."""
     wb_raw = openpyxl.load_workbook(path, data_only=False)
-    ws_raw = wb_raw.worksheets[0]
-    has_formula = any(
-        len(row) > layout.hours
-        and isinstance(row[layout.hours], str)
-        and row[layout.hours].startswith("=")
-        for row in ws_raw.iter_rows(min_row=start_row, values_only=True)
-    )
+    try:
+        ws_raw = wb_raw.worksheets[0]
+        has_formula = any(
+            len(row) > layout.hours
+            and isinstance(row[layout.hours], str)
+            and row[layout.hours].startswith("=")
+            for row in ws_raw.iter_rows(min_row=start_row, values_only=True)
+        )
+    finally:
+        wb_raw.close()
     if has_formula:
         raise ParseError(
             "soat ustunidagi formulalar hisoblanmagan;"
@@ -919,50 +922,57 @@ def parse_workbook(path: Path) -> ParseResult:
     both `parser.main` and `plans.importer` build on."""
     warnings: list[str] = []
     wb = openpyxl.load_workbook(path, data_only=True)
-    if len(wb.sheetnames) > 1:
-        warnings.append(
-            "varaqda bir nechta varaq bor; birinchisi "
-            f"{wb.sheetnames[0]!r} o'qildi, qolganlari e'tiborsiz qoldirildi: "
-            f"{wb.sheetnames[1:]}"
+    try:
+        if len(wb.sheetnames) > 1:
+            warnings.append(
+                "varaqda bir nechta varaq bor; birinchisi "
+                f"{wb.sheetnames[0]!r} o'qildi, qolganlari e'tiborsiz qoldirildi: "
+                f"{wb.sheetnames[1:]}"
+            )
+        ws = wb.worksheets[0]
+
+        direction = resolve_direction(ws, warnings)
+        direction_code, direction_name = (
+            direction if direction is not None else ("", "")
         )
-    ws = wb.worksheets[0]
 
-    direction = resolve_direction(ws, warnings)
-    direction_code, direction_name = direction if direction is not None else ("", "")
+        year_cell = find_cell_containing(ws, "quv yili")
+        start_year = extract_start_year(str(year_cell.value)) if year_cell else ""
+        if not start_year:
+            warnings.append("o'quv yili topilmadi")
 
-    year_cell = find_cell_containing(ws, "quv yili")
-    start_year = extract_start_year(str(year_cell.value)) if year_cell else ""
-    if not start_year:
-        warnings.append("o'quv yili topilmadi")
+        degree, _duration_text, edu_type = read_metadata(ws, warnings)
+        years = extract_program_years(ws)
+        n = round(years * 2)
 
-    degree, _duration_text, edu_type = read_metadata(ws, warnings)
-    years = extract_program_years(ws)
-    n = round(years * 2)
+        num_col, start_row = _find_anchor(ws, warnings)
+        layout = detect_course_columns(ws, num_col, start_row, warnings)
+        weekly_map, credit_map = detect_semester_column_maps(ws, start_row, n)
 
-    num_col, start_row = _find_anchor(ws, warnings)
-    layout = detect_course_columns(ws, num_col, start_row, warnings)
-    weekly_map, credit_map = detect_semester_column_maps(ws, start_row, n)
+        if _hours_column_all_blank(ws, layout, start_row):
+            _check_uncalculated_formulas(path, layout, start_row, warnings)
 
-    if _hours_column_all_blank(ws, layout, start_row):
-        _check_uncalculated_formulas(path, layout, start_row, warnings)
+        core = parse_core_courses(
+            ws, layout, credit_map, weekly_map, start_row, warnings
+        )
+        slots = parse_selective_courses(
+            ws, layout, credit_map, weekly_map, start_row, warnings
+        )
 
-    core = parse_core_courses(ws, layout, credit_map, weekly_map, start_row, warnings)
-    slots = parse_selective_courses(
-        ws, layout, credit_map, weekly_map, start_row, warnings
-    )
+        _validate_section_totals(ws, layout, start_row, core, slots, warnings)
+        _validate_classroom_breakdown(core, slots, warnings)
+        _validate_credit_hours(core, slots, warnings)
 
-    _validate_section_totals(ws, layout, start_row, core, slots, warnings)
-    _validate_classroom_breakdown(core, slots, warnings)
-    _validate_credit_hours(core, slots, warnings)
-
-    return ParseResult(
-        direction_code=direction_code,
-        direction_name=direction_name,
-        start_year=start_year,
-        degree=degree,
-        duration_years=years,
-        edu_type=edu_type,
-        core=core,
-        slots=slots,
-        warnings=warnings,
-    )
+        return ParseResult(
+            direction_code=direction_code,
+            direction_name=direction_name,
+            start_year=start_year,
+            degree=degree,
+            duration_years=years,
+            edu_type=edu_type,
+            core=core,
+            slots=slots,
+            warnings=warnings,
+        )
+    finally:
+        wb.close()

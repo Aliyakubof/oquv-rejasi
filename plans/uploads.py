@@ -29,22 +29,28 @@ def fayldan_import_qilish(
 ) -> ImportNatija:
     """Save the upload, parse it and persist reja + counts atomically.
 
-    ImportXato propagates with its user-facing Uzbek message; the saved file
-    is kept either way so a failed sheet can be inspected.
+    If parsing or importing fails, the invalid file is removed from disk so
+    orphaned uploads do not accumulate.
     """
     yol = _faylni_saqlash(fayl)
     try:
         parsed = parse_xlsx(yol, parametrlar.boshlanish_yili)
+        with transaction.atomic():
+            natija = import_reja(parsed, replace=parametrlar.replace)
+            reja = natija.reja
+            reja.talabalar_soni = parametrlar.talabalar_soni
+            reja.guruhlar_soni = parametrlar.guruhlar_soni
+            reja.guruh_prefiksi = parametrlar.guruh_prefiksi
+            reja.save(
+                update_fields=["talabalar_soni", "guruhlar_soni", "guruh_prefiksi"]
+            )
+            guruhlarni_sinxronlash(reja)
     except BadZipFile as xato:
+        yol.unlink(missing_ok=True)
         raise ImportXato("fayl .xlsx formatida emas yoki buzilgan") from xato
-    with transaction.atomic():
-        natija = import_reja(parsed, replace=parametrlar.replace)
-        reja = natija.reja
-        reja.talabalar_soni = parametrlar.talabalar_soni
-        reja.guruhlar_soni = parametrlar.guruhlar_soni
-        reja.guruh_prefiksi = parametrlar.guruh_prefiksi
-        reja.save(update_fields=["talabalar_soni", "guruhlar_soni", "guruh_prefiksi"])
-        guruhlarni_sinxronlash(reja)
+    except Exception:
+        yol.unlink(missing_ok=True)
+        raise
     return natija
 
 

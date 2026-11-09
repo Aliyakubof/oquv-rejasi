@@ -64,12 +64,21 @@ def guruhlarni_sinxronlash(reja: OquvReja) -> list[Guruh]:
     """
     soni = reja.guruhlar_soni or 0
     prefiks = reja.guruh_prefiksi or reja.yonalish_kodi
+    mavjud = {g.raqam: g for g in reja.guruhlar.all()}
+    yangi_guruhlar: list[Guruh] = []
+    ozgargan_guruhlar: list[Guruh] = []
     for raqam in range(1, soni + 1):
-        Guruh.objects.update_or_create(
-            reja=reja,
-            raqam=raqam,
-            defaults={"nomi": f"{prefiks}-{reja.boshlanish_yili}-{raqam}"},
-        )
+        nomi = f"{prefiks}-{reja.boshlanish_yili}-{raqam}"
+        guruh = mavjud.get(raqam)
+        if guruh is None:
+            yangi_guruhlar.append(Guruh(reja=reja, raqam=raqam, nomi=nomi))
+        elif guruh.nomi != nomi:
+            guruh.nomi = nomi
+            ozgargan_guruhlar.append(guruh)
+    if yangi_guruhlar:
+        Guruh.objects.bulk_create(yangi_guruhlar)
+    if ozgargan_guruhlar:
+        Guruh.objects.bulk_update(ozgargan_guruhlar, ["nomi"])
     reja.guruhlar.filter(raqam__gt=soni, yuklamalar__isnull=True).delete()
     return list(reja.guruhlar.all())
 
@@ -208,15 +217,15 @@ def semestrovka_yangilash(reja: OquvReja, tahrirlar: list[SemestrTahrir]) -> Non
         fs.pk: fs
         for fs in FanSemestr.objects.filter(
             pk__in=idlar, variant__fan__reja=reja
-        ).select_related("variant")
+        ).select_related("variant__fan__reja", "variant__kafedra")
     }
     variantlar: dict[int, FanVariant] = {}
     for tahrir in tahrirlar:
         fs = semestrlar.get(tahrir.fan_semestr_id)
         if fs is None:
             raise ValidationError("Semestr bu rejaga tegishli emas.")
-        _semestrni_tahrirlash(fs, tahrir)
-        variantlar[fs.variant_id] = fs.variant
+        if _semestrni_tahrirlash(fs, tahrir):
+            variantlar[fs.variant_id] = fs.variant
     for variant in variantlar.values():
         _variant_soatlarini_yangilash(variant)
 
@@ -251,7 +260,25 @@ def _variant_soatlarini_yangilash(variant: FanVariant) -> None:
     )
 
 
-def _semestrni_tahrirlash(fs: FanSemestr, tahrir: SemestrTahrir) -> None:
+def _semestr_ozgardimi(fs: FanSemestr, tahrir: SemestrTahrir) -> bool:
+    return (
+        fs.maruza_soat != tahrir.maruza_soat
+        or fs.amaliyot_soat != tahrir.amaliyot_soat
+        or fs.laboratoriya_soat != tahrir.laboratoriya_soat
+        or fs.seminar_soat != tahrir.seminar_soat
+        or fs.kurs_ishi_bor != tahrir.kurs_ishi_bor
+    )
+
+
+def _semestrni_tahrirlash(fs: FanSemestr, tahrir: SemestrTahrir) -> bool:
+    if not _semestr_ozgardimi(fs, tahrir):
+        return False
+    kafedra = fs.variant.kafedra
+    if kafedra is not None and kafedra_yuklama_qulflanganmi(kafedra, fs.akademik_yil):
+        raise ValidationError(
+            f"{kafedra.nomi}: {fs.akademik_yil}/{fs.akademik_yil + 1} yuklamasi "
+            "qulflangan — avval qaytarib oling."
+        )
     yangi = {
         SoatTuri.MARUZA: tahrir.maruza_soat,
         SoatTuri.AMALIYOT: tahrir.amaliyot_soat,
@@ -263,8 +290,13 @@ def _semestrni_tahrirlash(fs: FanSemestr, tahrir: SemestrTahrir) -> None:
         setattr(fs, maydon, yangi[tur])
     fs.kurs_ishi_bor = tahrir.kurs_ishi_bor
     fs.save(update_fields=[*_TAHRIR_MAYDONLARI.values(), "kurs_ishi_bor"])
-    for yuklama in fs.yuklamalar.all():
-        yuklama.save(update_fields=["soat"])
+    yuklamalar = list(fs.yuklamalar.all())
+    for yuklama in yuklamalar:
+        yuklama.fan_semestr = fs
+        yuklama.soat = yuklama.hisoblangan_soat()
+    if yuklamalar:
+        Yuklama.objects.bulk_update(yuklamalar, ["soat"])
+    return True
 
 
 def _band_soatni_himoyalash(

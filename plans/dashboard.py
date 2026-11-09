@@ -344,10 +344,13 @@ class KafedraQamrov:
     tasdiq: KafedraYuklamaTasdiq | None = None
 
 
-def kafedra_qamrovi(akademik_yil: int) -> list[KafedraQamrov]:
+def kafedra_qamrovi(
+    akademik_yil: int, *, taqsimot: list[TalabSatri] | None = None
+) -> list[KafedraQamrov]:
     biriktirilgan: dict[int, int] = defaultdict(int)
     taqsimlangan: dict[int, int] = defaultdict(int)
-    for satr in ofis_taqsimoti(akademik_yil):
+    satrlar = taqsimot if taqsimot is not None else ofis_taqsimoti(akademik_yil)
+    for satr in satrlar:
         kafedra_id = satr.fan_semestr.variant.kafedra_id
         if kafedra_id is None:
             continue

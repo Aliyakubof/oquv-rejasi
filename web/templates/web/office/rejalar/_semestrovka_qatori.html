@@ -21,7 +21,7 @@
   </td>
   {% endwith %}
   {% endfor %}
-  <td class="assign-cell cell-relative" x-data="{ ochiq: false, q: '' }" @click.outside="ochiq = false">
+  <td class="assign-cell cell-relative" x-data="{ ochiq: false, q: '' }" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
     {% if satr.tanlanmagan %}
     <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">Variant tanlanmagan</button>
     <div class="popover" x-show="ochiq" x-cloak>

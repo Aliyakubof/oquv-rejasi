@@ -66,10 +66,16 @@ SECRET_KEY=replace-with-a-long-random-value
 DEBUG=False
 ALLOWED_HOSTS=YOUR_VPS_IP
 CSRF_TRUSTED_ORIGINS=http://YOUR_VPS_IP:8080
+HEMIS_API_KEY=replace-with-a-long-random-api-key
+SESSION_COOKIE_SECURE=False
+CSRF_COOKIE_SECURE=False
+SECURE_SSL_REDIRECT=False
 DATABASE_URL=postgres://oquv_reja:replace-with-a-strong-password@localhost:5432/oquv_reja
 EOF
 chmod 600 .env
 ```
+
+> **Note:** `SESSION_COOKIE_SECURE=False`, `CSRF_COOKIE_SECURE=False`, and `SECURE_SSL_REDIRECT=False` are needed while serving over plain HTTP (`http://YOUR_VPS_IP:8080`). Remove those three lines once HTTPS/TLS is enabled in section 10 so `settings.py` enforces secure cookies and SSL redirect by default.
 
 `CSRF_TRUSTED_ORIGINS` must include the full scheme + host + port you're
 serving from (`http://YOUR_VPS_IP:8080`, not just the bare IP) — Django
@@ -133,6 +139,7 @@ sudo tee /etc/nginx/sites-available/oquv_reja > /dev/null <<'EOF'
 server {
     listen 8080;
     server_name _;
+    client_max_body_size 25M;
 
     location /static/ {
         alias /srv/oquv_reja/staticfiles/;

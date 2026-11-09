@@ -3,7 +3,9 @@
 import hashlib
 
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.db.models import Count, Max, Q, Sum
+from django.db.models.signals import post_delete, post_save
 from django.http import HttpRequest, JsonResponse
 
 from accounts.models import (
@@ -25,10 +27,42 @@ from plans.models import (
     Yuklama,
 )
 
+_KESH_KALITI = "jonli_holat_versiyasi"
+_KESH_MUDDATI = 5
 
-def holat_versiyasi() -> str:
-    """Return a short hash that changes whenever any domain row is mutated."""
-    qismlar = [
+_KUZATILADIGAN_MODELLAR = (
+    OquvReja,
+    Guruh,
+    Fan,
+    FanVariant,
+    FanSemestr,
+    Yuklama,
+    DasturTopshirish,
+    KafedraYuklamaTasdiq,
+    Department,
+    OqituvchiProfil,
+    OqituvchiTuri,
+    TalimYonalishi,
+    Universitet,
+    Foydalanuvchi,
+)
+
+
+def _keshni_tozala(**_kwargs: object) -> None:
+    cache.delete(_KESH_KALITI)
+
+
+for _model in _KUZATILADIGAN_MODELLAR:
+    post_save.connect(
+        _keshni_tozala, sender=_model, dispatch_uid=f"jonli_save_{_model.__name__}"
+    )
+    post_delete.connect(
+        _keshni_tozala, sender=_model, dispatch_uid=f"jonli_del_{_model.__name__}"
+    )
+
+
+def _reja_va_yuklama_qismlari() -> list[object]:
+    return [
         tuple(
             OquvReja.objects.values_list(
                 "pk",
@@ -61,6 +95,11 @@ def holat_versiyasi() -> str:
         Yuklama.objects.aggregate(
             c=Count("pk"), m=Max("pk"), s=Sum("soat"), t=Sum("talabalar_soni")
         ),
+    ]
+
+
+def _hisob_va_kafedra_qismlari() -> list[object]:
+    return [
         tuple(
             DasturTopshirish.objects.values_list(
                 "pk", "holat", "izoh", "korib_chiqilgan_vaqt"
@@ -98,8 +137,18 @@ def holat_versiyasi() -> str:
         tuple(Universitet.objects.values_list("pk", "rasmiy_nomi").order_by("pk")),
         Foydalanuvchi.objects.aggregate(c=Count("pk"), m=Max("pk")),
     ]
+
+
+def holat_versiyasi() -> str:
+    """Return a short hash that changes whenever any domain row is mutated."""
+    keshdagi = cache.get(_KESH_KALITI)
+    if isinstance(keshdagi, str):
+        return keshdagi
+    qismlar = [*_reja_va_yuklama_qismlari(), *_hisob_va_kafedra_qismlari()]
     xom = repr(qismlar).encode("utf-8")
-    return hashlib.sha256(xom).hexdigest()[:16]
+    versiya = hashlib.sha256(xom).hexdigest()[:16]
+    cache.set(_KESH_KALITI, versiya, timeout=_KESH_MUDDATI)
+    return versiya
 
 
 @login_required

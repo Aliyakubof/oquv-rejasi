@@ -10,8 +10,9 @@ from django.views.generic import TemplateView
 
 from accounts.models import Department
 from plans import dashboard, services
+from plans.audit import audit_yoz
 from plans.dashboard import yilni_tanlash
-from plans.models import Fan, FanVariant
+from plans.models import AuditAmali, Fan, FanVariant
 from web.mixins import OfficeAdminTalabMixin, office_admin_talab, xato_matni
 
 TURLAR_METRIKASI = [
@@ -23,23 +24,15 @@ TURLAR_METRIKASI = [
 ]
 
 
-TURLAR_METRIKASI = [
-    ("MARUZA", "Ma'ruza", "var(--mand)"),
-    ("AMALIYOT", "Amaliyot", "var(--accent)"),
-    ("LABORATORIYA", "Laboratoriya", "var(--elec)"),
-    ("SEMINAR", "Seminar", "#8b5cf6"),
-    ("KURS_ISHI", "Kurs ishi", "#f59e0b"),
-]
-
-
 def _dashboard_konteksti(yil: int) -> dict[str, object]:
+    taqsimot = services.ofis_taqsimoti(yil)
     return {
         "yil": yil,
-        "stat": dashboard.statlarni_hisoblash(services.ofis_taqsimoti(yil)),
+        "stat": dashboard.statlarni_hisoblash(taqsimot),
         "jami_talabalar": dashboard.jami_talabalar(yil),
         "fan_satrlari": dashboard.ofis_fan_satrlari(yil),
         "kafedralar": Department.objects.all(),
-        "qamrovlar": dashboard.kafedra_qamrovi(yil),
+        "qamrovlar": dashboard.kafedra_qamrovi(yil, taqsimot=taqsimot),
         "turlar_metrikasi": TURLAR_METRIKASI,
     }
 
@@ -71,6 +64,12 @@ def variant_tanlash(request: HttpRequest, pk: int) -> HttpResponse:
     xato = None
     try:
         services.variantni_tanlash(fan, variant)
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            f"Tanlov fani varianti tanlandi: {variant.nomi} ({fan.reja}).",
+            obyekt=fan,
+            request=request,
+        )
     except ValidationError as e:
         xato = xato_matni(e)
     return _qator_javobi(request, fan, xato)
@@ -85,6 +84,13 @@ def kafedra_biriktirish(request: HttpRequest, pk: int) -> HttpResponse:
     xato = None
     try:
         services.kafedraga_biriktirish(variant, kafedra)
+        kaf_matni = kafedra.nomi if kafedra else "bekor qilindi"
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            f"Fan kafedraga biriktirildi: {variant.nomi} -> {kaf_matni}.",
+            obyekt=variant,
+            request=request,
+        )
     except ValidationError as e:
         xato = xato_matni(e)
     return _qator_javobi(request, variant.fan, xato)

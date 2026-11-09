@@ -13,12 +13,12 @@
     const aktiv = document.activeElement;
     if (
       aktiv &&
-      el.contains(aktiv) &&
-      ["INPUT", "TEXTAREA", "SELECT"].includes(aktiv.tagName)
+      ["INPUT", "TEXTAREA", "SELECT"].includes(aktiv.tagName) &&
+      (el.contains(aktiv) || aktiv.closest(".search, .topbar, .controls"))
     ) {
       return true;
     }
-    const popoverlar = el.querySelectorAll(".popover");
+    const popoverlar = el.querySelectorAll(".popover, .action-menu");
     for (const p of popoverlar) {
       if (p.offsetParent !== null) return true;
     }

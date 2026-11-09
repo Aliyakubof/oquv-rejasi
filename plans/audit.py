@@ -1,11 +1,32 @@
 """Audit logging service for tracking system changes."""
 
-from typing import Any
-
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_ipv46_address
+from django.db import models
 from django.http import HttpRequest
 
 from accounts.models import Foydalanuvchi
 from plans.models import AuditAmali, AuditYozuvi
+
+
+def _toza_ip(nomzod: str | None) -> str | None:
+    if not nomzod:
+        return None
+    qiymat = nomzod.strip()
+    try:
+        validate_ipv46_address(qiymat)
+        return qiymat
+    except ValidationError:
+        return None
+
+
+def _sorovdan_ip(request: HttpRequest) -> str | None:
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        ip = _toza_ip(x_forwarded_for.split(",")[0])
+        if ip is not None:
+            return ip
+    return _toza_ip(request.META.get("REMOTE_ADDR"))
 
 
 def audit_yoz(
@@ -13,9 +34,9 @@ def audit_yoz(
     tavsif: str,
     *,
     foydalanuvchi: Foydalanuvchi | None = None,
-    obyekt: Any | None = None,
+    obyekt: models.Model | object | None = None,
     model_nomi: str = "",
-    obyekt_id: Any = "",
+    obyekt_id: int | str = "",
     ip_manzil: str | None = None,
     request: HttpRequest | None = None,
 ) -> AuditYozuvi:
@@ -30,18 +51,17 @@ def audit_yoz(
         if not obyekt_id:
             obyekt_id = getattr(obyekt, "pk", getattr(obyekt, "id", ""))
 
-    if ip_manzil is None and request is not None:
+    if request is not None:
         if (
             foydalanuvchi is None
             and hasattr(request, "user")
             and request.user.is_authenticated
         ):
             foydalanuvchi = request.user
-        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-        if x_forwarded_for:
-            ip_manzil = x_forwarded_for.split(",")[0].strip()
-        else:
-            ip_manzil = request.META.get("REMOTE_ADDR")
+        if ip_manzil is None:
+            ip_manzil = _sorovdan_ip(request)
+    else:
+        ip_manzil = _toza_ip(ip_manzil)
 
     return AuditYozuvi.objects.create(
         foydalanuvchi=foydalanuvchi,

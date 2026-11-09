@@ -285,6 +285,28 @@ class AuditJurnaliTests(TestCase):
         self.assertEqual(yozuv.obyekt_id, str(kafedra.pk))
         self.assertEqual(yozuv.ip_manzil, "192.168.1.100")
 
+    def test_audit_yoz_notogri_ip_manzilni_filtrlaydi(self) -> None:
+        yozuv = audit_yoz(
+            AuditAmali.YARATILDI,
+            "Soxta IP sinovi",
+            ip_manzil="not-an-ip-address",
+        )
+        self.assertIsNone(yozuv.ip_manzil)
+
+    def test_audit_sahifalash_ishlaydi(self) -> None:
+        admin = office_admin_yarat()
+        AuditYozuvi.objects.bulk_create(
+            [
+                AuditYozuvi(amal=AuditAmali.YARATILDI, tavsif=f"Yozuv-{i}")
+                for i in range(55)
+            ]
+        )
+        login(self.client, admin)
+        javob = self.client.get(reverse("office:audit_list"), {"page": 2})
+        self.assertEqual(javob.status_code, 200)
+        self.assertContains(javob, "Sahifa 2 / 2")
+        self.assertContains(javob, "Oldingi")
+
 
 class Shakl1IndividualRejaTests(TestCase):
     def test_oqituvchi_shakl1_jadvali_korsatiladi(self) -> None:
@@ -362,10 +384,26 @@ class RestApiTests(TestCase):
         self.assertGreaterEqual(j_oqi.json()["count"], 1)
 
         # Yuklamalar
-        j_yuk = self.client.get(reverse("api:yuklamalar"), HTTP_AUTHORIZATION=auth)
+        j_yuk = self.client.get(
+            reverse("api:yuklamalar"), {"yil": 2024}, HTTP_AUTHORIZATION=auth
+        )
         self.assertEqual(j_yuk.status_code, 200)
         self.assertGreaterEqual(j_yuk.json()["count"], 1)
         self.assertEqual(j_yuk.json()["results"][0]["tur"], "MARUZA")
+        self.assertEqual(j_yuk.json()["results"][0]["akademik_yil"], 2024)
+
+    def test_api_sessiya_orqali_post_csrf_himoyalangan(self) -> None:
+        from django.test import Client
+
+        admin = office_admin_yarat()
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(admin)
+        javob = csrf_client.post(
+            reverse("api:sync"),
+            data=json.dumps({"rejalar": []}),
+            content_type="application/json",
+        )
+        self.assertEqual(javob.status_code, 401)
 
     def test_api_hemis_sync_talabalar_va_guruhlarni_yangilaydi(self) -> None:
         auth = f"Bearer {self.api_key}"

@@ -13,7 +13,6 @@ from plans import dashboard
 from plans.audit import audit_yoz
 from plans.dashboard import yilni_tanlash
 from plans.models import AuditAmali, SoatTuri, Yuklama
-from web.mixins import YilTanlovMixin
 
 
 def _shakl1_guruh_matni(qator: dict[str, object]) -> str:
@@ -29,6 +28,44 @@ def _shakl1_guruh_matni(qator: dict[str, object]) -> str:
     return "Oqim"
 
 
+def _shakl1_satrlarini_yigish(
+    yuklamalar: list[Yuklama],
+) -> tuple[list[dict[str, object]], dict[str, int]]:
+    tur_jami: dict[str, int] = defaultdict(int)
+    shakl1_qatorlar: dict[tuple[int, int | None], dict[str, object]] = {}
+    for y in yuklamalar:
+        tur_jami[y.tur] += y.soat
+        fs = y.fan_semestr
+        kalit = (fs.pk, y.guruh_id)
+        if kalit not in shakl1_qatorlar:
+            reja = fs.variant.fan.reja
+            shakl1_qatorlar[kalit] = {
+                "fan": fs.variant.nomi,
+                "kodi": fs.variant.kodi,
+                "yonalish": f"{reja.yonalish_kodi} {reja.yonalish_nomi}",
+                "kurs": (fs.semestr + 1) // 2,
+                "semestr": fs.semestr,
+                "guruh": "Oqim",
+                "_guruh_nomi": y.guruh.nomi if y.guruh else "",
+                "_talabalar_soni": 0,
+                "maruza": 0,
+                "amaliyot": 0,
+                "laboratoriya": 0,
+                "seminar": 0,
+                "kurs_ishi": 0,
+                "jami": 0,
+            }
+        qator = shakl1_qatorlar[kalit]
+        if y.talabalar_soni:
+            qator["_talabalar_soni"] = int(qator["_talabalar_soni"]) + y.talabalar_soni
+        tur_kalit = y.tur.lower()
+        if tur_kalit in qator:
+            qator[tur_kalit] = int(qator[tur_kalit]) + y.soat
+        qator["jami"] = int(qator["jami"]) + y.soat
+        qator["guruh"] = _shakl1_guruh_matni(qator)
+    return list(shakl1_qatorlar.values()), tur_jami
+
+
 def oqituvchi_yuklama_konteksti(
     profil: OqituvchiProfil, sorov_yil: str | None, *, orqaga_url: str
 ) -> dict[str, object]:
@@ -41,50 +78,14 @@ def oqituvchi_yuklama_konteksti(
         .select_related("fan_semestr__variant__fan__reja", "guruh")
         .order_by("fan_semestr__semestr", "fan_semestr__variant__nomi", "tur")
     )
-    tur_jami: dict[str, int] = defaultdict(int)
-    shakl1_qatorlar: dict[tuple[int, int | None], dict[str, object]] = {}
-    for y in yuklamalar:
-        tur_jami[y.tur] += y.soat
-        fs = y.fan_semestr
-        kalit = (fs.pk, y.guruh_id)
-        if kalit not in shakl1_qatorlar:
-            reja = fs.variant.fan.reja
-            kurs = (fs.semestr + 1) // 2
-            shakl1_qatorlar[kalit] = {
-                "fan": fs.variant.nomi,
-                "kodi": fs.variant.kodi,
-                "yonalish": f"{reja.yonalish_kodi} {reja.yonalish_nomi}",
-                "kurs": kurs,
-                "semestr": fs.semestr,
-                "guruh": "Oqim",
-                "_guruh_nomi": y.guruh.nomi if y.guruh else "",
-                "_talabalar_soni": 0,
-                "maruza": 0,
-                "amaliyot": 0,
-                "laboratoriya": 0,
-                "seminar": 0,
-                "kurs_ishi": 0,
-                "jami": 0,
-            }
-        if y.talabalar_soni:
-            shakl1_qatorlar[kalit]["_talabalar_soni"] = (
-                int(shakl1_qatorlar[kalit]["_talabalar_soni"]) + y.talabalar_soni
-            )
-        tur_kalit = y.tur.lower()
-        if tur_kalit in shakl1_qatorlar[kalit]:
-            shakl1_qatorlar[kalit][tur_kalit] = (
-                int(shakl1_qatorlar[kalit][tur_kalit]) + y.soat
-            )
-        shakl1_qatorlar[kalit]["jami"] = int(shakl1_qatorlar[kalit]["jami"]) + y.soat
-        shakl1_qatorlar[kalit]["guruh"] = _shakl1_guruh_matni(shakl1_qatorlar[kalit])
-
+    shakl1_satrlar, tur_jami = _shakl1_satrlarini_yigish(yuklamalar)
     jami_soat = sum(y.soat for y in yuklamalar)
     return {
         "profil": profil,
         "yillar": yillar,
         "yil": yil,
         "yuklamalar": yuklamalar,
-        "shakl1_satrlar": list(shakl1_qatorlar.values()),
+        "shakl1_satrlar": shakl1_satrlar,
         "jami_soat": jami_soat,
         "kamomad": max(0, profil.turi.min_soat - jami_soat),
         "tur_jami": [(SoatTuri(t).label, s) for t, s in tur_jami.items()],
@@ -92,7 +93,7 @@ def oqituvchi_yuklama_konteksti(
     }
 
 
-class OqituvchiYuklamaAsosView(YilTanlovMixin, TemplateView):
+class OqituvchiYuklamaAsosView(TemplateView):
     template_name = "web/parts/oqituvchi_yuklama.html"
     orqaga_url: str = ""
 

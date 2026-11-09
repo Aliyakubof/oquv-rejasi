@@ -15,10 +15,10 @@ from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.generic import TemplateView
 
-from plans import services
+from plans.audit import audit_yoz
 from plans.dastur.service import dastur_egasimi, dastur_render
 from plans.dastur.topshirish import dastur_topshirish
-from plans.models import DasturTopshirish, FanVariant, SoatTuri, Yuklama
+from plans.models import AuditAmali, DasturTopshirish, FanVariant, SoatTuri, Yuklama
 from web.forms.dastur import DasturTopshirishForm
 from web.mixins import OqituvchiTalabMixin, YilTanlovMixin
 
@@ -56,7 +56,7 @@ class MenYuklamalarimView(OqituvchiTalabMixin, YilTanlovMixin, TemplateView):
             {
                 "yuklamalar": yuklamalar,
                 "tur_jami": _tur_jami(yuklamalar),
-                "jami_soat": services.oqituvchi_yillik_yuklamasi(profil, self.yil),
+                "jami_soat": sum(y.soat for y in yuklamalar),
             }
         )
         return context
@@ -90,7 +90,15 @@ class MenDasturTopshirishView(OqituvchiTalabMixin, View):
         xato = None
         if form.is_valid():
             try:
-                dastur_topshirish(variant, profil, form.cleaned_data["fayl"])
+                topshirish = dastur_topshirish(
+                    variant, profil, form.cleaned_data["fayl"]
+                )
+                audit_yoz(
+                    AuditAmali.TASDIQ_YUBORILDI,
+                    f"Fan dasturi topshirildi: {variant.nomi} ({profil}).",
+                    obyekt=topshirish,
+                    request=request,
+                )
             except ValidationError as e:
                 xato = " ".join(e.messages)
         else:
