@@ -3,7 +3,13 @@
 {% block content %}
 <div class="topbar">
   <div>
-    <div class="title"><span class="badge-major">{{ kafedra.nomi }}</span>Kafedra yuklamasi</div>
+    <div class="title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span>Kafedra yuklamasi boshqaruv paneli</span>
+      <span class="badge-major" style="margin:0;">{{ kafedra.nomi }}</span>
+    </div>
+    <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">
+      Fanlar kesimida o'quv soatlarini o'qituvchilarga taqsimlash va nazorat qilish
+    </div>
   </div>
   <div class="controls">
     {% if yillar %}
@@ -15,28 +21,44 @@
   </div>
 </div>
 <div id="kafedra-dashboard-jonli">
-<div class="card" data-jonli="kafedra-tasdiq" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 18px;">
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <strong>Yuklama holati:</strong>
-    {% if tasdiq.holat == "TASDIQLANGAN" %}
-      <span class="tag tag-mand">TASDIQLANGAN</span>
-      <span style="font-size:13px;color:var(--text-muted);">{{ tasdiq.tasdiqlangan_vaqt|date:"d.m.Y H:i" }} da tasdiqlandi. Yuklama qulflangan.</span>
-    {% elif tasdiq.holat == "TASDIQDA" %}
-      <span class="tag tag-elec">TASDIQQA YUBORILGAN</span>
-      <span style="font-size:13px;color:var(--text-muted);">O'quv bo'limi ko'rib chiqmoqda. Taqsimot qulflangan.</span>
-    {% elif tasdiq.holat == "QAYTARILGAN" %}
-      <span class="tag tag-rad">QAYTARILGAN</span>
-      <span style="font-size:13px;color:var(--text-danger);">Sabab: {{ tasdiq.izoh|default:"Xatoliklarni to'g'irlab qayta yuboring." }}</span>
-    {% else %}
-      <span class="tag" style="background:var(--panel-alt);border:1px solid var(--line);">QORALAMA</span>
-      <span style="font-size:13px;color:var(--text-muted);">Taqsimot yakunlangach, o'quv bo'limiga tasdiqqa yuboring.</span>
-    {% endif %}
+<div class="card kafedra-status-card" data-jonli="kafedra-tasdiq">
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <div class="analitika-title-icon" style="width:40px;height:40px;border-radius:10px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-weight:700;font-size:14px;color:var(--ink);">Yuklama holati:</span>
+        {% if tasdiq.holat == "TASDIQLANGAN" %}
+          <span class="tag tag-mand">TASDIQLANGAN</span>
+        {% elif tasdiq.holat == "TASDIQDA" %}
+          <span class="tag tag-elec">TASDIQQA YUBORILGAN</span>
+        {% elif tasdiq.holat == "QAYTARILGAN" %}
+          <span class="tag tag-rad">QAYTARILGAN</span>
+        {% else %}
+          <span class="tag" style="background:var(--panel-alt);border:1px solid var(--line);">QORALAMA</span>
+        {% endif %}
+      </div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:3px;">
+        {% if tasdiq.holat == "TASDIQLANGAN" %}
+          {{ tasdiq.tasdiqlangan_vaqt|date:"d.m.Y H:i" }} da tasdiqlandi. Taqsimot qulflangan.
+        {% elif tasdiq.holat == "TASDIQDA" %}
+          O'quv bo'limi ko'rib chiqmoqda. Taqsimot qulflangan.
+        {% elif tasdiq.holat == "QAYTARILGAN" %}
+          <span style="color:var(--text-danger);font-weight:500;">Sabab: {{ tasdiq.izoh|default:"Xatoliklarni to'g'irlab qayta yuboring." }}</span>
+        {% else %}
+          Taqsimot yakunlangach, o'quv bo'limiga tasdiqlash uchun yuboring.
+        {% endif %}
+      </div>
+    </div>
   </div>
   {% if not qulflangan %}
   <form method="post" action="{% url 'kafedra:tasdiqqa_yuborish' %}">
     {% csrf_token %}
     <input type="hidden" name="yil" value="{{ yil }}">
-    <button type="submit" class="btn btn-primary" onclick="return confirm('Yuklamani o\'quv bo\'limiga tasdiqlash uchun yuborasizmi? Yuborilgach, yuklamani o\'zgartirib bo\'lmaydi.');">
+    <button type="submit" class="btn btn-primary" onclick="return confirm('Yuklamani o\'quv bo\'limiga tasdiqlash uchun yuborasizmi? Yuborilgach, yuklamani o\'zgartirib bo\'lmaydi.');" style="padding:8px 20px;height:38px;">
       ✓ Tasdiqqa yuborish
     </button>
   </form>
@@ -57,18 +79,20 @@
       <span><span class="dot" style="background:var(--unassigned-soft);border:1px solid var(--unassigned);"></span>Qoldiq soat bor</span>
     </div>
   </div>
-  <div class="table-wrap narrow cards">
+  <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th style="min-width:240px;">Fan</th>
-          <th class="col-center" style="text-align:center;width:130px;">Semestr</th>
+          <th class="col-code" style="width:100px;text-align:center;">Kod</th>
+          <th class="col-name" style="min-width:240px;">Fan nomi</th>
+          <th style="min-width:180px;">Yo'nalish / Guruh</th>
+          <th class="col-center" style="width:110px;text-align:center;">Semestr</th>
           <th class="sem-h">Ma'ruza</th>
           <th class="sem-h">Amaliyot</th>
           <th class="sem-h">Lab.</th>
           <th class="sem-h">Seminar</th>
           <th class="sem-h">Kurs ishi</th>
-          <th class="col-center" style="text-align:center;width:130px;">Taqsimot</th>
+          <th class="col-center" style="width:130px;text-align:center;">Taqsimot</th>
         </tr>
       </thead>
       <tbody data-jonli="kafedra-fs-tbody">
@@ -76,14 +100,14 @@
         {% include "web/kafedra/_fs_qatori.html" %}
         <tr class="panel-row"
             data-nomi="{{ satr.fan_semestr.variant.nomi|lower }} {{ satr.fan_semestr.variant.kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_nomi|lower }}"
-            x-show="(!faqat_qoldiq || document.getElementById('fs-qator-{{ satr.fan_semestr.pk }}')?.dataset.qoldiq === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))"><td colspan="8" style="padding:0;border-bottom:0;">
+            x-show="(!faqat_qoldiq || document.getElementById('fs-qator-{{ satr.fan_semestr.pk }}')?.dataset.qoldiq === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))"><td colspan="10" style="padding:0;border-bottom:0;">
           <div id="panel-yuk-{{ satr.fan_semestr.pk }}" class="htmx-indicator" style="padding:12px 16px;">
             <div class="skeleton-bar" style="width:32%;height:12px;"></div>
           </div>
           <div id="panel-{{ satr.fan_semestr.pk }}"></div>
         </td></tr>
         {% empty %}
-        <tr><td colspan="8"><div class="empty-state">Bu o'quv yilida kafedraga biriktirilgan fanlar yo'q.</div></td></tr>
+        <tr><td colspan="10"><div class="empty-state">Bu o'quv yilida kafedraga biriktirilgan fanlar yo'q.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

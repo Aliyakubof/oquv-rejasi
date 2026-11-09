@@ -1,6 +1,6 @@
 {% load ui %}
 <div id="statlar" data-jonli="kafedra-statlar" {% if oob %}hx-swap-oob="true"{% endif %}>
-  <div class="stats">
+  <div class="stats wide" style="margin-bottom:14px;">
     <div class="stat">
       <div class="num">{{ stat.jami_soat }}</div>
       <div class="lbl">Jami talab soat</div>
@@ -25,13 +25,13 @@
     </div>
   </div>
   <div class="tur-taqsimot-bar">
-    <span>Ma'ruza: <strong>{{ stat.tur_soatlari.MARUZA|default:0 }}</strong></span>
-    <span>Amaliyot: <strong>{{ stat.tur_soatlari.AMALIYOT|default:0 }}</strong></span>
-    <span>Laboratoriya: <strong>{{ stat.tur_soatlari.LABORATORIYA|default:0 }}</strong></span>
-    <span>Seminar: <strong>{{ stat.tur_soatlari.SEMINAR|default:0 }}</strong></span>
-    <span>Kurs ishi: <strong>{{ stat.tur_soatlari.KURS_ISHI|default:0 }}</strong></span>
+    <div class="tur-chip"><span class="tur-color-dot" style="background:var(--mand);"></span> Ma'ruza: <strong>{{ stat.tur_soatlari.MARUZA|default:0 }}</strong></div>
+    <div class="tur-chip"><span class="tur-color-dot" style="background:var(--accent);"></span> Amaliyot: <strong>{{ stat.tur_soatlari.AMALIYOT|default:0 }}</strong></div>
+    <div class="tur-chip"><span class="tur-color-dot" style="background:var(--elec);"></span> Laboratoriya: <strong>{{ stat.tur_soatlari.LABORATORIYA|default:0 }}</strong></div>
+    <div class="tur-chip"><span class="tur-color-dot" style="background:#8b5cf6;"></span> Seminar: <strong>{{ stat.tur_soatlari.SEMINAR|default:0 }}</strong></div>
+    <div class="tur-chip"><span class="tur-color-dot" style="background:#f59e0b;"></span> Kurs ishi: <strong>{{ stat.tur_soatlari.KURS_ISHI|default:0 }}</strong></div>
     {% if stat.nomalum_talab_soni %}
-    <span class="tur-warn">Soni kiritilmagan: <strong>{{ stat.nomalum_talab_soni }}</strong></span>
+    <div class="tur-chip warn"><span class="tur-color-dot" style="background:#ef4444;"></span> Soni kiritilmagan: <strong>{{ stat.nomalum_talab_soni }}</strong></div>
     {% endif %}
   </div>
 </div>

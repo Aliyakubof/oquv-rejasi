@@ -4,11 +4,16 @@
     data-qoldiq="{% if satr.qoldiq_bor %}1{% else %}0{% endif %}"
     x-show="(!faqat_qoldiq || $el.dataset.qoldiq === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))"
     class="{% if satr.qoldiq_bor %}qator-biriktirilmagan{% endif %}">
-  <td data-label="Fan">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      {% if satr.fan_semestr.variant.kodi %}<span class="code">{{ satr.fan_semestr.variant.kodi }}</span>{% endif %}
-      <strong>{{ satr.fan_semestr.variant.nomi }}</strong>
-      <span class="credits">· {{ satr.fan_semestr.variant.fan.reja.yonalish_kodi }} ({{ satr.fan_semestr.variant.fan.reja.guruhlar_soni|default:"?" }} guruh)</span>
+  <td class="col-code" data-label="Kod" style="text-align:center;">
+    <span class="code">{% if satr.fan_semestr.variant.kodi %}{{ satr.fan_semestr.variant.kodi }}{% else %}—{% endif %}</span>
+  </td>
+  <td class="col-name" data-label="Fan">
+    <strong>{{ satr.fan_semestr.variant.nomi }}</strong>
+  </td>
+  <td data-label="Yo'nalish">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span class="code">{{ satr.fan_semestr.variant.fan.reja.yonalish_kodi }}</span>
+      <span class="credits">({{ satr.fan_semestr.variant.fan.reja.guruhlar_soni|default:"?" }} guruh)</span>
     </div>
   </td>
   <td data-label="Semestr" class="col-center" style="white-space:nowrap;text-align:center;">

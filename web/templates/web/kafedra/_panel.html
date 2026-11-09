@@ -2,17 +2,18 @@
 <div class="taqsimot-panel">
   <div class="taqsimot-panel-head">
     <div>
-      <div class="taqsimot-panel-title">
-        {{ fs.variant.nomi }} — {{ fs.semestr }}-semestr taqsimoti
-        {% if qulflangan %}<span class="tag tag-elec" style="margin-left:8px;">Qulflangan</span>{% endif %}
+      <div class="taqsimot-panel-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        {% if fs.variant.kodi %}<span class="code" style="font-size:12.5px;">{{ fs.variant.kodi }}</span>{% endif %}
+        <span>{{ fs.variant.nomi }} — {{ fs.semestr }}-semestr taqsimoti</span>
+        {% if qulflangan %}<span class="tag tag-elec">Qulflangan</span>{% endif %}
       </div>
-      <div class="credits">
+      <div class="credits" style="margin-top:4px;">
         {{ fs.variant.fan.reja.yonalish_kodi }} — {{ fs.variant.fan.reja.yonalish_nomi }}
         · {{ fs.variant.fan.reja.guruhlar_soni|default:"?" }} guruh
         · {{ fs.variant.fan.reja.talabalar_soni|default:"?" }} talaba
       </div>
     </div>
-    <button type="button" class="btn" onclick="document.getElementById('panel-{{ fs.pk }}').innerHTML = ''">Yopish</button>
+    <button type="button" class="btn" onclick="document.getElementById('panel-{{ fs.pk }}').innerHTML = ''" style="display:inline-flex;align-items:center;gap:6px;">✕ Yopish</button>
   </div>
   {% if xato %}
   <div class="form-errors">{{ xato }}</div>
