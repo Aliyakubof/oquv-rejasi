@@ -1,5 +1,5 @@
 {% if request.session.dev_asl_foydalanuvchi %}
-  <form method="post" action="{% url 'dev:qaytish' %}" class="menu-qaytish">
+  <form method="post" action="{% url 'dev:qaytish' %}" class="menu-qaytish" hx-boost="false">
     {% csrf_token %}
     <button type="submit" class="menu-item">← Asl hisobga qaytish</button>
   </form>

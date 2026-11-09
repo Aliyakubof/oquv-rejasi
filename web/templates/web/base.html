@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=22">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=28">
   <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=4">
   <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
   <script>
@@ -34,12 +34,344 @@
         }
       }));
     });
+
+    // ================= 1. Asosiy Markaziy Yuklanish (Center Page Loader) =================
+    const PageLoader = {
+      el: null,
+      safetyTimer: null,
+      init() {
+        this.el = document.getElementById('main-page-loader');
+      },
+      show(maxMs = 5000) {
+        if (!this.el) this.init();
+        if (this.el) {
+          this.el.classList.remove('is-hidden');
+          clearTimeout(this.safetyTimer);
+          this.safetyTimer = setTimeout(() => {
+            this.hide();
+          }, maxMs);
+        }
+      },
+      hide() {
+        if (!this.el) this.init();
+        clearTimeout(this.safetyTimer);
+        if (this.el) this.el.classList.add('is-hidden');
+      }
+    };
+
+    // Foydalanuvchi birinchi marta kirganda (login / sayt ochilganda) 3 sekund loading qilsin
+    // Boshqa paytlarda sahifa yuklanishi bilan loading darhol tugasin (kuttirmasin)
+    function handleInitialPageLoad() {
+      PageLoader.init();
+      const isFirstEntry = !sessionStorage.getItem('app_user_entered') ||
+                           (document.referrer && document.referrer.includes('/kirish'));
+
+      if (isFirstEntry) {
+        // Tizimga birinchi kirganda roppa-rosa 3 sekund loading
+        sessionStorage.setItem('app_user_entered', 'true');
+        PageLoader.show(3000);
+        setTimeout(() => {
+          PageLoader.hide();
+        }, 3000);
+      } else {
+        // Boshqa paytlarda yuklanishi bilan darhol tugasin
+        PageLoader.hide();
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', handleInitialPageLoad);
+    } else {
+      handleInitialPageLoad();
+    }
+
+    window.addEventListener('pageshow', () => {
+      PageLoader.init();
+      if (sessionStorage.getItem('app_user_entered')) {
+        PageLoader.hide();
+      }
+      document.querySelectorAll('.is-loading').forEach((b) => {
+        b.classList.remove('is-loading');
+        b.removeAttribute('aria-busy');
+        delete b.dataset.saving;
+      });
+    });
+
+    // Har qanday HTMX hodisasida markaziy yuklanishni yopish (xavfsizlik kafolati)
+    document.addEventListener('htmx:afterSwap', () => PageLoader.hide());
+    document.addEventListener('htmx:afterRequest', () => PageLoader.hide());
+    document.addEventListener('htmx:sendError', () => {
+      PageLoader.hide();
+      document.querySelectorAll('.is-loading').forEach((b) => {
+        b.classList.remove('is-loading');
+        b.removeAttribute('aria-busy');
+        delete b.dataset.saving;
+      });
+    });
+    document.addEventListener('htmx:responseError', () => {
+      PageLoader.hide();
+      document.querySelectorAll('.is-loading').forEach((b) => {
+        b.classList.remove('is-loading');
+        b.removeAttribute('aria-busy');
+        delete b.dataset.saving;
+      });
+    });
+
+    // ================= 2. Faqat Saqlovchi Tugmalar uchun Loading (Button Loading - 2 sekund) =================
+    function isSaveButton(el) {
+      if (!el) return false;
+      const btn = el.closest('button, input[type="submit"]');
+      if (!btn || btn.tagName === 'A') return false;
+
+      // Role almashtirish menyusi, logout, test rejimi, profil - mutlaqo saqlash EMAS!
+      if (btn.closest('.user-menu, .menu-panel, .test-rejimi, .logout-btn') ||
+          btn.classList.contains('menu-item') ||
+          btn.classList.contains('logout-btn')) {
+        return false;
+      }
+
+      const form = btn.closest('form');
+      const isPost = form && (form.method || '').toLowerCase() === 'post';
+      const isHxPost = btn.hasAttribute('hx-post') || (form && form.hasAttribute('hx-post'));
+      if (!isPost && !isHxPost) return false;
+
+      const txt = (btn.textContent || btn.value || '').toLowerCase().trim();
+
+      // Bekor qilish, qidirish, chiqish, qaytish, o'chirish - saqlash EMAS!
+      if (txt.includes('bekor') ||
+          txt.includes('qidir') ||
+          txt.includes('chiqish') ||
+          txt.includes('qaytish') ||
+          txt.includes("o'chir") ||
+          txt.includes('ochir')) {
+        return false;
+      }
+
+      // Faqat haqiqiy ma'lumot saqlaydigan tugmalar:
+      return txt.includes('saqla') ||      // Saqlash, Semestrovkani saqlash, Parolni saqlash
+             txt.includes('import') ||     // Import qilish
+             txt.includes('tasdiq') ||     // Tasdiqqa yuborish, Tasdiqlash
+             txt.includes('topshir') ||    // Topshirish
+             txt.includes('qabul') ||      // Qabul qilish
+             btn.hasAttribute('data-save-btn') ||
+             (btn.closest('.auth-card') && txt.includes('kirish'));
+    }
+
+    // Saqlash tugmasi bosilganda 2 sekund loading animatsiyasi
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button, input[type="submit"]');
+      if (!btn || !isSaveButton(btn)) return;
+
+      const form = btn.closest('form');
+      if (!form) return;
+
+      // Agar form validatsiyadan o'tmasa
+      if (form.checkValidity && !form.checkValidity()) {
+        return;
+      }
+
+      // Agar allaqachon loadingda bo'lsa
+      if (btn.classList.contains('is-loading') || btn.dataset.saving === 'true') {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      // Agar inline onclick confirm bo'lsa va bekor qilinsa
+      if (e.defaultPrevented) return;
+
+      // Agar kirish (login) tugmasi bo'lsa, sessionStorage dagi flagni tozalaymiz
+      // shunda yangi kirganda 3 sekund markaziy loading chiqadi
+      if (btn.closest('.auth-card')) {
+        sessionStorage.removeItem('app_user_entered');
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      btn.classList.add('is-loading');
+      btn.setAttribute('aria-busy', 'true');
+      btn.dataset.saving = 'true';
+
+      // 2 sekund (2000ms) animatsiya
+      setTimeout(() => {
+        btn.dataset.saving = 'done';
+
+        if (btn.name && btn.value) {
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = btn.name;
+          hidden.value = btn.value;
+          form.appendChild(hidden);
+        }
+
+        if (form.hasAttribute('hx-post') && window.htmx) {
+          window.htmx.trigger(form, 'submit');
+        } else {
+          HTMLFormElement.prototype.submit.call(form);
+        }
+      }, 2000);
+    });
+
+    // Logout tugmasi bosilganda ham keyingi kirish uchun flagni tozalash
+    document.addEventListener('click', (e) => {
+      const logoutBtn = e.target.closest('.logout-btn');
+      if (logoutBtn) {
+        sessionStorage.removeItem('app_user_entered');
+      }
+    });
+
+    // Brauzer chap pastidagi URL preview (status bar) chiqishini butunlay yo'qotish
+    (() => {
+      function sanitizeLink(a) {
+        if (!a || !a.getAttribute) return;
+        const href = a.getAttribute('href');
+        if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+          a.dataset.href = href;
+          a.removeAttribute('href');
+          a.setAttribute('role', 'link');
+          if (!a.hasAttribute('tabindex')) {
+            a.setAttribute('tabindex', '0');
+          }
+        }
+      }
+
+      function sanitizeAll(root) {
+        if (!root || !root.querySelectorAll) return;
+        const links = root.querySelectorAll('a[href]');
+        for (let i = 0; i < links.length; i++) {
+          sanitizeLink(links[i]);
+        }
+      }
+
+      // DOMga yangi qo'shilgan har qanday linkni darhol tozalash (MutationObserver)
+      const observer = new MutationObserver((mutations) => {
+        for (let i = 0; i < mutations.length; i++) {
+          const added = mutations[i].addedNodes;
+          for (let j = 0; j < added.length; j++) {
+            const node = added[j];
+            if (node.nodeType === 1) {
+              if (node.tagName === 'A' && node.hasAttribute('href')) {
+                sanitizeLink(node);
+              }
+              if (node.querySelectorAll) {
+                sanitizeAll(node);
+              }
+            }
+          }
+        }
+      });
+
+      if (document.documentElement) {
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        sanitizeAll(document);
+      });
+
+      // Har qanday pointer/sichqoncha yoki fokusda ham tekshirib olish
+      document.addEventListener('pointerover', (e) => {
+        const a = e.target.closest('a[href]');
+        if (a) sanitizeLink(a);
+      }, true);
+
+      document.addEventListener('focusin', (e) => {
+        const a = e.target.closest('a[href]');
+        if (a) sanitizeLink(a);
+      }, true);
+
+      // O'ng tugma (contextmenu) bosilganda "nusxa olish / yangi oynada ochish" uchun vaqtincha href ulash
+      document.addEventListener('contextmenu', (e) => {
+        const a = e.target.closest('a[data-href]');
+        if (a && a.dataset.href) {
+          a.setAttribute('href', a.dataset.href);
+          setTimeout(() => {
+            if (a.dataset.href) a.removeAttribute('href');
+          }, 150);
+        }
+      }, true);
+
+      // O'rta tugma (auxclick / middle click)
+      document.addEventListener('auxclick', (e) => {
+        if (e.button === 1) {
+          const a = e.target.closest('a[data-href], a[href]');
+          if (a) {
+            const href = a.dataset.href || a.getAttribute('href');
+            if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+              e.preventDefault();
+              window.open(href, '_blank');
+            }
+          }
+        }
+      }, true);
+
+      // Klaviatura Enter / Space orqali navigatsiya
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          const a = e.target.closest('a[data-href]');
+          if (a) {
+            e.preventDefault();
+            a.click();
+          }
+        }
+      }, true);
+
+      // Navigatsiya holatini boshqarish (2, 3, 4 marta tez bosilganda takrorlanmasligi uchun)
+      let isNavigating = false;
+
+      // Chap tugma bilan bosilganda (click) to'g'ri va xavfsiz o'tish
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest('a[data-href], a[href]');
+        if (!a) return;
+        const href = a.dataset.href || a.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+        // Ctrl / Cmd / Shift yoki yangi oyna ochish
+        if (e.ctrlKey || e.metaKey || e.shiftKey || a.target === '_blank') {
+          e.preventDefault();
+          window.open(href, '_blank');
+          return;
+        }
+
+        e.preventDefault();
+
+        // Fayl yuklab olish (Excel, Word, PDF)
+        const isDownload = a.hasAttribute('download') ||
+                           href.includes('_excel') ||
+                           href.endsWith('.xlsx') ||
+                           href.endsWith('.docx') ||
+                           href.endsWith('.pdf');
+
+        if (isDownload) {
+          window.location.assign(href);
+          return;
+        }
+
+        // Qayta-qayta (2, 3, 4 marta) bosilganda xatolik bo'lmasligi uchun himoya
+        if (isNavigating) return;
+        isNavigating = true;
+        setTimeout(() => { isNavigating = false; }, 800);
+
+        // Sahifa navigatsiyasi paytida markaziy yuklanishni ko'rsatish
+        PageLoader.show(4000);
+
+        window.location.assign(href);
+      }, true);
+    })();
   </script>
   <script src="{% static 'web/js/alpine.min.js' %}" defer></script>
   <script src="{% static 'web/js/jonli.js' %}" defer></script>
 </head>
 
-<body hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <!-- Asosiy markaziy yuklanish indikatori (Center Page Loader - standart yopiq) -->
+  <div id="main-page-loader" class="page-loader-overlay is-hidden">
+    <div class="page-loader-spinner-wrap">
+      <div class="page-loader-spinner"></div>
+      <div class="page-loader-text">Yuklanmoqda...</div>
+    </div>
+  </div>
   <div id="csrf-meta" data-csrf="{{ csrf_token }}" hidden></div>
   {% if user.is_authenticated %}{% include "web/parts/_navbar.html" %}{% endif %}
   {% if debug_rejim and request.session.dev_asl_foydalanuvchi %}{% include "web/parts/_test_rejimi.html" %}{% endif %}

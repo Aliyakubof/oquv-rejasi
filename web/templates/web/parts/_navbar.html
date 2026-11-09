@@ -27,7 +27,7 @@
       <a class="nav-link {% if request.resolver_match.view_name == 'parol_ozgartirish' %}active{% endif %}" href="{% url 'parol_ozgartirish' %}">Parol</a>
       <span class="user">{{ user.get_full_name }}</span>
     {% endif %}
-    <form method="post" action="{% url 'chiqish' %}">
+    <form method="post" action="{% url 'chiqish' %}" hx-boost="false">
       {% csrf_token %}
       <button type="submit" class="logout-btn">Chiqish</button>
     </form>

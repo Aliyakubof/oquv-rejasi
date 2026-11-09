@@ -5,7 +5,7 @@
     <span class="menu-belgi">hozir</span>
   </div>
 {% else %}
-  <form method="post" action="{% url 'dev:almashtirish' %}">
+  <form method="post" action="{% url 'dev:almashtirish' %}" hx-boost="false">
     {% csrf_token %}
     <input type="hidden" name="foydalanuvchi" value="{{ nishon.pk }}">
     <button type="submit" class="menu-item">
