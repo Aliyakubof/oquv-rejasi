@@ -40,75 +40,81 @@
 </div>
 
 {% if tur_jami %}
-<div class="tur-taqsimot-bar" data-jonli="men-legend">
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" data-jonli="men-legend">
   {% for nomi, soat in tur_jami %}
-  <span>{{ nomi }}: <strong>{{ soat }} soat</strong></span>
+  <span class="tur-chip"><span class="tur-dot"></span>{{ nomi }}: <strong>{{ soat }} soat</strong></span>
   {% endfor %}
 </div>
 {% endif %}
 
 <div x-data="{ qidiruv: '' }">
-  <div class="controls" style="margin-bottom:12px;">
+  <div class="controls" style="margin-bottom:16px;">
     <div class="search">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input type="text" placeholder="Fan, kod yoki guruh" aria-label="Fan, kod yoki guruh" x-model="qidiruv">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" placeholder="Fan nomi, kodi yoki guruh..." aria-label="Fan nomi, kodi yoki guruh" x-model="qidiruv">
     </div>
   </div>
-  <div class="table-wrap narrow cards">
+  <div class="table-wrap">
     <table data-jonli="men-yuklama-jadval">
       <thead>
         <tr>
-          <th>Fan</th>
-          <th>Yo'nalish</th>
-          <th>Semestr</th>
-          <th>Mashg'ulot turi</th>
-          <th>Guruh / Talabalar</th>
-          <th class="num">Soat</th>
-          <th>O'quv dastur</th>
+          <th style="width:110px;">Kod</th>
+          <th>Fan nomi</th>
+          <th class="col-center" style="width:130px;">Yo'nalish</th>
+          <th class="col-center" style="width:120px;">Semestr</th>
+          <th class="col-center" style="width:150px;">Mashg'ulot turi</th>
+          <th class="col-center" style="width:150px;">Guruh / Talabalar</th>
+          <th class="col-center" style="width:120px;">Soat</th>
+          <th class="col-center" style="width:180px;">O'quv dastur</th>
         </tr>
       </thead>
       <tbody>
         {% for yuklama in yuklamalar %}
         <tr data-nomi="{{ yuklama.fan_semestr.variant.nomi|lower }} {{ yuklama.fan_semestr.variant.kodi|lower }} {% if yuklama.guruh %}{{ yuklama.guruh.nomi|lower }}{% endif %}"
             x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
-          <td data-label="Fan">
-            {% if yuklama.fan_semestr.variant.kodi %}<span class="code">{{ yuklama.fan_semestr.variant.kodi }}</span>{% endif %}
-            <strong>{{ yuklama.fan_semestr.variant.nomi }}</strong>
+          <td>
+            {% if yuklama.fan_semestr.variant.kodi %}
+            <span class="col-code">{{ yuklama.fan_semestr.variant.kodi }}</span>
+            {% else %}
+            <span style="color:var(--text-muted);">—</span>
+            {% endif %}
           </td>
-          <td data-label="Yo'nalish"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
-          <td data-label="Semestr" style="white-space:nowrap;color:var(--text-secondary);">{{ yuklama.fan_semestr.semestr }}-semestr</td>
-          <td data-label="Mashg'ulot turi">{{ yuklama.get_tur_display }}</td>
-          <td data-label="Guruh / Talabalar">
+          <td><strong>{{ yuklama.fan_semestr.variant.nomi }}</strong></td>
+          <td class="col-center"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
+          <td class="col-center"><span class="hour-tag">{{ yuklama.fan_semestr.semestr }}-semestr</span></td>
+          <td class="col-center">
+            <span class="tur-chip"><span class="tur-dot"></span>{{ yuklama.get_tur_display }}</span>
+          </td>
+          <td class="col-center">
             {% if yuklama.guruh %}<span class="code">{{ yuklama.guruh.nomi }}</span>
             {% elif yuklama.talabalar_soni %}{{ yuklama.talabalar_soni }} talaba
             {% else %}<span style="color:var(--text-secondary);">Butun oqim</span>{% endif %}
           </td>
-          <td class="num" data-label="Soat"><strong>{{ yuklama.soat }}</strong></td>
-          <td data-label="O'quv dastur">
+          <td class="col-center"><span class="hour-tag ok">{{ yuklama.soat }} soat</span></td>
+          <td class="col-center">
             {% if yuklama.dastur_korsatilsin %}
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-              <a class="btn" href="{% url 'men:dastur' yuklama.fan_semestr.variant_id %}" hx-boost="false" title="O'quv dasturi (.docx) shablonini yuklab olish">Shablon (.docx)</a>
-              <div id="dastur-durum-{{ yuklama.fan_semestr.variant_id }}">
-                {% include "web/men/_dastur_durum.html" with variant=yuklama.fan_semestr.variant %}
-              </div>
+            <div id="dastur-durum-{{ yuklama.fan_semestr.variant_id }}">
+              {% include "web/men/_dastur_durum.html" with variant=yuklama.fan_semestr.variant %}
             </div>
+            {% else %}
+            <span style="color:var(--text-muted);">—</span>
             {% endif %}
           </td>
         </tr>
         {% if yuklama.dastur_korsatilsin %}
-        <tr class="panel-row"><td colspan="7" style="padding:0;border-bottom:0;">
+        <tr class="panel-row"><td colspan="8" style="padding:0;border-bottom:0;">
           <div id="dastur-panel-{{ yuklama.fan_semestr.variant_id }}"></div>
         </td></tr>
         {% endif %}
         {% empty %}
-        <tr><td colspan="7"><div class="empty-state">Bu o'quv yilida sizga yuklama taqsimlanmagan.</div></td></tr>
+        <tr><td colspan="8"><div class="empty-state">Bu o'quv yilida sizga yuklama taqsimlanmagan.</div></td></tr>
         {% endfor %}
       </tbody>
       {% if yuklamalar %}
       <tfoot>
         <tr>
-          <td colspan="5" style="text-align:right;font-weight:600;">Jami:</td>
-          <td class="num" data-label="Jami"><strong>{{ jami_soat }}</strong></td>
+          <td colspan="6" style="text-align:right;font-weight:700;padding-right:20px;">Jami:</td>
+          <td class="col-center"><span class="hour-tag ok" style="font-weight:700;">{{ jami_soat }} soat</span></td>
           <td></td>
         </tr>
       </tfoot>

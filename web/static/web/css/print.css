@@ -1,10 +1,14 @@
-/* Printable report: clean minimalist card on screen, A4 black-on-white when printing. */
+/* Printable report styles */
+.print-only {
+  display: none !important;
+}
+
 .report-sheet {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 28px 30px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .letterhead {
@@ -27,16 +31,12 @@
   font-size: 12.5px;
 }
 
-.report-sheet .table-wrap {
-  border: 1px solid var(--line);
-  box-shadow: none;
-}
-
 .signatures {
   display: flex;
   justify-content: space-between;
   gap: 24px;
-  margin-top: 40px;
+  margin-top: 24px;
+  margin-bottom: 24px;
   font-size: 13px;
   color: var(--text-secondary);
   flex-wrap: wrap;
@@ -53,6 +53,7 @@
   @page { size: A4; margin: 18mm 14mm; }
   body { background: #fff; }
   .navbar, .test-rejimi, .messages, .print-toolbar, .print-hide { display: none !important; }
+  .print-only { display: block !important; }
   .app { max-width: none; padding: 0; }
   .report-sheet { border: 0; padding: 0; box-shadow: none; }
   .letterhead { border-bottom: 0; padding-bottom: 0; }

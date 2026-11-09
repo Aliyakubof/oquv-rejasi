@@ -60,39 +60,39 @@
   </div>
 
   {# 1-shakl: rasmiy ta'lim standarti jadvali #}
-  <div class="table-wrap narrow cards" x-show="tab === 'shakl1'">
+  <div class="table-wrap" x-show="tab === 'shakl1'">
     <table>
       <thead>
         <tr>
-          <th style="width:36px;">№</th>
+          <th class="col-center" style="width:44px;">№</th>
           <th>Fan nomi</th>
-          <th>Yo'nalish</th>
-          <th class="num" style="width:50px;">Kurs</th>
-          <th class="num" style="width:60px;">Sem.</th>
-          <th>Guruh / Oqim</th>
-          <th class="num">Ma'ruza</th>
-          <th class="num">Amaliyot</th>
-          <th class="num">Lab.</th>
-          <th class="num">Seminar</th>
-          <th class="num">Kurs ishi</th>
-          <th class="num">Jami</th>
+          <th class="col-center" style="width:120px;">Yo'nalish</th>
+          <th class="col-center" style="width:80px;">Kurs</th>
+          <th class="col-center" style="width:80px;">Sem.</th>
+          <th class="col-center">Guruh / Oqim</th>
+          <th class="col-center">Ma'ruza</th>
+          <th class="col-center">Amaliyot</th>
+          <th class="col-center">Lab.</th>
+          <th class="col-center">Seminar</th>
+          <th class="col-center">Kurs ishi</th>
+          <th class="col-center" style="width:90px;">Jami</th>
         </tr>
       </thead>
       <tbody>
         {% for s in shakl1_satrlar %}
         <tr>
-          <td data-label="№" style="color:var(--text-muted);">{{ forloop.counter }}</td>
+          <td class="col-center" data-label="№" style="color:var(--text-muted);font-weight:600;">{{ forloop.counter }}</td>
           <td data-label="Fan"><strong>{{ s.fan }}</strong></td>
-          <td data-label="Yo'nalish"><span class="code" style="font-size:11px;">{{ s.yonalish }}</span></td>
-          <td class="num" data-label="Kurs">{{ s.kurs }}-kurs</td>
-          <td class="num" data-label="Semestr">{{ s.semestr }}</td>
-          <td data-label="Guruh">{{ s.guruh }}</td>
-          <td class="num" data-label="Ma'ruza">{{ s.maruza|default:"—" }}</td>
-          <td class="num" data-label="Amaliyot">{{ s.amaliyot|default:"—" }}</td>
-          <td class="num" data-label="Laboratoriya">{{ s.laboratoriya|default:"—" }}</td>
-          <td class="num" data-label="Seminar">{{ s.seminar|default:"—" }}</td>
-          <td class="num" data-label="Kurs ishi">{{ s.kurs_ishi|default:"—" }}</td>
-          <td class="num" data-label="Jami"><strong>{{ s.jami }}</strong></td>
+          <td class="col-center" data-label="Yo'nalish"><span class="code" style="font-size:11px;">{{ s.yonalish }}</span></td>
+          <td class="col-center" data-label="Kurs"><span class="hour-tag">{{ s.kurs }}-kurs</span></td>
+          <td class="col-center" data-label="Semestr"><span class="hour-tag">{{ s.semestr }}-sem</span></td>
+          <td class="col-center" data-label="Guruh">{{ s.guruh }}</td>
+          <td class="col-center" data-label="Ma'ruza">{% if s.maruza %}<span class="hour-tag">{{ s.maruza }}</span>{% else %}—{% endif %}</td>
+          <td class="col-center" data-label="Amaliyot">{% if s.amaliyot %}<span class="hour-tag">{{ s.amaliyot }}</span>{% else %}—{% endif %}</td>
+          <td class="col-center" data-label="Laboratoriya">{% if s.laboratoriya %}<span class="hour-tag">{{ s.laboratoriya }}</span>{% else %}—{% endif %}</td>
+          <td class="col-center" data-label="Seminar">{% if s.seminar %}<span class="hour-tag">{{ s.seminar }}</span>{% else %}—{% endif %}</td>
+          <td class="col-center" data-label="Kurs ishi">{% if s.kurs_ishi %}<span class="hour-tag">{{ s.kurs_ishi }}</span>{% else %}—{% endif %}</td>
+          <td class="col-center" data-label="Jami"><span class="hour-tag ok" style="font-weight:700;">{{ s.jami }}</span></td>
         </tr>
         {% empty %}
         <tr><td colspan="12"><div class="empty-state">Yuklama taqsimlanmagan.</div></td></tr>
@@ -101,8 +101,8 @@
       {% if shakl1_satrlar %}
       <tfoot>
         <tr>
-          <td colspan="11" style="text-align:right;font-weight:600;">Jami soat:</td>
-          <td class="num"><strong>{{ jami_soat }}</strong></td>
+          <td colspan="11" style="text-align:right;font-weight:700;padding-right:20px;">Jami soat:</td>
+          <td class="col-center"><span class="hour-tag ok" style="font-weight:700;">{{ jami_soat }}</span></td>
         </tr>
       </tfoot>
       {% endif %}
@@ -110,36 +110,38 @@
   </div>
 
   {# Batafsil ro'yxat #}
-  <div class="table-wrap narrow cards" x-show="tab === 'royxat'" x-cloak>
+  <div class="table-wrap" x-show="tab === 'royxat'" x-cloak>
     <table data-jonli="oqituvchi-yuklama-jadval">
       <thead>
         <tr>
-          <th style="width:48px;">№</th>
+          <th class="col-center" style="width:44px;">№</th>
           <th>Fan</th>
-          <th>Yo'nalish</th>
-          <th>Semestr</th>
-          <th>Mashg'ulot turi</th>
-          <th>Guruh / Talabalar</th>
-          <th class="num">Soat</th>
+          <th class="col-center" style="width:140px;">Yo'nalish</th>
+          <th class="col-center" style="width:120px;">Semestr</th>
+          <th class="col-center" style="width:150px;">Mashg'ulot turi</th>
+          <th class="col-center">Guruh / Talabalar</th>
+          <th class="col-center" style="width:120px;">Soat</th>
         </tr>
       </thead>
       <tbody>
         {% for yuklama in yuklamalar %}
         <tr>
-          <td data-label="№" style="color:var(--text-muted);">{{ forloop.counter }}</td>
+          <td class="col-center" data-label="№" style="color:var(--text-muted);font-weight:600;">{{ forloop.counter }}</td>
           <td data-label="Fan">
-            {% if yuklama.fan_semestr.variant.kodi %}<span class="code">{{ yuklama.fan_semestr.variant.kodi }}</span>{% endif %}
+            {% if yuklama.fan_semestr.variant.kodi %}<span class="col-code">{{ yuklama.fan_semestr.variant.kodi }}</span>{% endif %}
             <strong>{{ yuklama.fan_semestr.variant.nomi }}</strong>
           </td>
-          <td data-label="Yo'nalish"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span> {{ yuklama.fan_semestr.variant.fan.reja.yonalish_nomi }}</td>
-          <td data-label="Semestr" style="white-space:nowrap;">{{ yuklama.fan_semestr.semestr }}-semestr</td>
-          <td data-label="Mashg'ulot turi">{{ yuklama.get_tur_display }}</td>
-          <td data-label="Guruh / Talabalar">
+          <td class="col-center" data-label="Yo'nalish"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
+          <td class="col-center" data-label="Semestr"><span class="hour-tag">{{ yuklama.fan_semestr.semestr }}-semestr</span></td>
+          <td class="col-center" data-label="Mashg'ulot turi">
+            <span class="tur-chip"><span class="tur-dot"></span>{{ yuklama.get_tur_display }}</span>
+          </td>
+          <td class="col-center" data-label="Guruh / Talabalar">
             {% if yuklama.guruh %}<span class="code">{{ yuklama.guruh.nomi }}</span>
             {% elif yuklama.talabalar_soni %}{{ yuklama.talabalar_soni }} talaba
-            {% else %}Butun oqim{% endif %}
+            {% else %}<span style="color:var(--text-secondary);">Butun oqim</span>{% endif %}
           </td>
-          <td class="num" data-label="Soat"><strong>{{ yuklama.soat }}</strong></td>
+          <td class="col-center" data-label="Soat"><span class="hour-tag ok">{{ yuklama.soat }} soat</span></td>
         </tr>
         {% empty %}
         <tr><td colspan="7"><div class="empty-state">Bu o'quv yilida o'qituvchiga yuklama taqsimlanmagan.</div></td></tr>
@@ -148,8 +150,8 @@
       {% if yuklamalar %}
       <tfoot>
         <tr>
-          <td colspan="6" style="text-align:right;font-weight:600;">Jami:</td>
-          <td class="num"><strong>{{ jami_soat }}</strong></td>
+          <td colspan="6" style="text-align:right;font-weight:700;padding-right:20px;">Jami:</td>
+          <td class="col-center"><span class="hour-tag ok" style="font-weight:700;">{{ jami_soat }} soat</span></td>
         </tr>
       </tfoot>
       {% endif %}

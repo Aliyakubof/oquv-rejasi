@@ -1,9 +1,14 @@
 <div class="taqsimot-panel">
   <div class="taqsimot-panel-head">
     <div>
-      <div class="taqsimot-panel-title">{{ variant.nomi }} — dastur topshirig'i</div>
+      <div class="taqsimot-panel-title">
+        {% if variant.kodi %}<span class="col-code" style="margin-right:6px;">{{ variant.kodi }}</span>{% endif %}
+        {{ variant.nomi }} — o'quv dasturi topshirig'i
+      </div>
     </div>
-    <button type="button" class="btn" onclick="document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">Yopish</button>
+    <button type="button" class="btn" onclick="document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''" style="display:inline-flex;align-items:center;gap:4px;">
+      <span>✕</span> Yopish
+    </button>
   </div>
   {% if xato %}
   <div class="form-errors">{{ xato }}</div>

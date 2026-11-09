@@ -1,13 +1,104 @@
 {% with joriy=variant.dastur_topshirishlari.all.0 %}
-<div style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;">
-  {% if joriy %}
-    {% if joriy.holat == "QABUL_QILINDI" %}<span class="tag tag-mand">QABUL QILINDI</span>
-    {% elif joriy.holat == "RAD_ETILDI" %}<span class="tag tag-rad">RAD ETILDI · {{ joriy.urinish_raqami }}-urinish</span>
-    {% else %}<span class="tag tag-elec">KO'RIB CHIQILMOQDA · {{ joriy.urinish_raqami }}-urinish</span>{% endif %}
-  {% endif %}
-  <button type="button" class="btn btn-primary"
+<div class="dastur-durum-cell"
+     x-data="{
+       ochiq: false,
+       pos: { top: '0px', left: '0px' },
+       ochish(btn) {
+         if (this.ochiq) {
+           this.ochiq = false;
+           return;
+         }
+         const rect = btn.getBoundingClientRect();
+         const menuW = 240;
+         let l = rect.right - menuW;
+         if (l < 10) l = 10;
+         let t = rect.bottom + 6;
+         if (t + 160 > window.innerHeight) {
+           t = Math.max(10, rect.top - 150);
+         }
+         this.pos = { top: Math.round(t) + 'px', left: Math.round(l) + 'px' };
+         this.ochiq = true;
+       }
+     }"
+     @scroll.window.capture="ochiq = false"
+     @resize.window="ochiq = false">
+  {# Status badge — clicking opens the panel #}
+  <button type="button" class="status-btn"
           hx-get="{% url 'men:dastur_tarixi' variant.pk %}"
-          hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML"
-          hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">Topshirish / Tarix</button>
+          hx-target="#dastur-panel-{{ variant.pk }}"
+          hx-swap="innerHTML"
+          hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }"
+          title="Topshirish va tarixni ko'rish">
+    {% if joriy %}
+      {% if joriy.holat == "QABUL_QILINDI" %}
+        <span class="tag tag-mand">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
+          Qabul qilindi
+        </span>
+      {% elif joriy.holat == "RAD_ETILDI" %}
+        <span class="tag tag-rad">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          Rad etildi · {{ joriy.urinish_raqami }}
+        </span>
+      {% else %}
+        <span class="tag tag-elec">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Ko'rib chiqilmoqda
+        </span>
+      {% endif %}
+    {% else %}
+      <span class="tag tag-bosh">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Topshirilmagan
+      </span>
+    {% endif %}
+  </button>
+
+  {# 3-dots action menu #}
+  <div class="action-dropdown" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
+    <button type="button" class="btn-dots" :class="ochiq && 'active'" @click="ochish($el)" title="Amallar" aria-label="Amallar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="5" r="2"/>
+        <circle cx="12" cy="12" r="2"/>
+        <circle cx="12" cy="19" r="2"/>
+      </svg>
+    </button>
+
+    <div class="action-menu action-menu-fixed"
+         x-show="ochiq"
+         x-transition
+         x-cloak
+         :style="'top:' + pos.top + '; left:' + pos.left + ';'">
+      <a class="action-item" href="{% url 'men:dastur' variant.pk %}" hx-boost="false" @click="ochiq = false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <div class="action-text">
+          <span class="action-title">Shablon (.docx)</span>
+          <span class="action-desc">Tayyor shablonni yuklab olish</span>
+        </div>
+      </a>
+
+      <button type="button" class="action-item"
+              hx-get="{% url 'men:dastur_tarixi' variant.pk %}"
+              hx-target="#dastur-panel-{{ variant.pk }}"
+              hx-swap="innerHTML"
+              @click="ochiq = false"
+              hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+        <div class="action-text">
+          <span class="action-title">Topshirish va tarix</span>
+          <span class="action-desc">Fayl yuklash yoki natijalarni ko'rish</span>
+        </div>
+      </button>
+    </div>
+  </div>
 </div>
 {% endwith %}
