@@ -67,12 +67,13 @@
         data-modal-placeholder="Masalan: Barcha asosiy fanlar taqsimlandi..."
         data-modal-field="izoh"
         data-modal-required="false"
-        data-modal-btn="✓ Tasdiqqa yuborish">
+        data-modal-btn="Tasdiqqa yuborish">
     {% csrf_token %}
     <input type="hidden" name="yil" value="{{ yil }}">
     <input type="hidden" name="izoh" value="">
     <button type="submit" class="btn btn-primary" style="padding:8px 20px;height:38px;">
-      ✓ Tasdiqqa yuborish
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Tasdiqqa yuborish</span>
     </button>
   </form>
   {% endif %}

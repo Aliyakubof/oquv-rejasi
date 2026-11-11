@@ -47,7 +47,10 @@
       <span class="avatar">{{ satr.kafedra.nomi|bosh_harflar }}</span>{{ satr.kafedra.nomi }}
     </button>
     {% else %}
-    <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">+ Kafedra biriktirish</button>
+    <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Kafedra biriktirish</span>
+    </button>
     {% endif %}
     <div class="popover" x-show="ochiq" x-cloak>
       <input type="text" placeholder="Kafedra qidirish" x-model="q">

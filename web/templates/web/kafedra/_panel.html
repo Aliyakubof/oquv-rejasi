@@ -14,7 +14,10 @@
         · {{ fs.variant.fan.reja.talabalar_soni|default:"?" }} talaba
       </div>
     </div>
-    <button type="button" class="btn" onclick="document.getElementById('panel-{{ fs.pk }}').innerHTML = ''" style="display:inline-flex;align-items:center;gap:6px;">✕ Yopish</button>
+    <button type="button" class="btn" onclick="document.getElementById('panel-{{ fs.pk }}').innerHTML = ''" style="display:inline-flex;align-items:center;gap:6px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <span>Yopish</span>
+    </button>
   </div>
   {% if xato %}
   <div class="form-errors">{{ xato }}</div>
@@ -44,11 +47,16 @@
           {% if not qulflangan %}
           <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
                   hx-post="{% url 'kafedra:yuklama_ochirish' holat.maruza_yuklama.pk %}"
-                  hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">✕</button>
+                  hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
           {% endif %}
         </span>
         {% elif not qulflangan %}
-        <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">+ O'qituvchi biriktirish ({{ holat.talab_soat }} soat)</button>
+        <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>O'qituvchi biriktirish ({{ holat.talab_soat }} soat)</span>
+        </button>
         {% include "web/kafedra/_oqituvchi_popover.html" with url_nomi="kafedra:maruza_yaratish" vals="" %}
         {% else %}
         <span class="credits">Biriktirilmagan</span>
@@ -71,11 +79,16 @@
             {% if not qulflangan %}
             <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
                     hx-post="{% url 'kafedra:yuklama_ochirish' slot.yuklama.pk %}"
-                    hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">✕</button>
+                    hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
             {% endif %}
           </span>
           {% elif not qulflangan %}
-          <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">+ O'qituvchi biriktirish</button>
+          <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>O'qituvchi biriktirish</span>
+          </button>
           {% include "web/kafedra/_oqituvchi_popover.html" with url_nomi="kafedra:guruh_yaratish" slot_guruh=slot.guruh holat_tur=holat.tur %}
           {% else %}
           <span class="credits">Biriktirilmagan</span>
@@ -98,7 +111,9 @@
             {% if not qulflangan %}
             <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
                     hx-post="{% url 'kafedra:yuklama_ochirish' yuklama.pk %}"
-                    hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">✕</button>
+                    hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
             {% endif %}
           </span>
           {% endfor %}

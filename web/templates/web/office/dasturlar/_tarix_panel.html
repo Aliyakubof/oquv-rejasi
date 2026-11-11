@@ -8,7 +8,10 @@
       </div>
       <div class="credits" style="margin-top:3px;">Kafedra: {{ variant.kafedra.nomi|default:"—" }} · Yo'nalish: {{ variant.fan.reja.yonalish_kodi }}</div>
     </div>
-    <button type="button" class="btn" onclick="document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">✕ Yopish</button>
+    <button type="button" class="btn" onclick="document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <span>Yopish</span>
+    </button>
   </div>
   {% if xato %}
   <div class="form-errors">{{ xato }}</div>
@@ -19,7 +22,10 @@
     {% if t.holat != "QABUL_QILINDI" %}
     <form hx-post="{% url 'office:dastur_qabul' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML">
       {% csrf_token %}
-      <button type="submit" class="btn btn-primary">✓ Qabul qilish</button>
+      <button type="submit" class="btn btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>Qabul qilish</span>
+      </button>
     </form>
     {% endif %}
     {% if t.holat != "RAD_ETILDI" %}
@@ -34,7 +40,10 @@
           data-modal-btn="Rad etishni tasdiqlash">
       {% csrf_token %}
       <input type="hidden" name="izoh" value="">
-      <button type="submit" class="btn btn-danger">✕ Rad etish</button>
+      <button type="submit" class="btn btn-danger">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span>Rad etish</span>
+      </button>
     </form>
     {% endif %}
   </div>

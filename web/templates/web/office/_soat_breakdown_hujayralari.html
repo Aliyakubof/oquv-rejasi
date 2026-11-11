@@ -15,5 +15,5 @@
   {% if fs.seminar_soat %}<div class="sem-fill" title="Seminar{% with d=fs.seminar_soat|kopaytir:guruhlar_soni %}{% if d %} — × {{ guruhlar_soni }} guruh = {{ d }}{% endif %}{% endwith %}">{{ fs.seminar_soat }}</div>{% else %}<div class="sem-empty"></div>{% endif %}
 </td>
 <td class="sem-cell">
-  {% if fs.kurs_ishi_bor %}<div class="sem-fill" title="Kurs ishi bor">✓</div>{% else %}<div class="sem-empty"></div>{% endif %}
+  {% if fs.kurs_ishi_bor %}<div class="sem-fill ok" title="Kurs ishi bor"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>{% else %}<div class="sem-empty"></div>{% endif %}
 </td>

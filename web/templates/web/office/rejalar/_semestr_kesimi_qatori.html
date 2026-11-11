@@ -16,7 +16,15 @@
   <td class="col-num num">{% if satr.fan_semestr.amaliyot_soat %}{{ satr.fan_semestr.amaliyot_soat }}{% else %}—{% endif %}</td>
   <td class="col-num num">{% if satr.fan_semestr.laboratoriya_soat %}{{ satr.fan_semestr.laboratoriya_soat }}{% else %}—{% endif %}</td>
   <td class="col-num num">{% if satr.fan_semestr.seminar_soat %}{{ satr.fan_semestr.seminar_soat }}{% else %}—{% endif %}</td>
-  <td class="col-num num">{% if satr.fan_semestr.kurs_ishi_bor %}✓{% else %}—{% endif %}</td>
+  <td class="col-num num">
+    {% if satr.fan_semestr.kurs_ishi_bor %}
+    <span class="badge-dot-check" title="Kurs ishi bor">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ok);vertical-align:middle;" aria-label="Kurs ishi bor"><polyline points="20 6 9 17 4 12"/></svg>
+    </span>
+    {% else %}
+    <span class="muted">—</span>
+    {% endif %}
+  </td>
   <td class="col-kafedra assign-cell cell-relative" x-data="{ ochiq_k: false, q_k: '' }" @click.outside="ochiq_k = false">
     {% if satr.tanlanmagan %}
     <button type="button" class="teacher-chip empty" @click="ochiq_k = !ochiq_k">Variant tanlanmagan</button>
@@ -39,7 +47,10 @@
       <span class="chip-label">{{ satr.kafedra.nomi }}</span>
     </button>
     {% else %}
-    <button type="button" class="teacher-chip empty" @click="ochiq_k = !ochiq_k">+ Kafedra biriktirish</button>
+    <button type="button" class="teacher-chip empty" @click="ochiq_k = !ochiq_k">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Kafedra biriktirish</span>
+    </button>
     {% endif %}
     <div class="popover" x-show="ochiq_k" x-cloak>
       <input type="text" placeholder="Kafedra qidirish" x-model="q_k">

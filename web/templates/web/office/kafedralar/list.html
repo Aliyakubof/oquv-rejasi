@@ -14,7 +14,10 @@
       {% include "web/parts/_yil_tanlov.html" with hx_url=kaf_url hx_target="#office-kafedralar-jonli" %}
     </form>
     {% endif %}
-    <a class="btn btn-primary" href="{% url 'office:kafedra_yangi' %}">+ Yangi kafedra</a>
+    <a class="btn btn-primary" href="{% url 'office:kafedra_yangi' %}">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Yangi kafedra</span>
+    </a>
   </div>
 </div>
 <div x-data="{ qidiruv: '' }">
@@ -54,7 +57,10 @@
               <span class="avatar">{{ q.kafedra.mudir|stringformat:"s"|bosh_harflar }}</span>{{ q.kafedra.mudir }}
             </button>
             {% else %}
-            <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">+ Mudir tayinlash</button>
+            <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Mudir tayinlash</span>
+            </button>
             {% endif %}
             <div class="popover" x-show="ochiq" x-cloak>
               {% if q.kafedra.oqituvchilar.all %}
@@ -172,7 +178,7 @@
                         data-modal-confirm="{{ q.kafedra.nomi }} kafedrasining o'quv yuklamasini tasdiqlaysizmi?"
                         data-modal-meta="Biriktirilgan::{{ q.biriktirilgan_soat }} soat||Taqsimlangan::{{ q.taqsimlangan_soat }} soat||Qamrov::{{ q.taqsimlangan_soat|foiz:q.biriktirilgan_soat }}%"
                         data-modal-type="success"
-                        data-modal-btn="✓ Tasdiqlash">
+                        data-modal-btn="Tasdiqlash">
                     {% csrf_token %}
                     <input type="hidden" name="yil" value="{{ yil }}">
                     <button type="submit" class="action-item action-item-success" @click="ochiq = false">

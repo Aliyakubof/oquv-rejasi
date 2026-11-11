@@ -4,7 +4,9 @@
   <li class="{{ message.tags }}" x-data="{ ochiq: true }" x-show="ochiq" x-transition
       {% if 'error' not in message.tags %}x-init="setTimeout(() => ochiq = false, 6000)"{% endif %}>
     <span class="msg-text">{{ message }}</span>
-    <button type="button" class="msg-close" @click="ochiq = false" aria-label="Yopish">✕</button>
+    <button type="button" class="msg-close" @click="ochiq = false" aria-label="Yopish">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </li>
   {% endfor %}
 </ul>

@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=36">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=39">
   <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=4">
   <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
   <script>
@@ -77,6 +77,79 @@
       });
     }
     window.applyDynamicStyles = applyDynamicStyles;
+
+    // ================= Status Bar Link Masking (Sichqoncha borganda URL yo'nalishi ko'rinmasligi) =================
+    document.addEventListener('pointerover', (e) => {
+      const a = e.target.closest('a[href]');
+      if (a) {
+        const href = a.getAttribute('href');
+        if (href && href !== '#' && !href.startsWith('javascript:')) {
+          a.dataset.maskedHref = href;
+          a.removeAttribute('href');
+          if (!a.hasAttribute('role')) a.setAttribute('role', 'link');
+          if (!a.hasAttribute('tabindex')) a.setAttribute('tabindex', '0');
+        }
+      }
+    }, true);
+
+    document.addEventListener('pointerout', (e) => {
+      const a = e.target.closest('a[data-masked-href]');
+      if (a && a.dataset.maskedHref) {
+        a.setAttribute('href', a.dataset.maskedHref);
+        delete a.dataset.maskedHref;
+      }
+    }, true);
+
+    document.addEventListener('contextmenu', (e) => {
+      const a = e.target.closest('a[data-masked-href]');
+      if (a && a.dataset.maskedHref) {
+        a.setAttribute('href', a.dataset.maskedHref);
+      }
+    }, true);
+
+    document.addEventListener('auxclick', (e) => {
+      if (e.button === 1) {
+        const a = e.target.closest('a[data-masked-href], a[href]');
+        if (a) {
+          const href = a.dataset.maskedHref || a.getAttribute('href');
+          if (href && href !== '#' && !href.startsWith('javascript:')) {
+            e.preventDefault();
+            window.open(href, '_blank');
+          }
+        }
+      }
+    }, true);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const a = e.target.closest('a[data-masked-href]');
+        if (a) {
+          e.preventDefault();
+          a.click();
+        }
+      }
+    }, true);
+
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[data-masked-href]');
+      if (!a) return;
+      const href = a.dataset.maskedHref;
+      if (!href) return;
+
+      if (a.hasAttribute('hx-get') || a.hasAttribute('hx-post') || a.hasAttribute('hx-delete') || a.hasAttribute('hx-patch')) {
+        a.setAttribute('href', href);
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey || a.target === '_blank') {
+        e.preventDefault();
+        window.open(href, '_blank');
+        return;
+      }
+
+      e.preventDefault();
+      window.location.assign(href);
+    }, true);
 
     function resetLoadingButtons() {
       document.querySelectorAll('.is-loading').forEach((b) => {
@@ -466,7 +539,9 @@
             <div id="app-modal-subtitle" class="app-modal-subtitle" style="display:none;"></div>
           </div>
         </div>
-        <button type="button" class="app-modal-close" onclick="AppModal.close()" aria-label="Yopish">✕</button>
+        <button type="button" class="app-modal-close" onclick="AppModal.close()" aria-label="Yopish">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <div id="app-modal-body" class="app-modal-body"></div>
       <div id="app-modal-footer" class="app-modal-footer"></div>
