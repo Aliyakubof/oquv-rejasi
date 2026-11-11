@@ -5,6 +5,7 @@ mudir can only ever touch fan-semestrs delegated to, and teachers employed
 by, their own department.
 """
 
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.views import View
@@ -12,7 +13,7 @@ from django.views import View
 from accounts.models import OqituvchiProfil
 from plans import dashboard, delegation, services
 from plans.audit import audit_yoz
-from plans.models import AuditAmali, FanSemestr, Yuklama
+from plans.models import PER_GURUH_TURLAR, AuditAmali, FanSemestr, Yuklama
 from web.forms.yuklama import (
     GuruhYuklamaForm,
     KursIshiYuklamaForm,
@@ -63,6 +64,10 @@ class PanelAsosView(KafedraMudiriTalabMixin, View):
             holat = soatlar.get(p.pk)
             p.jami_soat = holat.jami_soat if holat else 0
             p.kamomad = holat.kamomad if holat else p.turi.min_soat
+            p.tolganmi = p.jami_soat >= p.turi.min_soat
+            p.foiz = (
+                round((p.jami_soat / p.turi.min_soat) * 100) if p.turi.min_soat else 0
+            )
         return render(
             request,
             shablon,
@@ -160,3 +165,119 @@ class YuklamaOchirishView(PanelAsosView):
 
     def delete(self, request: HttpRequest, pk: int) -> HttpResponse:
         return self.post(request, pk)
+
+
+class GuruhlarOmmaviyYaratishView(PanelAsosView):
+    """Assigns one teacher to all unassigned groups for an activity type."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        fs = self.fan_semestr(pk)
+        if services.kafedra_yuklama_qulflanganmi(self.kafedra, fs.akademik_yil):
+            return self.panel_javobi(
+                request,
+                fs,
+                xato="Yuklama tasdiqqa yuborilgan yoki tasdiqlangan — qulflangan.",
+                oob=True,
+            )
+
+        oqituvchi_id = request.POST.get("oqituvchi")
+        tur = request.POST.get("tur")
+        if not oqituvchi_id or not tur or tur not in PER_GURUH_TURLAR:
+            return self.panel_javobi(
+                request,
+                fs,
+                xato="O'qituvchi yoki mashg'ulot turi tanlanmadi.",
+                oob=True,
+            )
+
+        oqituvchi = get_object_or_404(
+            OqituvchiProfil.objects.kafedrada(self.kafedra).filter(
+                foydalanuvchi__is_active=True
+            ),
+            pk=oqituvchi_id,
+        )
+
+        reja = fs.variant.fan.reja
+        band_guruh_idlar = set(
+            Yuklama.objects.filter(fan_semestr=fs, tur=tur).values_list(
+                "guruh_id", flat=True
+            )
+        )
+        bosh_guruhlar = [g for g in reja.guruhlar.all() if g.pk not in band_guruh_idlar]
+
+        if not bosh_guruhlar:
+            return self.panel_javobi(
+                request,
+                fs,
+                xato="Barcha guruhlar allaqachon taqsimlangan.",
+                oob=True,
+            )
+
+        with transaction.atomic():
+            yangi_yuklamalar = []
+            for guruh in bosh_guruhlar:
+                yuklama = Yuklama(
+                    fan_semestr=fs,
+                    tur=tur,
+                    oqituvchi=oqituvchi,
+                    guruh=guruh,
+                )
+                yuklama.full_clean()
+                yuklama.save()
+                yangi_yuklamalar.append(yuklama)
+
+            matn = (
+                f"{self.kafedra.nomi}: {fs.variant.nomi} ({fs.semestr}-semestr, {tur}) "
+                f"barcha bo'sh ({len(yangi_yuklamalar)} ta) guruhlar "
+                f"{oqituvchi} ga taqsimlandi."
+            )
+            audit_yoz(
+                AuditAmali.YARATILDI,
+                matn,
+                model_nomi="Yuklama",
+                obyekt_id=yangi_yuklamalar[0].pk,
+                request=request,
+            )
+
+        return self.panel_javobi(request, fs, oob=True)
+
+
+class GuruhlarTozalashView(PanelAsosView):
+    """Clears all group delegations for a given activity type in one step."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        fs = self.fan_semestr(pk)
+        if services.kafedra_yuklama_qulflanganmi(self.kafedra, fs.akademik_yil):
+            return self.panel_javobi(
+                request,
+                fs,
+                xato="Yuklama tasdiqqa yuborilgan yoki tasdiqlangan — qulflangan.",
+                oob=True,
+            )
+
+        tur = request.POST.get("tur")
+        if not tur or tur not in PER_GURUH_TURLAR:
+            return self.panel_javobi(
+                request, fs, xato="Mashg'ulot turi noto'g'ri.", oob=True
+            )
+
+        ochirilganlar = Yuklama.objects.filter(fan_semestr=fs, tur=tur)
+        soni = ochirilganlar.count()
+        if soni == 0:
+            return self.panel_javobi(request, fs, oob=True)
+
+        with transaction.atomic():
+            ochirilganlar.delete()
+            matn = (
+                f"{self.kafedra.nomi}: {fs.variant.nomi} ({fs.semestr}-semestr, {tur}) "
+                f"barcha ({soni} ta) guruh taqsimoti tozalandi."
+            )
+            audit_yoz(
+                AuditAmali.OCHIRILDI,
+                matn,
+                model_nomi="Yuklama",
+                obyekt_id=pk,
+                request=request,
+            )
+
+        return self.panel_javobi(request, fs, oob=True)

@@ -12,6 +12,8 @@ from web.views.kafedra.oqituvchilar import (
     KafedraOqituvchiYuklamaView,
 )
 from web.views.kafedra.yuklama import (
+    GuruhlarOmmaviyYaratishView,
+    GuruhlarTozalashView,
     TaqsimotPanelView,
     YuklamaOchirishView,
     YuklamaYaratishView,
@@ -34,6 +36,16 @@ urlpatterns = [
         "fan-semestr/<int:pk>/guruh/",
         YuklamaYaratishView.as_view(shakl="guruh"),
         name="guruh_yaratish",
+    ),
+    path(
+        "fan-semestr/<int:pk>/ommaviy-guruh/",
+        GuruhlarOmmaviyYaratishView.as_view(),
+        name="ommaviy_guruh_yaratish",
+    ),
+    path(
+        "fan-semestr/<int:pk>/guruhlarni-tozalash/",
+        GuruhlarTozalashView.as_view(),
+        name="guruhlarni_tozalash",
     ),
     path(
         "fan-semestr/<int:pk>/kurs-ishi/",

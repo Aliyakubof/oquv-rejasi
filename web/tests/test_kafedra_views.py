@@ -174,6 +174,47 @@ class YuklamaYaratishTests(KafedraAsosTest):
         )
         self.assertEqual(javob.status_code, 404)
 
+    def test_ommaviy_guruh_yaratiladi(self) -> None:
+        javob = self.client.post(
+            reverse("kafedra:ommaviy_guruh_yaratish", args=[self.fs.pk]),
+            {"oqituvchi": self.oqituvchi.pk, "tur": SoatTuri.AMALIYOT},
+        )
+        self.assertEqual(javob.status_code, 200)
+        yuklamalar = Yuklama.objects.filter(
+            fan_semestr=self.fs, tur=SoatTuri.AMALIYOT, oqituvchi=self.oqituvchi
+        )
+        self.assertEqual(yuklamalar.count(), len(self.guruhlar))
+        self.assertEqual(
+            set(yuklamalar.values_list("guruh_id", flat=True)),
+            {g.pk for g in self.guruhlar},
+        )
+
+    def test_ommaviy_guruh_qulflangan_xato(self) -> None:
+        yuklamani_tasdiqqa_yuborish(self.kafedra, self.joriy)
+        javob = self.client.post(
+            reverse("kafedra:ommaviy_guruh_yaratish", args=[self.fs.pk]),
+            {"oqituvchi": self.oqituvchi.pk, "tur": SoatTuri.AMALIYOT},
+        )
+        self.assertEqual(javob.status_code, 200)
+        self.assertContains(javob, "qulflangan")
+        self.assertFalse(Yuklama.objects.filter(fan_semestr=self.fs).exists())
+
+    def test_guruhlarni_tozalash(self) -> None:
+        Yuklama.objects.create(
+            fan_semestr=self.fs,
+            tur=SoatTuri.AMALIYOT,
+            oqituvchi=self.oqituvchi,
+            guruh=self.guruhlar[0],
+        )
+        javob = self.client.post(
+            reverse("kafedra:guruhlarni_tozalash", args=[self.fs.pk]),
+            {"tur": SoatTuri.AMALIYOT},
+        )
+        self.assertEqual(javob.status_code, 200)
+        self.assertFalse(
+            Yuklama.objects.filter(fan_semestr=self.fs, tur=SoatTuri.AMALIYOT).exists()
+        )
+
 
 class KafedraOqituvchilarTests(KafedraAsosTest):
     def test_faqat_oz_kafedrasi_royxatda(self) -> None:
