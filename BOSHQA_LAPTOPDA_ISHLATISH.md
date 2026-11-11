@@ -10,7 +10,7 @@ Ushbu arxivda **O'quv rejalari va yuklamalari** tizimining to'liq kodi, shablonl
 
 ---
 
-## 2. Tezkor ishga tushirish (1 daqiqada — SQLite bilan)
+## 2. Tezkor ishga tushirish (Yangi o'rnatish — SQLite bilan)
 
 Arxiv ichida barcha migratsiyalar qo'llanilgan va tayyor ma'lumotlarga ega **`db.sqlite3`** bazasi mavjud. Shu sababli boshqa dasturchi hech qanday tashqi baza o'rnatmasdan darhol ishga tushira oladi:
 
@@ -45,6 +45,28 @@ python manage.py runserver
 
 Brauzerda oching:
 👉 **http://127.0.0.1:8000**
+
+---
+
+## 2.1. Mavjud loyihani yangilash (Agar loyiha kompyuterda oldindan bo'lsa)
+
+Agar loyiha kompyuterda oldindan mavjud bo'lsa, eng so'nggi himoya qoidalari, CI fayllari, UI/UX modallari va barcha yangilanishlarni qabul qilish uchun o'z terminalida quyidagilarni bajaradi:
+
+```bash
+# 1. Asosiy tarmoqqa o'tish va so'nggi commitlarni tortib olish
+git checkout main
+git pull origin main
+
+# 2. Bog'liqliklar va migratsiyalarni yangilash (tavsiya etiladi)
+pip install -r requirements.txt
+python manage.py migrate
+
+# 3. Serverni ishga tushirish
+python manage.py runserver
+```
+
+> [!TIP]
+> Agar kompyuterda saqlanmagan lokal o'zgarishlar bo'lsa, `git pull` oldidan `git stash` qilib, pull qilingandan so'ng `git stash pop` qilish mumkin.
 
 ---
 

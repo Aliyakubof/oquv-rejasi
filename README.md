@@ -11,4 +11,13 @@ venv\Scripts\activate   # Linux/macOS: source venv/bin/activate
 pip install -r requirements.txt
 python manage.py runserver
 ```
+
+## Mavjud loyihani yangilash:
+```bash
+git checkout main
+git pull origin main
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
 Brauzerda: http://127.0.0.1:8000
