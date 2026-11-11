@@ -1,4 +1,7 @@
 {% extends "web/base.html" %}
 {% block content %}
-<div class="empty-state">Bu sahifa tez orada tayyor bo'ladi.</div>
+<div class="card empty-state">
+  <div style="margin-bottom:12px;">Bu sahifa tez orada tayyor bo'ladi.</div>
+  <a class="btn btn-primary" href="{% url 'bosh_sahifa' %}">← Bosh sahifaga qaytish</a>
+</div>
 {% endblock %}

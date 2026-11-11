@@ -29,7 +29,7 @@
 <div id="dasturlar-jonli" x-data="{ qidiruv: '' }">
   <div class="controls" style="margin-bottom:10px;">
     <div class="search">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input type="text" placeholder="Fan yoki o'qituvchi" aria-label="Fan yoki o'qituvchi" x-model="qidiruv">
     </div>
     {% if topshirilmagan_soni and holat != "TOPSHIRILMAGAN" %}
@@ -65,7 +65,14 @@
             <td data-label="O'qituvchi">{{ td.oqituvchi }}</td>
             <td data-label="Yuborilgan vaqt">—</td>
             <td data-label="Holat"><span class="tag tag-rad">TOPSHIRILMAGAN</span></td>
-            <td></td>
+            <td>
+              <button type="button" class="btn"
+                      data-modal-title="{{ td.variant.nomi }}"
+                      data-modal-subtitle="O'quv dasturi hali topshirilmagan"
+                      data-row-modal="Fan kodi::{{ td.variant.kodi|default:'—' }}||Fan nomi::{{ td.variant.nomi }}||Yo'nalish::{{ td.variant.fan.reja.yonalish_kodi }} — {{ td.variant.fan.reja.yonalish_nomi }}||Kafedra::{{ td.variant.kafedra.nomi|default:'—' }}||Ma'ruza o'qituvchisi::{{ td.oqituvchi }}||Holati::Topshirilmagan">
+                Ma'lumot
+              </button>
+            </td>
           </tr>
           {% empty %}
           <tr><td colspan="6"><div class="empty-state">Barcha ma'ruza o'qituvchilari dastur topshirgan.</div></td></tr>

@@ -7,7 +7,14 @@
   <td class="col-idx">{{ satr.fan.raqam }}</td>
   <td class="col-code"><span class="code">{% if satr.tanlanmagan %}—{% else %}{{ satr.variant.kodi|default:"—" }}{% endif %}</span></td>
   <td class="col-name">
-    {% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}
+    <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
+            data-modal-title="{% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}"
+            data-modal-subtitle="{{ satr.fan.reja.yonalish_kodi }} — {{ satr.fan.reja.yonalish_nomi }}"
+            data-modal-url="{% url 'office:reja_detail' satr.fan.reja_id %}"
+            data-modal-url-label="O'quv rejani ochish"
+            data-row-modal="Tartib raqami::{{ satr.fan.raqam }}||Fan kodi::{% if satr.tanlanmagan %}—{% else %}{{ satr.variant.kodi|default:'—' }}{% endif %}||Fan nomi::{% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}||Fan turi::{{ satr.fan.get_turi_display }}||Yo'nalish::{{ satr.fan.reja.yonalish_kodi }} — {{ satr.fan.reja.yonalish_nomi }}||Ma'ruza::{{ satr.tur_soatlari.MARUZA|default:0 }} soat||Amaliyot::{{ satr.tur_soatlari.AMALIYOT|default:0 }} soat||Laboratoriya::{{ satr.tur_soatlari.LABORATORIYA|default:0 }} soat||Seminar::{{ satr.tur_soatlari.SEMINAR|default:0 }} soat||Kurs ishi::{{ satr.tur_soatlari.KURS_ISHI|default:0 }} soat||Jami talab::{{ satr.jami_soat }} soat||Taqsimlangan::{{ satr.taqsimlangan_soat }} soat||Kafedra::{{ satr.kafedra.nomi|default:'Biriktirilmagan' }}">
+      {% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}
+    </button>
     {% if satr.fan.turi == "MAJBURIY" %}<span class="tag tag-mand">MAJ</span>{% else %}<span class="tag tag-elec">TAN</span>{% endif %}
   </td>
   <td><span class="code" title="{{ satr.fan.reja }}">{{ satr.fan.reja.yonalish_kodi }}</span></td>

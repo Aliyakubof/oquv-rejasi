@@ -6,8 +6,13 @@
   <td class="col-idx">{{ satr.fan.raqam }}</td>
   <td class="col-code"><span class="code">{{ satr.variant.kodi|default:"—" }}</span></td>
   <td class="col-name">
-    {% if satr.tanlanmagan %}{{ satr.variant.nomi }} <span class="tag tag-elec">TANLANMAGAN</span>
-    {% else %}{{ satr.variant.nomi }}{% endif %}
+    <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
+            data-modal-title="{{ satr.variant.nomi }}"
+            data-modal-subtitle="{{ reja.yonalish_kodi }} — {{ reja.yonalish_nomi }}"
+            data-row-modal="Tartib raqami::{{ satr.fan.raqam }}||Fan kodi::{{ satr.variant.kodi|default:'—' }}||Fan nomi::{{ satr.variant.nomi }}||Fan turi::{{ satr.fan.get_turi_display }}||Kredit::{% if satr.fan.kredit %}{{ satr.fan.kredit }} kredit{% else %}—{% endif %}||Kafedra::{{ satr.kafedra.nomi|default:'Biriktirilmagan' }}">
+      {{ satr.variant.nomi }}
+    </button>
+    {% if satr.tanlanmagan %}<span class="tag tag-elec">TANLANMAGAN</span>{% endif %}
   </td>
   <td class="credits num">{% if satr.fan.kredit %}{{ satr.fan.kredit }} kr{% else %}—{% endif %}</td>
   {% for s in semestr_raqamlari %}

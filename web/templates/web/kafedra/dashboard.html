@@ -21,9 +21,9 @@
   </div>
 </div>
 <div id="kafedra-dashboard-jonli">
-<div class="card kafedra-status-card" data-jonli="kafedra-tasdiq">
+<div class="card kafedra-status-card {% if tasdiq.holat == 'TASDIQLANGAN' %}status-tasdiqlangan{% elif tasdiq.holat == 'TASDIQDA' %}status-tasdiqda{% elif tasdiq.holat == 'QAYTARILGAN' %}status-qaytarilgan{% endif %}" data-jonli="kafedra-tasdiq">
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-    <div class="analitika-title-icon" style="width:40px;height:40px;border-radius:10px;">
+    <div class="analitika-title-icon" style="width:42px;height:42px;border-radius:10px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       </svg>
@@ -38,16 +38,17 @@
         {% elif tasdiq.holat == "QAYTARILGAN" %}
           <span class="tag tag-rad">QAYTARILGAN</span>
         {% else %}
-          <span class="tag" style="background:var(--panel-alt);border:1px solid var(--line);">QORALAMA</span>
+          <span class="tag tag-draft">QORALAMA</span>
         {% endif %}
+        <span class="credits">· {{ fs_satrlar|length }} ta fan-semestr</span>
       </div>
-      <div style="font-size:12.5px;color:var(--text-muted);margin-top:3px;">
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">
         {% if tasdiq.holat == "TASDIQLANGAN" %}
           {{ tasdiq.tasdiqlangan_vaqt|date:"d.m.Y H:i" }} da tasdiqlandi. Taqsimot qulflangan.
         {% elif tasdiq.holat == "TASDIQDA" %}
           O'quv bo'limi ko'rib chiqmoqda. Taqsimot qulflangan.
         {% elif tasdiq.holat == "QAYTARILGAN" %}
-          <span style="color:var(--text-danger);font-weight:500;">Sabab: {{ tasdiq.izoh|default:"Xatoliklarni to'g'irlab qayta yuboring." }}</span>
+          <span style="color:var(--unassigned);font-weight:600;">Sabab: {{ tasdiq.izoh|default:"Xatoliklarni to'g'irlab qayta yuboring." }}</span>
         {% else %}
           Taqsimot yakunlangach, o'quv bo'limiga tasdiqlash uchun yuboring.
         {% endif %}
@@ -55,10 +56,22 @@
     </div>
   </div>
   {% if not qulflangan %}
-  <form method="post" action="{% url 'kafedra:tasdiqqa_yuborish' %}">
+  <form method="post" action="{% url 'kafedra:tasdiqqa_yuborish' %}"
+        data-modal-title="Yuklamani tasdiqqa yuborish"
+        data-modal-subtitle="{{ kafedra.nomi }} — {{ yil }}/{{ yil|add:1 }} o'quv yili"
+        data-modal-confirm="Kafedra o'quv yuklamasini o'quv bo'limiga tasdiqlash uchun yuborasizmi? Yuborilgach, taqsimot qulflanadi."
+        data-modal-type="{% if stat.taqsimlanmagan_soat %}warning{% else %}success{% endif %}"
+        data-modal-meta="Jami talab::{{ stat.jami_soat }} soat||Taqsimlangan::{{ stat.oqituvchiga_taqsimlangan_soat }} soat||Qoldiq::{{ stat.taqsimlanmagan_soat }} soat"
+        {% if stat.taqsimlanmagan_soat %}data-modal-warn="Diqqat: Hali {{ stat.taqsimlanmagan_soat }} soat o'qituvchilarga taqsimlanmagan!" data-modal-warn-class="warn"{% endif %}
+        data-modal-prompt="O'quv bo'limi uchun izoh (ixtiyoriy)"
+        data-modal-placeholder="Masalan: Barcha asosiy fanlar taqsimlandi..."
+        data-modal-field="izoh"
+        data-modal-required="false"
+        data-modal-btn="✓ Tasdiqqa yuborish">
     {% csrf_token %}
     <input type="hidden" name="yil" value="{{ yil }}">
-    <button type="submit" class="btn btn-primary" onclick="return confirm('Yuklamani o\'quv bo\'limiga tasdiqlash uchun yuborasizmi? Yuborilgach, yuklamani o\'zgartirib bo\'lmaydi.');" style="padding:8px 20px;height:38px;">
+    <input type="hidden" name="izoh" value="">
+    <button type="submit" class="btn btn-primary" style="padding:8px 20px;height:38px;">
       ✓ Tasdiqqa yuborish
     </button>
   </form>
@@ -69,23 +82,23 @@
   <div class="controls" style="justify-content:space-between;margin-bottom:12px;">
     <div class="controls">
       <div class="search">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input type="text" placeholder="Fan nomi, kodi yoki yo'nalish" aria-label="Fan nomi, kodi yoki yo'nalish" x-model="qidiruv">
       </div>
       <button type="button" class="chip-btn" :class="faqat_qoldiq && 'active'" @click="faqat_qoldiq = !faqat_qoldiq">Faqat qoldiq soati borlar</button>
     </div>
-    <div class="legend" style="margin:0;">
+    <div class="legend" style="margin:0;gap:14px;">
       <span><span class="dot" style="background:var(--mand);"></span>To'liq taqsimlangan</span>
-      <span><span class="dot" style="background:var(--unassigned-soft);border:1px solid var(--unassigned);"></span>Qoldiq soat bor</span>
+      <span><span class="dot" style="background:var(--unassigned);"></span>Qoldiq soat bor</span>
     </div>
   </div>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th class="col-code" style="width:100px;text-align:center;">Kod</th>
-          <th class="col-name" style="min-width:240px;">Fan nomi</th>
-          <th style="min-width:180px;">Yo'nalish / Guruh</th>
+          <th class="col-code" style="text-align:center;">Kod</th>
+          <th class="col-name" style="min-width:260px;">Fan nomi</th>
+          <th style="min-width:190px;">Yo'nalish / Guruh</th>
           <th class="col-center" style="width:110px;text-align:center;">Semestr</th>
           <th class="sem-h">Ma'ruza</th>
           <th class="sem-h">Amaliyot</th>

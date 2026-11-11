@@ -5,11 +5,18 @@
  * search inputs, open panels, or Alpine state.
  */
 (() => {
-  const INTERVAL_MS = 3000;
+  const INTERVAL_MS = 8000;
   let joriyVersiya = null;
   let sorovKetmoqda = false;
 
   function blokBandmi(el) {
+    const globalModal = document.getElementById("app-global-modal");
+    if (globalModal && !globalModal.classList.contains("is-hidden")) {
+      return true;
+    }
+    if (document.querySelector(".table-modal-backdrop")) {
+      return true;
+    }
     const aktiv = document.activeElement;
     if (
       aktiv &&
@@ -58,8 +65,7 @@
       const kalit = el.getAttribute("data-jonli");
       const yangiEl = doc.querySelector(`[data-jonli="${kalit}"]`);
       if (!yangiEl) {
-        window.location.reload();
-        return true;
+        continue;
       }
       if (el.innerHTML === yangiEl.innerHTML) continue;
       if (blokBandmi(el)) {
@@ -68,6 +74,7 @@
       }
       el.innerHTML = yangiEl.innerHTML;
       if (window.htmx) window.htmx.process(el);
+      if (window.applyDynamicStyles) window.applyDynamicStyles(el);
       ozgarishBor = true;
     }
 

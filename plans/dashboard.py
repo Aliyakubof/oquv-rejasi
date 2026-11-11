@@ -5,7 +5,7 @@ from tanlanadigan_yillar(), which floors at the current academic year.
 """
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 from django.db.models import Count, Prefetch, Q, Sum
@@ -75,13 +75,16 @@ class DashboardStat:
     oqituvchiga_taqsimlangan_soat: int
     taqsimlanmagan_soat: int
     nomalum_talab_soni: int
+    tur_taqsimlangan: dict[str, int] = field(default_factory=dict)
 
 
 def statlarni_hisoblash(satrlar: list[TalabSatri]) -> DashboardStat:
     tur_soatlari: dict[str, int] = defaultdict(int)
+    tur_taqsimlangan: dict[str, int] = defaultdict(int)
     biriktirilgan = biriktirilmagan = taqsimlangan = taqsimlanmagan = nomalum = 0
     for satr in satrlar:
         taqsimlangan += satr.taqsimlangan_soat
+        tur_taqsimlangan[satr.tur] += satr.taqsimlangan_soat
         if satr.talab_soat is None:
             nomalum += 1
             continue
@@ -99,6 +102,7 @@ def statlarni_hisoblash(satrlar: list[TalabSatri]) -> DashboardStat:
         oqituvchiga_taqsimlangan_soat=taqsimlangan,
         taqsimlanmagan_soat=taqsimlanmagan,
         nomalum_talab_soni=nomalum,
+        tur_taqsimlangan=dict(tur_taqsimlangan),
     )
 
 

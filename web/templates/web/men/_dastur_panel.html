@@ -1,4 +1,5 @@
-<div class="taqsimot-panel">
+<div class="table-modal-backdrop" onclick="if(event.target===this) document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">
+<div class="table-modal-dialog taqsimot-panel" role="dialog" aria-modal="true">
   <div class="taqsimot-panel-head">
     <div>
       <div class="taqsimot-panel-title">
@@ -18,10 +19,11 @@
   <div class="credits" style="margin-top:10px;">Joriy topshiriq hali ko'rib chiqilmoqda — javob kutilsin.</div>
   {% else %}
   <form hx-post="{% url 'men:dastur_topshirish' variant.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML"
-        enctype="multipart/form-data" style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        enctype="multipart/form-data" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     {% csrf_token %}
     <input type="file" name="fayl" accept=".docx" aria-label="O'quv dasturi (.docx)" required>
     <button type="submit" class="btn btn-primary">Topshirish</button>
   </form>
   {% endif %}
+</div>
 </div>

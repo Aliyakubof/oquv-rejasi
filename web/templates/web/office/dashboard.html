@@ -7,7 +7,7 @@
   </div>
   <div class="controls">
     {% if yillar %}
-    <select name="yil" hx-get="{% url 'office:dashboard' %}" hx-target="#kontent" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#yuklanish">
+    <select name="yil" aria-label="O'quv yili" hx-get="{% url 'office:dashboard' %}" hx-target="#kontent" hx-swap="innerHTML" hx-push-url="true" hx-indicator="#yuklanish">
       {% for y in yillar %}
       <option value="{{ y }}" {% if y == yil %}selected{% endif %}>{{ y }}/{{ y|add:1 }} o'quv yili</option>
       {% endfor %}

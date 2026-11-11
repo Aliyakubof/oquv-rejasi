@@ -1,7 +1,11 @@
 {% if messages %}
-<ul class="messages">
+<ul class="messages" aria-live="polite">
   {% for message in messages %}
-  <li class="{{ message.tags }}">{{ message }}</li>
+  <li class="{{ message.tags }}" x-data="{ ochiq: true }" x-show="ochiq" x-transition
+      {% if 'error' not in message.tags %}x-init="setTimeout(() => ochiq = false, 6000)"{% endif %}>
+    <span class="msg-text">{{ message }}</span>
+    <button type="button" class="msg-close" @click="ochiq = false" aria-label="Yopish">✕</button>
+  </li>
   {% endfor %}
 </ul>
 {% endif %}

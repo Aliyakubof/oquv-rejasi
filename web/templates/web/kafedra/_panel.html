@@ -1,5 +1,6 @@
 {% load ui %}
-<div class="taqsimot-panel">
+<div class="table-modal-backdrop" onclick="if(event.target===this) document.getElementById('panel-{{ fs.pk }}').innerHTML = ''">
+<div class="table-modal-dialog table-modal-lg taqsimot-panel" role="dialog" aria-modal="true">
   <div class="taqsimot-panel-head">
     <div>
       <div class="taqsimot-panel-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -129,4 +130,8 @@
     </div>
     {% endfor %}
   </div>
+  <div style="display:flex;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
+    <button type="button" class="btn btn-primary" onclick="document.getElementById('panel-{{ fs.pk }}').innerHTML = ''">Tayyor / Yopish</button>
+  </div>
+</div>
 </div>

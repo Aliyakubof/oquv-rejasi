@@ -24,15 +24,15 @@
   <div class="stat"><div class="num">{{ jami_soat }}</div><div class="lbl">Jami yuklama soat</div></div>
   <div class="stat"><div class="num">{{ profil.turi.min_soat }}</div><div class="lbl">Minimal norma ({{ profil.turi.nomi }})</div></div>
   <div class="stat {% if jami_soat < profil.turi.min_soat %}warn{% else %}ok{% endif %}">
-    <div class="num">{% if jami_soat < profil.turi.min_soat %}{{ profil.turi.min_soat|add:0 }}{% else %}0{% endif %}</div>
-    <div class="lbl">{% if jami_soat < profil.turi.min_soat %}Normagacha ({{ jami_soat }} / {{ profil.turi.min_soat }}){% else %}Norma bajarildi{% endif %}</div>
+    <div class="num">{% if jami_soat < profil.turi.min_soat %}{{ kamomad }}{% else %}0{% endif %}</div>
+    <div class="lbl">{% if jami_soat < profil.turi.min_soat %}Kamomad ({{ jami_soat }} / {{ profil.turi.min_soat }}){% else %}Norma bajarildi{% endif %}</div>
   </div>
   <div class="stat {% if jami_soat < profil.turi.min_soat %}warn{% else %}ok{% endif %}">
     <div class="num">{{ jami_soat|foiz:profil.turi.min_soat }}%</div>
     <div class="lbl">Qoplanish
       <div class="progress" style="margin-top:6px;">
         {% with f=jami_soat|foiz:profil.turi.min_soat %}
-        <div class="fill {% if f < 100 %}warn{% endif %}" :style="'width: {{ f }}%'"></div>
+        <div class="fill {% if f < 100 %}warn{% endif %}" data-width="{{ f }}"></div>
         {% endwith %}
       </div>
     </div>
@@ -42,7 +42,7 @@
 {% if tur_jami %}
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" data-jonli="men-legend">
   {% for nomi, soat in tur_jami %}
-  <span class="tur-chip"><span class="tur-dot"></span>{{ nomi }}: <strong>{{ soat }} soat</strong></span>
+  <span class="tur-chip"><span class="tur-dot {% if 'Ma' in nomi %}tur-dot-maruza{% elif 'Amaliy' in nomi %}tur-dot-amaliyot{% elif 'Lab' in nomi %}tur-dot-lab{% elif 'Seminar' in nomi %}tur-dot-seminar{% elif 'Kurs' in nomi %}tur-dot-kurs{% endif %}"></span>{{ nomi }}: <strong>{{ soat }} soat</strong></span>
   {% endfor %}
 </div>
 {% endif %}
@@ -79,7 +79,14 @@
             <span style="color:var(--text-muted);">—</span>
             {% endif %}
           </td>
-          <td><strong>{{ yuklama.fan_semestr.variant.nomi }}</strong></td>
+          <td>
+            <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
+                    data-modal-title="{{ yuklama.fan_semestr.variant.nomi }}"
+                    data-modal-subtitle="{{ yuklama.fan_semestr.semestr }}-semestr · {{ yuklama.get_tur_display }}"
+                    data-row-modal="Fan kodi::{{ yuklama.fan_semestr.variant.kodi|default:'—' }}||Fan nomi::{{ yuklama.fan_semestr.variant.nomi }}||Yo'nalish::{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }} — {{ yuklama.fan_semestr.variant.fan.reja.yonalish_nomi }}||Semestr::{{ yuklama.fan_semestr.semestr }}-semestr||Mashg'ulot turi::{{ yuklama.get_tur_display }}||Guruh / Talabalar::{% if yuklama.guruh %}{{ yuklama.guruh.nomi }}{% elif yuklama.talabalar_soni %}{{ yuklama.talabalar_soni }} talaba{% else %}Butun oqim{% endif %}||Yuklama soati::{{ yuklama.soat }} soat">
+              <strong>{{ yuklama.fan_semestr.variant.nomi }}</strong>
+            </button>
+          </td>
           <td class="col-center"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
           <td class="col-center"><span class="hour-tag">{{ yuklama.fan_semestr.semestr }}-semestr</span></td>
           <td class="col-center">

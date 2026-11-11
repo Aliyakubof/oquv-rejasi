@@ -47,8 +47,22 @@
           <td class="num" data-label="Guruhlar">{{ reja.guruhlar_soni|default:"—" }}</td>
           <td data-label="Import vaqti">{{ reja.import_vaqti|date:"d.m.Y H:i"|default:"—" }}</td>
           <td style="white-space:nowrap;">
+            <button type="button" class="btn"
+                    data-modal-title="{{ reja.yonalish_kodi }} — {{ reja.yonalish_nomi }}"
+                    data-modal-subtitle="O'quv reja ma'lumotlari"
+                    data-modal-url="{% url 'office:reja_detail' reja.pk %}"
+                    data-modal-url-label="Reja jadvalini ochish"
+                    data-modal-edit-url="{% url 'office:reja_tahrir' reja.pk %}"
+                    data-row-modal="Yo'nalish kodi::{{ reja.yonalish_kodi }}||Yo'nalish nomi::{{ reja.yonalish_nomi }}||Boshlanish yili::{{ reja.boshlanish_yili }}/{{ reja.boshlanish_yili|add:1 }}||Ta'lim shakli::{{ reja.talim_shakli|default:'—' }}||Talabalar soni::{{ reja.talabalar_soni|default:'—' }}||Guruhlar soni::{{ reja.guruhlar_soni|default:'—' }}||Import vaqti::{{ reja.import_vaqti|date:'d.m.Y H:i'|default:'—' }}">
+              Ko'rish
+            </button>
             <a class="btn" href="{% url 'office:reja_tahrir' reja.pk %}">Tahrirlash</a>
-            <form method="post" action="{% url 'office:reja_ochirish' reja.pk %}" style="display:inline" onsubmit="return confirm('{{ reja.yonalish_kodi }} ({{ reja.boshlanish_yili }}) rejasini o\'chirasizmi?');">
+            <form method="post" action="{% url 'office:reja_ochirish' reja.pk %}" style="display:inline"
+                  data-modal-title="O'quv rejani o'chirish"
+                  data-modal-subtitle="{{ reja.yonalish_kodi }} ({{ reja.boshlanish_yili }})"
+                  data-modal-confirm="{{ reja.yonalish_kodi }} — {{ reja.yonalish_nomi }} ({{ reja.boshlanish_yili }}) o'quv rejasini va unga tegishli fanlarni o'chirasizmi?"
+                  data-modal-type="danger"
+                  data-modal-btn="Ha, o'chirish">
               {% csrf_token %}
               <button type="submit" class="btn btn-danger">O'chirish</button>
             </form>

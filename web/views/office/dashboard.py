@@ -16,11 +16,11 @@ from plans.models import AuditAmali, Fan, FanVariant
 from web.mixins import OfficeAdminTalabMixin, office_admin_talab, xato_matni
 
 TURLAR_METRIKASI = [
-    ("MARUZA", "Ma'ruza", "var(--mand)"),
-    ("AMALIYOT", "Amaliyot", "var(--accent)"),
-    ("LABORATORIYA", "Laboratoriya", "var(--elec)"),
-    ("SEMINAR", "Seminar", "#8b5cf6"),
-    ("KURS_ISHI", "Kurs ishi", "#f59e0b"),
+    ("MARUZA", "Ma'ruza", "var(--tur-maruza, #10b981)"),
+    ("AMALIYOT", "Amaliyot", "var(--tur-amaliyot, #2563eb)"),
+    ("LABORATORIYA", "Laboratoriya", "var(--tur-lab, #0891b2)"),
+    ("SEMINAR", "Seminar", "var(--tur-seminar, #7c3aed)"),
+    ("KURS_ISHI", "Kurs ishi", "var(--tur-kurs, #f59e0b)"),
 ]
 
 

@@ -1,30 +1,43 @@
-<div class="card" style="margin:8px 0 16px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <h2 style="margin:0;">{{ variant.nomi }} — {{ t.oqituvchi }}</h2>
-    <button type="button" class="btn" onclick="document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">Yopish</button>
+<div class="table-modal-backdrop" onclick="if(event.target===this) document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">
+<div class="table-modal-dialog taqsimot-panel" role="dialog" aria-modal="true">
+  <div class="taqsimot-panel-head">
+    <div>
+      <div class="taqsimot-panel-title">
+        {% if variant.kodi %}<span class="code" style="margin-right:6px;">{{ variant.kodi }}</span>{% endif %}
+        {{ variant.nomi }} — {{ t.oqituvchi }}
+      </div>
+      <div class="credits" style="margin-top:3px;">Kafedra: {{ variant.kafedra.nomi|default:"—" }} · Yo'nalish: {{ variant.fan.reja.yonalish_kodi }}</div>
+    </div>
+    <button type="button" class="btn" onclick="document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">✕ Yopish</button>
   </div>
   {% if xato %}
   <div class="form-errors">{{ xato }}</div>
   {% endif %}
   {% include "web/dastur/_tarix_royxati.html" with urinishlar=urinishlar fayl_url_nomi="office:dastur_fayl" %}
   {% if t %}
-  <div style="margin-top:12px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+  <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
     {% if t.holat != "QABUL_QILINDI" %}
     <form hx-post="{% url 'office:dastur_qabul' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML">
       {% csrf_token %}
-      <button type="submit" class="btn btn-primary">Qabul qilish</button>
+      <button type="submit" class="btn btn-primary">✓ Qabul qilish</button>
     </form>
     {% endif %}
     {% if t.holat != "RAD_ETILDI" %}
-    <details style="display:inline-block;">
-      <summary class="btn btn-danger" style="display:inline-flex;cursor:pointer;">Rad etish</summary>
-      <form hx-post="{% url 'office:dastur_rad' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" style="margin-top:8px;min-width:300px;">
-        {% csrf_token %}
-        <textarea name="izoh" rows="3" class="form-textarea" placeholder="Rad etish sababini kiriting..." required style="margin-bottom:6px;"></textarea>
-        <button type="submit" class="btn btn-danger">Rad etishni tasdiqlash</button>
-      </form>
-    </details>
+    <form hx-post="{% url 'office:dastur_rad' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML"
+          data-modal-title="O'quv dasturini rad etish"
+          data-modal-subtitle="{{ variant.nomi }} — {{ t.oqituvchi }}"
+          data-modal-prompt="Rad etish sababi"
+          data-modal-placeholder="O'qituvchiga ko'rsatiladigan rad etish sababini yozing..."
+          data-modal-field="izoh"
+          data-modal-required="true"
+          data-modal-type="danger"
+          data-modal-btn="Rad etishni tasdiqlash">
+      {% csrf_token %}
+      <input type="hidden" name="izoh" value="">
+      <button type="submit" class="btn btn-danger">✕ Rad etish</button>
+    </form>
     {% endif %}
   </div>
   {% endif %}
+</div>
 </div>

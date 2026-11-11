@@ -52,11 +52,13 @@ class MenYuklamalarimView(OqituvchiTalabMixin, YilTanlovMixin, TemplateView):
             )
             if yuklama.dastur_korsatilsin:
                 korilgan_variantlar.add(vid)
+        jami_soat = sum(y.soat for y in yuklamalar)
         context.update(
             {
                 "yuklamalar": yuklamalar,
                 "tur_jami": _tur_jami(yuklamalar),
-                "jami_soat": sum(y.soat for y in yuklamalar),
+                "jami_soat": jami_soat,
+                "kamomad": max(0, profil.turi.min_soat - jami_soat),
             }
         )
         return context

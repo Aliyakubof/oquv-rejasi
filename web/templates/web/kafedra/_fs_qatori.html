@@ -8,7 +8,12 @@
     <span class="code">{% if satr.fan_semestr.variant.kodi %}{{ satr.fan_semestr.variant.kodi }}{% else %}—{% endif %}</span>
   </td>
   <td class="col-name" data-label="Fan">
-    <strong>{{ satr.fan_semestr.variant.nomi }}</strong>
+    <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
+            hx-get="{% url 'kafedra:taqsimot_panel' satr.fan_semestr.pk %}"
+            hx-target="#panel-{{ satr.fan_semestr.pk }}" hx-swap="innerHTML"
+            hx-indicator="#panel-yuk-{{ satr.fan_semestr.pk }}">
+      <strong>{{ satr.fan_semestr.variant.nomi }}</strong>
+    </button>
   </td>
   <td data-label="Yo'nalish">
     <div style="display:flex;align-items:center;gap:6px;">

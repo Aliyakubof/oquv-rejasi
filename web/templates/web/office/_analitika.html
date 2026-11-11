@@ -15,7 +15,7 @@
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <span class="hour-tag" style="background:#eef2ff;color:var(--ink);border-color:#d6dff5;padding:6px 14px;font-size:13px;">
+      <span class="hour-tag accent" style="padding:6px 14px;font-size:13px;">
         Jami: <strong style="margin-left:4px;">{{ stat.jami_soat }}</strong> soat
       </span>
     </div>
@@ -35,7 +35,7 @@
           {% with soat=stat.tur_soatlari|kalit:tur|default:0 %}
           {% with f=soat|foiz:stat.jami_soat %}
             {% if f > 0 %}
-            <div class="composite-segment" style="width:{{ f }}%;background:{{ rang }};" title="{{ nomi }}: {{ soat }} soat ({{ f }}%)"></div>
+            <div class="composite-segment" data-width="{{ f }}" data-bg="{{ rang }}" title="{{ nomi }}: {{ soat }} soat ({{ f }}%)"></div>
             {% endif %}
           {% endwith %}
           {% endwith %}
@@ -49,7 +49,7 @@
         <div class="tur-item">
           <div class="tur-item-top">
             <span class="tur-badge-wrap">
-              <span class="tur-color-dot" style="background:{{ rang }};"></span>
+              <span class="tur-color-dot" data-bg="{{ rang }}"></span>
               {{ nomi }}
             </span>
             <div class="tur-hours-wrap">
@@ -58,7 +58,7 @@
             </div>
           </div>
           <div class="tur-progress-track">
-            <div class="tur-progress-fill" style="width:{{ f }}%;background:{{ rang }};"></div>
+            <div class="tur-progress-fill" data-width="{{ f }}" data-bg="{{ rang }}"></div>
           </div>
         </div>
         {% endwith %}
@@ -101,7 +101,8 @@
           </div>
           <div class="tur-progress-track">
             <div class="tur-progress-fill"
-                 style="width:{{ f }}%;background:{% if f >= 100 %}var(--mand){% elif f > 0 %}#f59e0b{% else %}#cbd5e1{% endif %};"></div>
+                 data-width="{{ f }}"
+                 data-bg="{% if f >= 100 %}var(--mand){% elif f > 0 %}#f59e0b{% else %}#cbd5e1{% endif %}"></div>
           </div>
         </div>
         {% endwith %}

@@ -51,7 +51,16 @@
       {% for holat in holatlar %}
       <tr>
         <td class="col-center" data-label="№" style="color:var(--text-muted);font-weight:600;">{{ forloop.counter }}</td>
-        <td data-label="F.I.Sh"><strong>{{ holat.oqituvchi }}</strong></td>
+        <td data-label="F.I.Sh">
+          <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
+                  data-modal-title="{{ holat.oqituvchi }}"
+                  data-modal-subtitle="{{ kafedra.nomi }} · {{ holat.oqituvchi.turi.nomi }}"
+                  data-modal-url="{% url 'kafedra:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}"
+                  data-modal-url-label="1-shakl yuklama varaqasi"
+                  data-row-modal="F.I.Sh::{{ holat.oqituvchi }}||Lavozim::{{ holat.oqituvchi.turi.nomi }}||Minimal norma::{{ holat.min_soat }} soat||Yuklama soat::{{ holat.jami_soat }} soat||Kamomad::{{ holat.kamomad }} soat||Qoplanish::{{ holat.jami_soat|foiz:holat.min_soat }}%">
+            <strong>{{ holat.oqituvchi }}</strong>
+          </button>
+        </td>
         <td data-label="Lavozim" style="color:var(--text-secondary);">{{ holat.oqituvchi.turi.nomi }}</td>
         <td class="col-center" data-label="Minimal soat"><span class="hour-tag">{{ holat.min_soat }} soat</span></td>
         <td class="col-center" data-label="Yuklama soat"><span class="hour-tag {% if holat.jami_soat < holat.min_soat %}warn{% else %}ok{% endif %}">{{ holat.jami_soat }} soat</span></td>

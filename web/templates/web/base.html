@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=29">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=36">
   <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=4">
   <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
   <script>
@@ -35,334 +35,406 @@
       }));
     });
 
-    // ================= 1. Asosiy Markaziy Yuklanish (Center Page Loader) =================
+    // ================= 1. Markaziy Yuklanish (Page Loader — sun'iy kechikishsiz) =================
     const PageLoader = {
       el: null,
       safetyTimer: null,
+      delayTimer: null,
       init() {
         this.el = document.getElementById('main-page-loader');
       },
-      show(maxMs = 5000) {
+      show(maxMs = 4000, delayMs = 0) {
         if (!this.el) this.init();
-        if (this.el) {
+        if (!this.el) return;
+        clearTimeout(this.delayTimer);
+        clearTimeout(this.safetyTimer);
+        const reveal = () => {
+          if (!this.el) return;
           this.el.classList.remove('is-hidden');
-          clearTimeout(this.safetyTimer);
-          this.safetyTimer = setTimeout(() => {
-            this.hide();
-          }, maxMs);
+          this.safetyTimer = setTimeout(() => this.hide(), maxMs);
+        };
+        if (delayMs > 0) {
+          this.delayTimer = setTimeout(reveal, delayMs);
+        } else {
+          reveal();
         }
       },
       hide() {
         if (!this.el) this.init();
+        clearTimeout(this.delayTimer);
         clearTimeout(this.safetyTimer);
         if (this.el) this.el.classList.add('is-hidden');
       }
     };
 
-    // Foydalanuvchi birinchi marta kirganda (login / sayt ochilganda) 3 sekund loading qilsin
-    // Boshqa paytlarda sahifa yuklanishi bilan loading tugasin (kuttirmasin)
-    function handleInitialPageLoad() {
-      PageLoader.init();
-      const isLoginOrFirstEntry = !sessionStorage.getItem('site_visited') ||
-                                  sessionStorage.getItem('just_logged_in') === '1' ||
-                                  (document.referrer && document.referrer.includes('/kirish'));
+    function applyDynamicStyles(root) {
+      const scope = root && root.querySelectorAll ? root : document;
+      scope.querySelectorAll('[data-width]').forEach((el) => {
+        el.style.width = el.getAttribute('data-width') + '%';
+      });
+      scope.querySelectorAll('[data-bg]').forEach((el) => {
+        el.style.background = el.getAttribute('data-bg');
+      });
+    }
+    window.applyDynamicStyles = applyDynamicStyles;
 
-      if (isLoginOrFirstEntry) {
-        sessionStorage.setItem('site_visited', '1');
-        sessionStorage.removeItem('just_logged_in');
-        PageLoader.show(3500);
-        setTimeout(() => {
-          PageLoader.hide();
-        }, 3000);
-      } else {
-        // Boshqa paytlarda sahifa yuklanishi bilan qisqa va silliq (400ms) ko'rsatib darhol yopilsin
-        setTimeout(() => {
-          PageLoader.hide();
-        }, 400);
-      }
+    function resetLoadingButtons() {
+      document.querySelectorAll('.is-loading').forEach((b) => {
+        b.classList.remove('is-loading');
+        b.removeAttribute('aria-busy');
+        delete b.dataset.saving;
+      });
     }
 
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', handleInitialPageLoad);
+      document.addEventListener('DOMContentLoaded', () => {
+        PageLoader.hide();
+        applyDynamicStyles(document);
+      });
     } else {
-      handleInitialPageLoad();
+      PageLoader.hide();
+      applyDynamicStyles(document);
     }
 
     window.addEventListener('pageshow', () => {
-      PageLoader.init();
       PageLoader.hide();
-      document.querySelectorAll('.is-loading').forEach((b) => {
-        b.classList.remove('is-loading');
-        b.removeAttribute('aria-busy');
-        delete b.dataset.saving;
-      });
+      resetLoadingButtons();
+      applyDynamicStyles(document);
     });
 
-    // Har qanday HTMX hodisasida markaziy yuklanishni yopish (xavfsizlik kafolati)
-    document.addEventListener('htmx:afterSwap', () => PageLoader.hide());
-    document.addEventListener('htmx:afterRequest', () => PageLoader.hide());
+    document.addEventListener('htmx:afterSwap', () => {
+      PageLoader.hide();
+      applyDynamicStyles(document);
+    });
+    document.addEventListener('htmx:afterSettle', () => {
+      applyDynamicStyles(document);
+    });
+    document.addEventListener('htmx:afterRequest', () => {
+      PageLoader.hide();
+      resetLoadingButtons();
+    });
     document.addEventListener('htmx:sendError', () => {
       PageLoader.hide();
-      document.querySelectorAll('.is-loading').forEach((b) => {
-        b.classList.remove('is-loading');
-        b.removeAttribute('aria-busy');
-        delete b.dataset.saving;
-      });
+      resetLoadingButtons();
     });
     document.addEventListener('htmx:responseError', () => {
       PageLoader.hide();
-      document.querySelectorAll('.is-loading').forEach((b) => {
-        b.classList.remove('is-loading');
-        b.removeAttribute('aria-busy');
-        delete b.dataset.saving;
-      });
+      resetLoadingButtons();
     });
 
-    // ================= 2. Faqat Saqlovchi Tugmalar uchun Loading (Button Loading - 2 sekund) =================
-    function isSaveButton(el) {
-      if (!el) return false;
-      const btn = el.closest('button, input[type="submit"]');
-      if (!btn || btn.tagName === 'A') return false;
+    // ================= 1.5. Global Table & Action Modal Controller =================
+    const AppModal = {
+      activeForm: null,
+      lastTrigger: null,
+      isOpen() {
+        const overlay = document.getElementById('app-global-modal');
+        return Boolean(overlay && !overlay.classList.contains('is-hidden'));
+      },
+      open(opts) {
+        const overlay = document.getElementById('app-global-modal');
+        if (!overlay) return;
+        this.lastTrigger = document.activeElement;
+        const card = overlay.querySelector('.app-modal-card');
+        const iconEl = document.getElementById('app-modal-icon');
+        const titleEl = document.getElementById('app-modal-title');
+        const subEl = document.getElementById('app-modal-subtitle');
+        const bodyEl = document.getElementById('app-modal-body');
+        const footerEl = document.getElementById('app-modal-footer');
 
-      // Role almashtirish menyusi, logout, test rejimi, profil - mutlaqo saqlash EMAS!
-      if (btn.closest('.user-menu, .menu-panel, .test-rejimi, .logout-btn') ||
-          btn.classList.contains('menu-item') ||
-          btn.classList.contains('logout-btn')) {
-        return false;
+        card.classList.toggle('app-modal-wide', Boolean(opts.wide));
+        const mType = opts.type || 'primary';
+        iconEl.className = 'app-modal-icon ' + (mType === 'danger' ? 'danger' : mType === 'warning' ? 'warning' : mType === 'success' ? 'success' : '');
+        if (mType === 'danger') {
+          iconEl.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+        } else if (mType === 'warning') {
+          iconEl.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+        } else if (mType === 'success') {
+          iconEl.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+        } else {
+          iconEl.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>';
+        }
+
+        titleEl.textContent = opts.title || "Ma'lumot";
+        if (opts.subtitle) {
+          subEl.textContent = opts.subtitle;
+          subEl.style.display = 'block';
+        } else {
+          subEl.textContent = '';
+          subEl.style.display = 'none';
+        }
+
+        bodyEl.innerHTML = '';
+
+        if (opts.warnText) {
+          const alertBox = document.createElement('div');
+          alertBox.className = 'modal-alert-box ' + (opts.warnClass || 'warn');
+          alertBox.textContent = opts.warnText;
+          bodyEl.appendChild(alertBox);
+        }
+
+        if (opts.meta && opts.meta.length) {
+          const grid = document.createElement('div');
+          grid.className = 'modal-meta-grid';
+          opts.meta.forEach((m) => {
+            const box = document.createElement('div');
+            box.className = 'modal-meta-box';
+            const l = document.createElement('div');
+            l.className = 'modal-meta-lbl';
+            l.textContent = m.label;
+            const v = document.createElement('div');
+            v.className = 'modal-meta-val';
+            v.textContent = m.value;
+            box.appendChild(l);
+            box.appendChild(v);
+            grid.appendChild(box);
+          });
+          bodyEl.appendChild(grid);
+        }
+
+        if (opts.message) {
+          const p = document.createElement('p');
+          p.className = 'modal-message-text';
+          p.textContent = opts.message;
+          bodyEl.appendChild(p);
+        }
+
+        if (opts.rows && opts.rows.length) {
+          const list = document.createElement('div');
+          list.className = 'modal-detail-list';
+          opts.rows.forEach((r) => {
+            if (!r || (!r.value && r.value !== 0)) return;
+            const row = document.createElement('div');
+            row.className = 'modal-detail-row';
+            const k = document.createElement('span');
+            k.className = 'modal-detail-key';
+            k.textContent = r.label;
+            const v = document.createElement('span');
+            v.className = 'modal-detail-val';
+            v.textContent = String(r.value);
+            row.appendChild(k);
+            row.appendChild(v);
+            list.appendChild(row);
+          });
+          bodyEl.appendChild(list);
+        }
+
+        if (opts.promptLabel) {
+          const fieldWrap = document.createElement('div');
+          fieldWrap.className = 'modal-prompt-wrap';
+          const lbl = document.createElement('label');
+          lbl.className = 'modal-prompt-label';
+          lbl.setAttribute('for', 'app-modal-prompt-input');
+          lbl.textContent = opts.promptLabel;
+          const ta = document.createElement('textarea');
+          ta.id = 'app-modal-prompt-input';
+          ta.className = 'form-textarea';
+          ta.rows = 3;
+          ta.placeholder = opts.promptPlaceholder || 'Izoh kiriting...';
+          ta.value = opts.promptDefault || '';
+          const err = document.createElement('div');
+          err.id = 'app-modal-prompt-err';
+          err.className = 'modal-prompt-err';
+          err.style.display = 'none';
+          err.textContent = "Iltimos, bu maydonni to'ldiring.";
+          fieldWrap.appendChild(lbl);
+          fieldWrap.appendChild(ta);
+          fieldWrap.appendChild(err);
+          bodyEl.appendChild(fieldWrap);
+        }
+
+        footerEl.innerHTML = '';
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'btn';
+        cancelBtn.textContent = opts.cancelText || 'Yopish';
+        cancelBtn.onclick = () => this.close();
+        footerEl.appendChild(cancelBtn);
+
+        if (opts.links && opts.links.length) {
+          opts.links.forEach((lnk) => {
+            if (!lnk || !lnk.url) return;
+            const a = document.createElement('a');
+            a.className = 'btn ' + (lnk.primary ? 'btn-primary' : '');
+            a.setAttribute('href', lnk.url);
+            a.textContent = lnk.label;
+            footerEl.appendChild(a);
+          });
+        }
+
+        let confirmBtn = null;
+        if (opts.onConfirm) {
+          confirmBtn = document.createElement('button');
+          confirmBtn.type = 'button';
+          confirmBtn.className = 'btn ' + (mType === 'danger' ? 'btn-danger' : mType === 'success' ? 'btn-success' : 'btn-primary');
+          confirmBtn.textContent = opts.confirmText || 'Tasdiqlash';
+          confirmBtn.onclick = () => {
+            if (opts.promptLabel) {
+              const ta = document.getElementById('app-modal-prompt-input');
+              const err = document.getElementById('app-modal-prompt-err');
+              const val = (ta ? ta.value : '').trim();
+              if (opts.promptRequired && !val) {
+                if (err) err.style.display = 'block';
+                if (ta) ta.focus();
+                return;
+              }
+              opts.onConfirm(val, confirmBtn);
+            } else {
+              opts.onConfirm('', confirmBtn);
+            }
+          };
+          footerEl.appendChild(confirmBtn);
+        }
+
+        overlay.classList.remove('is-hidden');
+        document.body.style.overflow = 'hidden';
+
+        setTimeout(() => {
+          const ta = document.getElementById('app-modal-prompt-input');
+          if (ta) ta.focus();
+          else if (confirmBtn) confirmBtn.focus();
+          else cancelBtn.focus();
+        }, 30);
+      },
+      close() {
+        const overlay = document.getElementById('app-global-modal');
+        if (overlay) overlay.classList.add('is-hidden');
+        document.body.style.overflow = '';
+        this.activeForm = null;
+        if (this.lastTrigger && typeof this.lastTrigger.focus === 'function' && document.contains(this.lastTrigger)) {
+          this.lastTrigger.focus();
+        }
+        this.lastTrigger = null;
       }
+    };
+    window.AppModal = AppModal;
 
-      const form = btn.closest('form');
-      const isPost = form && (form.method || '').toLowerCase() === 'post';
-      const isHxPost = btn.hasAttribute('hx-post') || (form && form.hasAttribute('hx-post'));
-      if (!isPost && !isHxPost) return false;
-
-      const txt = (btn.textContent || btn.value || '').toLowerCase().trim();
-
-      // Bekor qilish, qidirish, chiqish, qaytish, o'chirish - saqlash EMAS!
-      if (txt.includes('bekor') ||
-          txt.includes('qidir') ||
-          txt.includes('chiqish') ||
-          txt.includes('qaytish') ||
-          txt.includes("o'chir") ||
-          txt.includes('ochir')) {
-        return false;
-      }
-
-      // Faqat haqiqiy ma'lumot saqlaydigan tugmalar:
-      return txt.includes('saqla') ||      // Saqlash, Semestrovkani saqlash, Parolni saqlash
-             txt.includes('import') ||     // Import qilish
-             txt.includes('tasdiq') ||     // Tasdiqqa yuborish, Tasdiqlash
-             txt.includes('topshir') ||    // Topshirish
-             txt.includes('qabul') ||      // Qabul qilish
-             btn.hasAttribute('data-save-btn') ||
-             (btn.closest('.auth-card') && txt.includes('kirish'));
-    }
-
-    // Saqlash tugmasi bosilganda 2 sekund loading animatsiyasi
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('button, input[type="submit"]');
-      if (!btn || !isSaveButton(btn)) return;
-
-      const form = btn.closest('form');
-      if (!form) return;
-
-      // Agar form validatsiyadan o'tmasa
-      if (form.checkValidity && !form.checkValidity()) {
+    // Escape va Focus Trap boshqaruvi (ustma-ust modallarni navbat bilan yopish)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (AppModal.isOpen()) {
+          e.preventDefault();
+          AppModal.close();
+          return;
+        }
+        const backdrops = document.querySelectorAll('.table-modal-backdrop');
+        if (backdrops.length) {
+          e.preventDefault();
+          const topBd = backdrops[backdrops.length - 1];
+          if (topBd.parentElement) topBd.parentElement.innerHTML = '';
+        }
         return;
       }
 
-      // Agar allaqachon loadingda bo'lsa
-      if (btn.classList.contains('is-loading') || btn.dataset.saving === 'true') {
+      if (e.key === 'Tab' && AppModal.isOpen()) {
+        const card = document.querySelector('#app-global-modal .app-modal-card');
+        if (!card) return;
+        const focusables = card.querySelectorAll('button:not([disabled]), a[href], textarea:not([disabled]), input:not([disabled]), select:not([disabled])');
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+
+    // Intercept forms with data-modal-confirm / data-modal-prompt and buttons with data-row-modal
+    document.addEventListener('click', (e) => {
+      const viewBtn = e.target.closest('[data-row-modal]');
+      if (viewBtn) {
         e.preventDefault();
         e.stopPropagation();
+        const title = viewBtn.dataset.modalTitle || "Batafsil ma'lumot";
+        const subtitle = viewBtn.dataset.modalSubtitle || '';
+        const rawRows = viewBtn.dataset.rowModal || '';
+        const rows = rawRows.split('||').map((part) => {
+          const idx = part.indexOf('::');
+          if (idx === -1) return null;
+          return { label: part.slice(0, idx).trim(), value: part.slice(idx + 2).trim() };
+        }).filter(Boolean);
+        const links = [];
+        if (viewBtn.dataset.modalUrl) {
+          links.push({ url: viewBtn.dataset.modalUrl, label: viewBtn.dataset.modalUrlLabel || "Sahifani ochish", primary: true });
+        }
+        if (viewBtn.dataset.modalEditUrl) {
+          links.push({ url: viewBtn.dataset.modalEditUrl, label: viewBtn.dataset.modalEditLabel || "Tahrirlash", primary: !viewBtn.dataset.modalUrl });
+        }
+        AppModal.open({
+          title,
+          subtitle,
+          rows,
+          links,
+          cancelText: 'Yopish'
+        });
         return;
       }
 
-      // Agar inline onclick confirm bo'lsa va bekor qilinsa
-      if (e.defaultPrevented) return;
-
-      // Agar kirish (login) tugmasi bo'lsa
-      if (btn.closest('.auth-card') || (btn.textContent || '').toLowerCase().includes('kirish')) {
-        sessionStorage.setItem('just_logged_in', '1');
-      }
+      const btn = e.target.closest('button[type="submit"], input[type="submit"]');
+      if (!btn) return;
+      const form = btn.closest('form[data-modal-confirm], form[data-modal-prompt]');
+      if (!form || form.dataset.modalConfirmed === 'true') return;
 
       e.preventDefault();
-      e.stopPropagation();
+      e.stopImmediatePropagation();
 
-      btn.classList.add('is-loading');
-      btn.setAttribute('aria-busy', 'true');
-      btn.dataset.saving = 'true';
+      const metaRaw = form.dataset.modalMeta || '';
+      const meta = metaRaw ? metaRaw.split('||').map((p) => {
+        const idx = p.indexOf('::');
+        return idx > -1 ? { label: p.slice(0, idx).trim(), value: p.slice(idx + 2).trim() } : null;
+      }).filter(Boolean) : [];
 
-      // 2 sekund (2000ms) animatsiya
-      setTimeout(() => {
-        btn.dataset.saving = 'done';
-
-        if (btn.name && btn.value) {
-          const hidden = document.createElement('input');
-          hidden.type = 'hidden';
-          hidden.name = btn.name;
-          hidden.value = btn.value;
-          form.appendChild(hidden);
-        }
-
-        if (form.hasAttribute('hx-post') && window.htmx) {
-          window.htmx.trigger(form, 'submit');
-        } else {
-          HTMLFormElement.prototype.submit.call(form);
-        }
-      }, 2000);
-    });
-
-    // Logout tugmasi bosilganda keyingi kirish uchun flaglarni tozalash
-    document.addEventListener('click', (e) => {
-      const logoutBtn = e.target.closest('.logout-btn');
-      if (logoutBtn) {
-        sessionStorage.removeItem('site_visited');
-        sessionStorage.removeItem('just_logged_in');
-      }
-    });
-
-    // Brauzer chap pastidagi URL preview (status bar) chiqishini butunlay yo'qotish
-    (() => {
-      function sanitizeLink(a) {
-        if (!a || !a.getAttribute) return;
-        const href = a.getAttribute('href');
-        if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
-          a.dataset.href = href;
-          a.removeAttribute('href');
-          a.setAttribute('role', 'link');
-          if (!a.hasAttribute('tabindex')) {
-            a.setAttribute('tabindex', '0');
-          }
-        }
-      }
-
-      function sanitizeAll(root) {
-        if (!root || !root.querySelectorAll) return;
-        const links = root.querySelectorAll('a[href]');
-        for (let i = 0; i < links.length; i++) {
-          sanitizeLink(links[i]);
-        }
-      }
-
-      // DOMga yangi qo'shilgan har qanday linkni darhol tozalash (MutationObserver)
-      const observer = new MutationObserver((mutations) => {
-        for (let i = 0; i < mutations.length; i++) {
-          const added = mutations[i].addedNodes;
-          for (let j = 0; j < added.length; j++) {
-            const node = added[j];
-            if (node.nodeType === 1) {
-              if (node.tagName === 'A' && node.hasAttribute('href')) {
-                sanitizeLink(node);
-              }
-              if (node.querySelectorAll) {
-                sanitizeAll(node);
-              }
+      AppModal.open({
+        title: form.dataset.modalTitle || 'Amalni tasdiqlash',
+        subtitle: form.dataset.modalSubtitle || '',
+        message: form.dataset.modalConfirm || '',
+        type: form.dataset.modalType || 'primary',
+        warnText: form.dataset.modalWarn || '',
+        warnClass: form.dataset.modalWarnClass || 'warn',
+        meta,
+        promptLabel: form.dataset.modalPrompt || '',
+        promptPlaceholder: form.dataset.modalPlaceholder || 'Sabab yoki izohni kiriting...',
+        promptRequired: form.dataset.modalRequired === 'true',
+        cancelText: 'Bekor qilish',
+        confirmText: form.dataset.modalBtn || 'Tasdiqlash',
+        onConfirm(val, confirmBtn) {
+          const fieldName = form.dataset.modalField || 'izoh';
+          if (form.dataset.modalPrompt) {
+            let input = form.querySelector('[name="' + fieldName + '"]');
+            if (!input) {
+              input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = fieldName;
+              form.appendChild(input);
             }
+            input.value = val;
+          }
+          form.dataset.modalConfirmed = 'true';
+          confirmBtn.classList.add('is-loading');
+          confirmBtn.setAttribute('aria-busy', 'true');
+          if (form.hasAttribute('hx-post') && window.htmx) {
+            AppModal.close();
+            window.htmx.trigger(form, 'submit');
+          } else {
+            HTMLFormElement.prototype.submit.call(form);
           }
         }
       });
+    }, true);
 
-      if (document.documentElement) {
-        observer.observe(document.documentElement, { childList: true, subtree: true });
+    // ================= 2. Form Submit Loading Holati (Sun'iy 2s kutishsiz, real so'rov davomida) =================
+    document.addEventListener('submit', (e) => {
+      const form = e.target;
+      if (!form || (form.method || '').toLowerCase() !== 'post') return;
+      const submitter = e.submitter || form.querySelector('button[type="submit"], input[type="submit"]');
+      if (submitter && !submitter.classList.contains('logout-btn') && !submitter.classList.contains('menu-item')) {
+        submitter.classList.add('is-loading');
+        submitter.setAttribute('aria-busy', 'true');
       }
-
-      document.addEventListener('DOMContentLoaded', () => {
-        sanitizeAll(document);
-      });
-
-      // Har qanday pointer/sichqoncha yoki fokusda ham tekshirib olish
-      document.addEventListener('pointerover', (e) => {
-        const a = e.target.closest('a[href]');
-        if (a) sanitizeLink(a);
-      }, true);
-
-      document.addEventListener('focusin', (e) => {
-        const a = e.target.closest('a[href]');
-        if (a) sanitizeLink(a);
-      }, true);
-
-      // O'ng tugma (contextmenu) bosilganda "nusxa olish / yangi oynada ochish" uchun vaqtincha href ulash
-      document.addEventListener('contextmenu', (e) => {
-        const a = e.target.closest('a[data-href]');
-        if (a && a.dataset.href) {
-          a.setAttribute('href', a.dataset.href);
-          setTimeout(() => {
-            if (a.dataset.href) a.removeAttribute('href');
-          }, 150);
-        }
-      }, true);
-
-      // O'rta tugma (auxclick / middle click)
-      document.addEventListener('auxclick', (e) => {
-        if (e.button === 1) {
-          const a = e.target.closest('a[data-href], a[href]');
-          if (a) {
-            const href = a.dataset.href || a.getAttribute('href');
-            if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
-              e.preventDefault();
-              window.open(href, '_blank');
-            }
-          }
-        }
-      }, true);
-
-      // Klaviatura Enter / Space orqali navigatsiya
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          const a = e.target.closest('a[data-href]');
-          if (a) {
-            e.preventDefault();
-            a.click();
-          }
-        }
-      }, true);
-
-      // Navigatsiya holatini boshqarish (2, 3, 4 marta tez bosilganda takrorlanmasligi uchun)
-      let isNavigating = false;
-
-      // Chap tugma bilan bosilganda (click) to'g'ri va xavfsiz o'tish
-      document.addEventListener('click', (e) => {
-        const a = e.target.closest('a[data-href], a[href]');
-        if (!a) return;
-        const href = a.dataset.href || a.getAttribute('href');
-        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-
-        // Ctrl / Cmd / Shift yoki yangi oyna ochish
-        if (e.ctrlKey || e.metaKey || e.shiftKey || a.target === '_blank') {
-          e.preventDefault();
-          window.open(href, '_blank');
-          return;
-        }
-
-        e.preventDefault();
-
-        // Fayl yuklab olish (Excel, Word, PDF)
-        const isDownload = a.hasAttribute('download') ||
-                           href.includes('_excel') ||
-                           href.endsWith('.xlsx') ||
-                           href.endsWith('.docx') ||
-                           href.endsWith('.pdf');
-
-        if (isDownload) {
-          window.location.assign(href);
-          return;
-        }
-
-        // Qayta-qayta (2, 3, 4 marta) bosilganda xatolik bo'lmasligi uchun himoya
-        if (isNavigating) return;
-        isNavigating = true;
-        setTimeout(() => { isNavigating = false; }, 800);
-
-        // Sahifa navigatsiyasi paytida markaziy yuklanishni ko'rsatish
-        PageLoader.show(4000);
-
-        // Brauzerga markaziy loadingni ekranga chizib olish (paint) uchun 60ms beramiz
-        setTimeout(() => {
-          window.location.assign(href);
-        }, 60);
-      }, true);
-    })();
+    });
   </script>
   <script src="{% static 'web/js/alpine.min.js' %}" defer></script>
   <script src="{% static 'web/js/jonli.js' %}" defer></script>
@@ -370,7 +442,7 @@
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <!-- Asosiy markaziy aylanuvchi yuklanish indikatori (Center Page Loader) -->
-  <div id="main-page-loader" class="page-loader-overlay">
+  <div id="main-page-loader" class="page-loader-overlay is-hidden">
     <div class="page-loader-spinner-wrap">
       <div class="page-loader-spinner"></div>
       <div class="page-loader-text">Yuklanmoqda...</div>
@@ -382,6 +454,23 @@
   <div class="app">
     {% include "web/parts/_messages.html" %}
     {% block content %}{% endblock %}
+  </div>
+  <!-- Global Modal (Tasdiqlash, Sabab kiritish va Jadval qatori tafsilotlari uchun) -->
+  <div id="app-global-modal" class="app-modal-overlay is-hidden" onclick="if(event.target===this) AppModal.close()">
+    <div class="app-modal-card" role="dialog" aria-modal="true" aria-labelledby="app-modal-title">
+      <div class="app-modal-header">
+        <div class="app-modal-title-wrap">
+          <div id="app-modal-icon" class="app-modal-icon"></div>
+          <div>
+            <h3 id="app-modal-title" class="app-modal-title">Ma'lumot</h3>
+            <div id="app-modal-subtitle" class="app-modal-subtitle" style="display:none;"></div>
+          </div>
+        </div>
+        <button type="button" class="app-modal-close" onclick="AppModal.close()" aria-label="Yopish">✕</button>
+      </div>
+      <div id="app-modal-body" class="app-modal-body"></div>
+      <div id="app-modal-footer" class="app-modal-footer"></div>
+    </div>
   </div>
 </body>
 

@@ -61,8 +61,20 @@
         </td>
         <td class="col-center" data-label="Amallar" style="text-align:center;">
           <div class="row-actions" style="justify-content:center;">
+            <button type="button" class="btn"
+                    data-modal-title="{{ l.nomi }}"
+                    data-modal-subtitle="Lavozim va yillik yuklama me'yori"
+                    data-modal-edit-url="{% url 'office:lavozim_tahrir' l.pk %}"
+                    data-row-modal="Lavozim nomi::{{ l.nomi }}||Minimal yillik soat::{{ l.min_soat }} soat||Biriktirilgan o'qituvchilar::{{ l.oqituvchilar_soni }} nafar">
+              Ko'rish
+            </button>
             <a class="btn" href="{% url 'office:lavozim_tahrir' l.pk %}">Tahrirlash</a>
-            <form method="post" action="{% url 'office:lavozim_ochirish' l.pk %}" style="display:inline" onsubmit="return confirm('{{ l.nomi }} lavozimini o\'chirasizmi?');">
+            <form method="post" action="{% url 'office:lavozim_ochirish' l.pk %}" style="display:inline"
+                  data-modal-title="Lavozimni o'chirish"
+                  data-modal-subtitle="{{ l.nomi }}"
+                  data-modal-confirm="{{ l.nomi }} lavozimini tizimdan o'chirasizmi?"
+                  data-modal-type="danger"
+                  data-modal-btn="Ha, o'chirish">
               {% csrf_token %}
               <button type="submit" class="btn btn-danger">O'chirish</button>
             </form>
@@ -108,8 +120,20 @@
         </td>
         <td class="col-center" data-label="Amallar" style="text-align:center;">
           <div class="row-actions" style="justify-content:center;">
+            <button type="button" class="btn"
+                    data-modal-title="{{ y.kodi }} — {{ y.nomi }}"
+                    data-modal-subtitle="Ta'lim yo'nalishi klassifikatori"
+                    data-modal-edit-url="{% url 'office:yonalish_tahrir' y.pk %}"
+                    data-row-modal="Yo'nalish kodi::{{ y.kodi }}||Yo'nalish nomi::{{ y.nomi }}||Bilim sohasi::{{ y.bilim_sohasi_kodi }} — {{ y.bilim_sohasi_nomi }}||Ta'lim sohasi::{{ y.talim_sohasi_kodi }} — {{ y.talim_sohasi_nomi }}">
+              Ko'rish
+            </button>
             <a class="btn" href="{% url 'office:yonalish_tahrir' y.pk %}">Tahrirlash</a>
-            <form method="post" action="{% url 'office:yonalish_ochirish' y.pk %}" style="display:inline" onsubmit="return confirm('{{ y.kodi }} yo\'nalishini o\'chirasizmi?');">
+            <form method="post" action="{% url 'office:yonalish_ochirish' y.pk %}" style="display:inline"
+                  data-modal-title="Ta'lim yo'nalishini o'chirish"
+                  data-modal-subtitle="{{ y.kodi }} — {{ y.nomi }}"
+                  data-modal-confirm="{{ y.kodi }} ({{ y.nomi }}) yo'nalishini klassifikatordan o'chirasizmi?"
+                  data-modal-type="danger"
+                  data-modal-btn="Ha, o'chirish">
               {% csrf_token %}
               <button type="submit" class="btn btn-danger">O'chirish</button>
             </form>

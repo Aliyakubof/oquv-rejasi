@@ -82,7 +82,14 @@
         {% for s in shakl1_satrlar %}
         <tr>
           <td class="col-center" data-label="№" style="color:var(--text-muted);font-weight:600;">{{ forloop.counter }}</td>
-          <td data-label="Fan"><strong>{{ s.fan }}</strong></td>
+          <td data-label="Fan">
+            <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
+                    data-modal-title="{{ s.fan }}"
+                    data-modal-subtitle="{{ s.kurs }}-kurs · {{ s.semestr }}-semestr · {{ s.guruh }}"
+                    data-row-modal="Fan nomi::{{ s.fan }}||Fan kodi::{{ s.kodi|default:'—' }}||Yo'nalish::{{ s.yonalish }}||Kurs va semestr::{{ s.kurs }}-kurs, {{ s.semestr }}-semestr||Guruh / Oqim::{{ s.guruh }}||Ma'ruza::{{ s.maruza }} soat||Amaliyot::{{ s.amaliyot }} soat||Laboratoriya::{{ s.laboratoriya }} soat||Seminar::{{ s.seminar }} soat||Kurs ishi::{{ s.kurs_ishi }} soat||Jami::{{ s.jami }} soat">
+              <strong>{{ s.fan }}</strong>
+            </button>
+          </td>
           <td class="col-center" data-label="Yo'nalish"><span class="code" style="font-size:11px;">{{ s.yonalish }}</span></td>
           <td class="col-center" data-label="Kurs"><span class="hour-tag">{{ s.kurs }}-kurs</span></td>
           <td class="col-center" data-label="Semestr"><span class="hour-tag">{{ s.semestr }}-sem</span></td>

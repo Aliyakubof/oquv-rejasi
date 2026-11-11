@@ -71,13 +71,13 @@
             <span class="hour-tag">{{ holat.min_soat }} soat</span>
           </td>
           <td class="col-center" data-label="Yuklama soat" style="text-align:center;">
-            <span class="hour-tag" style="background:#eef2ff;color:var(--ink);font-weight:700;">{{ holat.jami_soat }} soat</span>
+            <span class="hour-tag accent">{{ holat.jami_soat }} soat</span>
           </td>
           <td class="col-center" data-label="Qamrov">
             {% with f=holat.jami_soat|foiz:holat.min_soat %}
             <div style="display:flex;align-items:center;gap:8px;">
               <div class="progress" style="flex:1;" title="{{ f }}% ({% if holat.kamomad %}kamomad {{ holat.kamomad }} soat{% else %}to'ldi{% endif %})">
-                <div class="fill {% if holat.kamomad %}warn{% endif %}" style="width:{{ f }}%;"></div>
+                <div class="fill {% if holat.kamomad %}warn{% endif %}" data-width="{{ f }}"></div>
               </div>
               <span class="credits num" style="min-width:38px;text-align:center;font-weight:600;">{{ f }}%</span>
             </div>
@@ -85,6 +85,15 @@
           </td>
           <td class="col-center" style="text-align:center;white-space:nowrap;">
             <div class="row-actions" style="justify-content:center;">
+              <button type="button" class="btn"
+                      data-modal-title="{{ holat.oqituvchi }}"
+                      data-modal-subtitle="{{ kafedra.nomi }} · {{ holat.oqituvchi.turi.nomi }}"
+                      data-modal-url="{% url 'kafedra:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}"
+                      data-modal-url-label="1-shakl yuklama varaqasi"
+                      data-modal-edit-url="{% url 'kafedra:oqituvchi_tahrir' holat.oqituvchi.pk %}"
+                      data-row-modal="F.I.Sh::{{ holat.oqituvchi }}||Telefon::{{ holat.oqituvchi.foydalanuvchi.telefon }}||Lavozim::{{ holat.oqituvchi.turi.nomi }}||Minimal norma::{{ holat.min_soat }} soat||Joriy yuklama::{{ holat.jami_soat }} soat||Kamomad::{{ holat.kamomad }} soat||Qoplanish::{{ holat.jami_soat|foiz:holat.min_soat }}%">
+                Ko'rish
+              </button>
               <a class="btn" href="{% url 'kafedra:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}">Yuklama</a>
               <a class="btn" href="{% url 'kafedra:oqituvchi_tahrir' holat.oqituvchi.pk %}">Tahrirlash</a>
             </div>

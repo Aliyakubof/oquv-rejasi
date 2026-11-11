@@ -37,16 +37,30 @@
             {% with f=holat.jami_soat|foiz:holat.min_soat %}
             <div style="display:flex;align-items:center;gap:8px;">
               <div class="progress" style="flex:1;" title="{{ f }}% ({% if holat.kamomad %}kamomad {{ holat.kamomad }} soat{% else %}to'ldi{% endif %})">
-                <div class="fill {% if holat.kamomad %}warn{% endif %}" :style="'width: {{ f }}%'"></div>
+                <div class="fill {% if holat.kamomad %}warn{% endif %}" data-width="{{ f }}"></div>
               </div>
               <span class="credits num" style="min-width:34px;text-align:right;">{{ f }}%</span>
             </div>
             {% endwith %}
           </td>
           <td style="white-space:nowrap;">
+            <button type="button" class="btn"
+                    data-modal-title="{{ holat.oqituvchi }}"
+                    data-modal-subtitle="{{ holat.oqituvchi.kafedra.nomi }} · {{ holat.oqituvchi.turi.nomi }}"
+                    data-modal-url="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}"
+                    data-modal-url-label="1-shakl yuklama varaqasi"
+                    data-modal-edit-url="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}"
+                    data-row-modal="F.I.Sh::{{ holat.oqituvchi }}||Telefon::{{ holat.oqituvchi.foydalanuvchi.telefon }}||Kafedra::{{ holat.oqituvchi.kafedra.nomi }}||Lavozim::{{ holat.oqituvchi.turi.nomi }}||Minimal norma::{{ holat.min_soat }} soat||Joriy yuklama::{{ holat.jami_soat }} soat||Kamomad::{{ holat.kamomad }} soat||Qoplanish::{{ holat.jami_soat|foiz:holat.min_soat }}%">
+              Ko'rish
+            </button>
             <a class="btn" href="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}">Yuklama</a>
             <a class="btn" href="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}">Tahrirlash</a>
-            <form method="post" action="{% url 'office:oqituvchi_ochirish' holat.oqituvchi.pk %}" style="display:inline" onsubmit="return confirm('O\'qituvchini o\'chirasizmi?');">
+            <form method="post" action="{% url 'office:oqituvchi_ochirish' holat.oqituvchi.pk %}" style="display:inline"
+                  data-modal-title="O'qituvchini o'chirish"
+                  data-modal-subtitle="{{ holat.oqituvchi }} ({{ holat.oqituvchi.kafedra.nomi }})"
+                  data-modal-confirm="{{ holat.oqituvchi }} hisobini o'chirasizmi? Agar o'qituvchida faol yuklama bo'lsa, ma'lumotlar saqlanib hisob faolsizlantiriladi."
+                  data-modal-type="danger"
+                  data-modal-btn="Ha, o'chirish">
               {% csrf_token %}
               <button type="submit" class="btn btn-danger">O'chirish</button>
             </form>

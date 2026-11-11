@@ -39,7 +39,15 @@
         {% for q in qamrovlar %}
         <tr data-nomi="{{ q.kafedra.nomi|lower }}"
             x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
-          <td data-label="Kafedra"><strong>{{ q.kafedra.nomi }}</strong></td>
+          <td data-label="Kafedra">
+            <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
+                    data-modal-title="{{ q.kafedra.nomi }} kafedrasi"
+                    data-modal-subtitle="{{ yil }}/{{ yil|add:1 }} o'quv yili yuklama ko'rsatkichlari"
+                    data-modal-edit-url="{% url 'office:kafedra_tahrir' q.kafedra.pk %}"
+                    data-row-modal="Kafedra nomi::{{ q.kafedra.nomi }}||Kafedra mudiri::{{ q.kafedra.mudir|default:'Tayinlanmagan' }}||Faol o'qituvchilar::{{ q.oqituvchilar_soni }} nafar||Biriktirilgan soat::{{ q.biriktirilgan_soat }} soat||Taqsimlangan soat::{{ q.taqsimlangan_soat }} soat||Qamrov darajasi::{{ q.taqsimlangan_soat|foiz:q.biriktirilgan_soat }}%||Tasdiq holati::{{ q.tasdiq.get_holat_display|default:'Qoralama' }}">
+              <strong>{{ q.kafedra.nomi }}</strong>
+            </button>
+          </td>
           <td data-label="Mudir" class="assign-cell cell-relative" x-data="{ ochiq: false, q_m: '' }" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
             {% if q.kafedra.mudir %}
             <button type="button" class="teacher-chip" @click="ochiq = !ochiq">
@@ -80,12 +88,12 @@
             <span class="hour-tag">{{ q.biriktirilgan_soat }} soat</span>
           </td>
           <td class="col-center" data-label="Taqsimlangan soat" style="text-align:center;">
-            <span class="hour-tag" style="background:#eef2ff;color:var(--ink);font-weight:700;">{{ q.taqsimlangan_soat }} soat</span>
+            <span class="hour-tag accent">{{ q.taqsimlangan_soat }} soat</span>
           </td>
           <td class="col-center" data-label="Qamrov">
             {% with f=q.taqsimlangan_soat|foiz:q.biriktirilgan_soat %}
             <div style="display:flex;align-items:center;gap:8px;">
-              <div class="progress" style="flex:1;" title="{{ f }}%"><div class="fill {% if f < 100 %}warn{% endif %}" style="width:{{ f }}%;"></div></div>
+              <div class="progress" style="flex:1;" title="{{ f }}%"><div class="fill {% if f < 100 %}warn{% endif %}" data-width="{{ f }}"></div></div>
               <span class="credits num" style="min-width:38px;text-align:center;font-weight:600;">{{ f }}%</span>
             </div>
             {% endwith %}
@@ -98,7 +106,7 @@
             {% elif q.tasdiq.holat == "QAYTARILGAN" %}
               <span class="tag tag-rad">QAYTARILGAN</span>
             {% else %}
-              <span class="tag" style="background:var(--panel-alt);border:1px solid var(--line);">QORALAMA</span>
+              <span class="tag tag-draft">QORALAMA</span>
             {% endif %}
           </td>
           <td class="col-center" data-label="Amallar" style="text-align:center;">
@@ -141,8 +149,30 @@
                    x-transition
                    x-cloak
                    :style="'top:' + pos.top + '; left:' + pos.left + ';'">
+                <button type="button" class="action-item" @click="ochiq = false"
+                        data-modal-title="{{ q.kafedra.nomi }} kafedrasi"
+                        data-modal-subtitle="{{ yil }}/{{ yil|add:1 }} o'quv yili yuklama ko'rsatkichlari"
+                        data-modal-edit-url="{% url 'office:kafedra_tahrir' q.kafedra.pk %}"
+                        data-row-modal="Kafedra nomi::{{ q.kafedra.nomi }}||Kafedra mudiri::{{ q.kafedra.mudir|default:'Tayinlanmagan' }}||Faol o'qituvchilar::{{ q.oqituvchilar_soni }} nafar||Biriktirilgan soat::{{ q.biriktirilgan_soat }} soat||Taqsimlangan soat::{{ q.taqsimlangan_soat }} soat||Qamrov darajasi::{{ q.taqsimlangan_soat|foiz:q.biriktirilgan_soat }}%||Tasdiq holati::{{ q.tasdiq.get_holat_display|default:'Qoralama' }}">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                  <div class="action-text">
+                    <span class="action-title">Ma'lumot</span>
+                    <span class="action-desc">Kafedra ko'rsatkichlarini oynada ko'rish</span>
+                  </div>
+                </button>
+                <div class="action-divider"></div>
                 {% if q.tasdiq.holat == "TASDIQDA" %}
-                  <form method="post" action="{% url 'office:kafedra_tasdiqlash' q.kafedra.pk %}">
+                  <form method="post" action="{% url 'office:kafedra_tasdiqlash' q.kafedra.pk %}"
+                        data-modal-title="Yuklamani tasdiqlash"
+                        data-modal-subtitle="{{ q.kafedra.nomi }} — {{ yil }}/{{ yil|add:1 }}"
+                        data-modal-confirm="{{ q.kafedra.nomi }} kafedrasining o'quv yuklamasini tasdiqlaysizmi?"
+                        data-modal-meta="Biriktirilgan::{{ q.biriktirilgan_soat }} soat||Taqsimlangan::{{ q.taqsimlangan_soat }} soat||Qamrov::{{ q.taqsimlangan_soat|foiz:q.biriktirilgan_soat }}%"
+                        data-modal-type="success"
+                        data-modal-btn="✓ Tasdiqlash">
                     {% csrf_token %}
                     <input type="hidden" name="yil" value="{{ yil }}">
                     <button type="submit" class="action-item action-item-success" @click="ochiq = false">
@@ -156,7 +186,16 @@
                       </div>
                     </button>
                   </form>
-                  <form method="post" action="{% url 'office:kafedra_qaytarish' q.kafedra.pk %}" onsubmit="const s = prompt('Qaytarish sababini kiriting:'); if(!s) return false; this.izoh.value=s;">
+                  <form method="post" action="{% url 'office:kafedra_qaytarish' q.kafedra.pk %}"
+                        data-modal-title="Yuklamani qaytarish"
+                        data-modal-subtitle="{{ q.kafedra.nomi }} — {{ yil }}/{{ yil|add:1 }}"
+                        data-modal-confirm="Kafedra yuklamasini tuzatish uchun mudirga qaytarasizmi?"
+                        data-modal-type="warning"
+                        data-modal-prompt="Qaytarish sababi"
+                        data-modal-placeholder="Kamchiliklarni ko'rsating..."
+                        data-modal-field="izoh"
+                        data-modal-required="true"
+                        data-modal-btn="Qaytarish">
                     {% csrf_token %}
                     <input type="hidden" name="yil" value="{{ yil }}">
                     <input type="hidden" name="izoh" value="">
@@ -173,7 +212,16 @@
                   </form>
                   <div class="action-divider"></div>
                 {% elif q.tasdiq.holat == "TASDIQLANGAN" %}
-                  <form method="post" action="{% url 'office:kafedra_qaytarish' q.kafedra.pk %}" onsubmit="const s = prompt('Qayta tahrirlash uchun sababni kiriting:'); if(!s) return false; this.izoh.value=s;">
+                  <form method="post" action="{% url 'office:kafedra_qaytarish' q.kafedra.pk %}"
+                        data-modal-title="Yuklama qulfini ochish"
+                        data-modal-subtitle="{{ q.kafedra.nomi }} — {{ yil }}/{{ yil|add:1 }}"
+                        data-modal-confirm="Tasdiqlangan yuklama qulfini ochib, qayta tahrirlashga ruxsat berasizmi?"
+                        data-modal-type="warning"
+                        data-modal-prompt="Qulfni ochish sababi"
+                        data-modal-placeholder="Qayta tahrirlash sababini kiriting..."
+                        data-modal-field="izoh"
+                        data-modal-required="true"
+                        data-modal-btn="Qulfni ochish">
                     {% csrf_token %}
                     <input type="hidden" name="yil" value="{{ yil }}">
                     <input type="hidden" name="izoh" value="">
@@ -202,7 +250,12 @@
                   </div>
                 </a>
 
-                <form method="post" action="{% url 'office:kafedra_ochirish' q.kafedra.pk %}" onsubmit="return confirm('{{ q.kafedra.nomi }} kafedrasini o\'chirasizmi?');">
+                <form method="post" action="{% url 'office:kafedra_ochirish' q.kafedra.pk %}"
+                      data-modal-title="Kafedrani o'chirish"
+                      data-modal-subtitle="{{ q.kafedra.nomi }}"
+                      data-modal-confirm="{{ q.kafedra.nomi }} kafedrasini tizimdan o'chirasizmi?"
+                      data-modal-type="danger"
+                      data-modal-btn="Ha, o'chirish">
                   {% csrf_token %}
                   <button type="submit" class="action-item action-item-danger" @click="ochiq = false">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
