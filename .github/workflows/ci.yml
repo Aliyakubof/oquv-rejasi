@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Repositoriyani yuklash (Checkout)
+      uses: actions/checkout@v4
+
+    - name: Python 3.12 ni o'rnatish
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: "pip"
+
+    - name: Bog'liqliklarni o'rnatish
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Kod sifatini tekshirish (Ruff Check)
+      run: |
+        ruff check .
+
+    - name: Kod formatini tekshirish (Ruff Format)
+      run: |
+        ruff format --check .
+
+    - name: Django tizim tekshiruvi (Check)
+      env:
+        SECRET_KEY: "ci-dummy-secret-key-for-testing"
+        DATABASE_URL: "sqlite:///test_db.sqlite3"
+        DEBUG: "True"
+        ALLOWED_HOSTS: "localhost,127.0.0.1"
+      run: |
+        python manage.py check
+
+    - name: Unit testlarni ishga tushirish (Test)
+      env:
+        SECRET_KEY: "ci-dummy-secret-key-for-testing"
+        DATABASE_URL: "sqlite:///test_db.sqlite3"
+        DEBUG: "True"
+        ALLOWED_HOSTS: "localhost,127.0.0.1"
+      run: |
+        python manage.py test

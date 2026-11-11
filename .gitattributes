@@ -1,0 +1,25 @@
+# Satr oxirlarini (line endings) Windows va Linux orasida bir xillashtirish
+* text=auto eol=lf
+
+# Dasturlash tillari
+*.py text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binar fayllar (o'zgartirishsiz saqlanadi)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.zip binary
+*.pyc binary
+*.sqlite3 binary
