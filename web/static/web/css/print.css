@@ -50,17 +50,30 @@
 }
 
 @media print {
-  @page { size: A4; margin: 18mm 14mm; }
-  body { background: #fff; }
+  @page { size: A4 landscape; margin: 12mm 10mm; }
+  body { background: #fff; font-size: 11px; }
   .navbar, .test-rejimi, .messages, .print-toolbar, .print-hide { display: none !important; }
   .print-only { display: block !important; }
   .app { max-width: none; padding: 0; }
   .report-sheet { border: 0; padding: 0; box-shadow: none; }
-  .letterhead { border-bottom: 0; padding-bottom: 0; }
+  .letterhead { border-bottom: 0; padding-bottom: 0; margin-bottom: 12px; }
   .table-wrap { max-height: none; overflow: visible; border: 0; box-shadow: none; }
-  table { min-width: 0 !important; }
+  table { min-width: 0 !important; width: 100%; font-size: 10.5px; }
+  th, td { padding: 5px 6px !important; }
   thead th { position: static; }
   tr { page-break-inside: avoid; }
   .progress { display: none; }
-  .signatures .line { border-top-color: #000; color: #000; }
+  .signatures {
+    flex-wrap: nowrap;
+    gap: 16px;
+    margin-top: 20px;
+    page-break-inside: avoid;
+  }
+  .signatures .line {
+    border-top-color: #000;
+    color: #000;
+    min-width: 0;
+    flex: 1;
+    font-size: 11px;
+  }
 }

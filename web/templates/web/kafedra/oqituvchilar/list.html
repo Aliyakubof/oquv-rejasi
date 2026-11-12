@@ -96,12 +96,16 @@
                       data-modal-subtitle="{{ kafedra.nomi }} · {{ holat.oqituvchi.turi.nomi }}"
                       data-modal-url="{% url 'kafedra:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}"
                       data-modal-url-label="1-shakl yuklama varaqasi"
+                      {% if request.user.is_superadmin or not holat.oqituvchi.foydalanuvchi.is_office_admin and not holat.oqituvchi.foydalanuvchi.is_superadmin %}
                       data-modal-edit-url="{% url 'kafedra:oqituvchi_tahrir' holat.oqituvchi.pk %}"
+                      {% endif %}
                       data-row-modal="F.I.Sh::{{ holat.oqituvchi }}||Telefon::{{ holat.oqituvchi.foydalanuvchi.telefon }}||Lavozim::{{ holat.oqituvchi.turi.nomi }}||Minimal norma::{{ holat.min_soat }} soat||Joriy yuklama::{{ holat.jami_soat }} soat||Kamomad::{{ holat.kamomad }} soat||Qoplanish::{{ holat.jami_soat|foiz:holat.min_soat }}%">
                 Ko'rish
               </button>
               <a class="btn" href="{% url 'kafedra:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}">Yuklama</a>
+              {% if request.user.is_superadmin or not holat.oqituvchi.foydalanuvchi.is_office_admin and not holat.oqituvchi.foydalanuvchi.is_superadmin %}
               <a class="btn" href="{% url 'kafedra:oqituvchi_tahrir' holat.oqituvchi.pk %}">Tahrirlash</a>
+              {% endif %}
             </div>
           </td>
         </tr>

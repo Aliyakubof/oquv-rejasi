@@ -36,8 +36,8 @@
   /* Typography Colors */
   --text-main: #0f172a;
   --text-secondary: #334155;
-  --text-muted: #64748b;
-  --text-light: #64748b;
+  --text-muted: #475569;
+  --text-light: #475569;
 
   /* Typography Scale (7-step modular system) */
   --fs-xs: 11.5px;
@@ -56,19 +56,19 @@
   --tur-kurs: #f59e0b;
 
   /* Semantic Status Indicators (Harmonized Emerald, Amber, Crimson) */
-  --mand: #059669;
+  --mand: #047857;
   --mand-soft: #ecfdf5;
   --mand-border: #a7f3d0;
 
-  --elec: #b45309;
+  --elec: #92400e;
   --elec-soft: #fffbeb;
   --elec-border: #fde68a;
 
-  --hour-num: #b45309;
+  --hour-num: #92400e;
   --hour-bg: #fffbeb;
   --hour-border: #fde68a;
 
-  --unassigned: #dc2626;
+  --unassigned: #b91c1c;
   --unassigned-soft: #fef2f2;
   --unassigned-border: #fecaca;
 
@@ -80,9 +80,11 @@
   --brand: #1a2a6e;
   --panel-alt: #f8fafc;
   --panel-tint: #eef2ff;
-  --ok: #059669;
-  --rad: #dc2626;
-  --text-danger: #dc2626;
+  --ok: #047857;
+  --rad: #b91c1c;
+  --danger: #b91c1c;
+  --bg-subtle: #f8fafc;
+  --text-danger: #b91c1c;
 
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -128,7 +130,13 @@ body {
 
 /* ================= Universal Interactive Cursor Resets ================= */
 button,
-input[type="button"],
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button,
 input[type="submit"],
 input[type="reset"],
 input[type="checkbox"],
@@ -765,10 +773,27 @@ table a,
   user-select: none;
 }
 
-.group-row .toggle svg {
-  transition: transform 0.15s ease;
+.group-toggle-btn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
 }
 
+.group-toggle-btn svg {
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.group-row.collapsed .group-toggle-btn svg,
 .group-row.collapsed .toggle svg {
   transform: rotate(-90deg);
 }
@@ -1654,13 +1679,6 @@ tfoot td {
   border-color: rgba(255, 255, 255, 0.35);
 }
 
-.navbar-links {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
 .navbar-actions {
   display: flex;
   align-items: center;
@@ -1668,6 +1686,14 @@ tfoot td {
 }
 
 @media (max-width: 960px) {
+  .navbar-inner {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 54px;
+    padding: 8px 16px;
+    gap: 8px;
+  }
+
   .navbar-toggle {
     display: inline-flex;
   }
@@ -1676,17 +1702,17 @@ tfoot td {
     display: none;
   }
 
-  .navbar-links {
+  .navbar-nav {
     display: none;
     width: 100%;
     flex-direction: column;
     align-items: stretch;
     gap: 4px;
     padding: 8px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
   }
 
-  .navbar-links.ochiq {
+  .navbar-nav.ochiq {
     display: flex;
   }
 
@@ -1694,8 +1720,8 @@ tfoot td {
     display: none;
     width: 100%;
     justify-content: space-between;
-    padding: 8px 0 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 0 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
   }
 
   .navbar-actions.ochiq {
@@ -2367,6 +2393,7 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
 
 .progress .fill {
   height: 100%;
+  max-width: 100%;
   border-radius: 9999px;
   background: #10b981;
   transition: width 0.3s ease;
@@ -2774,6 +2801,7 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
 
 .composite-segment {
   height: 100%;
+  max-width: 100%;
   transition: width 0.3s ease;
 }
 
@@ -2854,6 +2882,7 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
 
 .tur-progress-fill {
   height: 100%;
+  max-width: 100%;
   border-radius: 999px;
   transition: width 0.3s ease;
 }
@@ -3560,6 +3589,33 @@ tr.panel-row > td {
   font-size: 12px;
   font-weight: 500;
   margin-top: 5px;
+}
+
+/* Global HTMX progress bar and unclipped open row popovers */
+.htmx-top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 99999;
+  background: linear-gradient(90deg, var(--gold) 0%, var(--sky) 50%, var(--gold) 100%);
+  background-size: 200% 100%;
+  animation: htmx-bar-slide 1s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes htmx-bar-slide {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.table-wrap:has(.popover-ochiq) {
+  overflow: visible;
 }
 
 @media (prefers-reduced-motion: reduce) {

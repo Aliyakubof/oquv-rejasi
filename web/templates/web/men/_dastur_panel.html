@@ -19,7 +19,7 @@
   {% if joriy.holat == "KUTILMOQDA" %}
   <div class="credits" style="margin-top:10px;">Joriy topshiriq hali ko'rib chiqilmoqda — javob kutilsin.</div>
   {% else %}
-  <form hx-post="{% url 'men:dastur_topshirish' variant.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML"
+  <form method="post" hx-post="{% url 'men:dastur_topshirish' variant.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
         enctype="multipart/form-data" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     {% csrf_token %}
     <input type="file" name="fayl" accept=".docx" aria-label="O'quv dasturi (.docx)" required>

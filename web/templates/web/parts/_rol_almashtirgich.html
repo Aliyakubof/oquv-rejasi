@@ -1,10 +1,10 @@
 <div class="user-menu" x-data="{ochiq: false}" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
   <button type="button" class="user-avatar" title="{{ user.get_full_name }} — rolni almashtirish"
     @click="ochiq = !ochiq"
-    hx-get="{% url 'dev:panel' %}" hx-target="#rol-royxati" hx-trigger="click once" hx-swap="innerHTML">
+    hx-get="{% url 'dev:panel' %}" hx-target="#rol-royxati" hx-trigger="click once" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish">
     {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
   </button>
-  <div class="menu-panel" x-show="ochiq" x-cloak>
+  <div class="menu-panel" x-show="ochiq" x-transition x-cloak>
     <div class="menu-bosh">
       <div class="menu-ism">{{ user.get_full_name }}</div>
       <div class="menu-rol">{{ user.get_rol_display }}</div>

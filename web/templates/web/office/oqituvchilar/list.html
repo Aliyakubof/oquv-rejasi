@@ -9,7 +9,7 @@
   <div class="controls">
     <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;"
           hx-get="{% url 'office:oqituvchi_list' %}" hx-trigger="change from:select"
-          hx-target="#oqituvchilar-jonli" hx-select="#oqituvchilar-jonli"
+          hx-target="#oqituvchilar-jonli" hx-select="#oqituvchilar-jonli" hx-select-oob="#oqituvchi-excel-btn" hx-indicator="#htmx-yuklanish"
           hx-swap="outerHTML" hx-push-url="true">
       {% include "web/parts/_yil_tanlov.html" %}
       <select name="kafedra" aria-label="Kafedra" onchange="if(!window.htmx) this.form.submit()">
@@ -19,7 +19,7 @@
         {% endfor %}
       </select>
     </form>
-    <a class="btn" href="{% url 'office:oqituvchi_excel' %}?yil={{ yil }}{% if kafedra %}&kafedra={{ kafedra.pk }}{% endif %}" hx-boost="false">
+    <a id="oqituvchi-excel-btn" class="btn" href="{% url 'office:oqituvchi_excel' %}?yil={{ yil }}{% if kafedra %}&kafedra={{ kafedra.pk }}{% endif %}" hx-boost="false">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       <span>Excel (.xlsx)</span>
     </a>

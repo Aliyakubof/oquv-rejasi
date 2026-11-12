@@ -10,8 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=39">
-  <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=4">
+  <meta name="login-url" content="{% url 'kirish' %}">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=40">
+  <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=5">
   <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
   <script>
     document.addEventListener('htmx:configRequest', (e) => {
@@ -70,7 +71,8 @@
     function applyDynamicStyles(root) {
       const scope = root && root.querySelectorAll ? root : document;
       scope.querySelectorAll('[data-width]').forEach((el) => {
-        el.style.width = el.getAttribute('data-width') + '%';
+        const w = Math.min(100, Math.max(0, Number(el.getAttribute('data-width')) || 0));
+        el.style.width = w + '%';
       });
       scope.querySelectorAll('[data-bg]').forEach((el) => {
         el.style.background = el.getAttribute('data-bg');
@@ -156,6 +158,9 @@
         b.classList.remove('is-loading');
         b.removeAttribute('aria-busy');
         delete b.dataset.saving;
+      });
+      document.querySelectorAll('form[data-modal-confirmed="true"]').forEach((f) => {
+        delete f.dataset.modalConfirmed;
       });
     }
 
@@ -401,7 +406,7 @@
       if (e.key === 'Tab' && AppModal.isOpen()) {
         const card = document.querySelector('#app-global-modal .app-modal-card');
         if (!card) return;
-        const focusables = card.querySelectorAll('button:not([disabled]), a[href], textarea:not([disabled]), input:not([disabled]), select:not([disabled])');
+        const focusables = card.querySelectorAll('button:not([disabled]), a[href], a[data-masked-href], textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])');
         if (!focusables.length) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
@@ -510,12 +515,13 @@
     });
   </script>
   <script src="{% static 'web/js/alpine.min.js' %}" defer></script>
-  <script src="{% static 'web/js/jonli.js' %}" defer></script>
+  <script src="{% static 'web/js/jonli.js' %}?v=2" defer></script>
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <!-- Asosiy markaziy aylanuvchi yuklanish indikatori (Center Page Loader) -->
-  <div id="main-page-loader" class="page-loader-overlay is-hidden">
+  <div id="htmx-yuklanish" class="htmx-top-bar htmx-indicator" aria-hidden="true"></div>
+<div id="main-page-loader" class="page-loader-overlay is-hidden">
     <div class="page-loader-spinner-wrap">
       <div class="page-loader-spinner"></div>
       <div class="page-loader-text">Yuklanmoqda...</div>
@@ -525,7 +531,7 @@
   {% if user.is_authenticated %}{% include "web/parts/_navbar.html" %}{% endif %}
   {% if debug_rejim and request.session.dev_asl_foydalanuvchi %}{% include "web/parts/_test_rejimi.html" %}{% endif %}
   <div class="app">
-    {% include "web/parts/_messages.html" %}
+    <div id="app-messages" aria-live="polite">{% include "web/parts/_messages.html" %}</div>
     {% block content %}{% endblock %}
   </div>
   <!-- Global Modal (Tasdiqlash, Sabab kiritish va Jadval qatori tafsilotlari uchun) -->

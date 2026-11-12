@@ -29,10 +29,10 @@
     {% if xato %}<div class="hint" style="color:var(--unassigned);margin:0 0 4px;">{{ xato }}</div>{% endif %}
     {% if satr.tanlanmagan %}
     <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">Variant tanlanmagan</button>
-    <div class="popover" x-show="ochiq" x-cloak>
+    <div class="popover" x-show="ochiq" x-transition x-cloak>
       {% for v in satr.fan.variantlar.all %}
       <button type="button" class="opt"
-              hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}"
+              hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}" hx-indicator="#htmx-yuklanish"
               hx-vals='{"variant": {{ v.pk }}, "yil": {{ yil }}}'
               hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">{{ v.nomi }}</button>
       {% endfor %}
@@ -48,12 +48,12 @@
       <span>Kafedra biriktirish</span>
     </button>
     {% endif %}
-    <div class="popover" x-show="ochiq" x-cloak>
+    <div class="popover" x-show="ochiq" x-transition x-cloak>
       <input type="text" placeholder="Kafedra qidirish" x-model="q">
       {% for k in kafedralar %}
       <button type="button" class="opt"
               x-show="q === '' || $el.textContent.toLowerCase().includes(q.toLowerCase())"
-              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
+              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}" hx-indicator="#htmx-yuklanish"
               hx-vals='{"kafedra": {{ k.pk }}, "yil": {{ yil }}}'
               hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">
         <span class="avatar">{{ k.nomi|bosh_harflar }}</span>{{ k.nomi }}
@@ -61,7 +61,7 @@
       {% endfor %}
       {% if satr.kafedra %}
       <button type="button" class="opt clear"
-              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
+              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}" hx-indicator="#htmx-yuklanish"
               hx-vals='{"kafedra": "", "yil": {{ yil }}}'
               hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">Biriktirishni bekor qilish</button>
       {% endif %}

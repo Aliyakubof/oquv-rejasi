@@ -79,7 +79,7 @@
   {% endif %}
 </div>
 {% include "web/kafedra/_statlar.html" %}
-<div x-data="{ qidiruv: '', faqat_qoldiq: false }">
+<div x-data="{ qidiruv: '', faqat_qoldiq: false, oobSikl: 0 }" @htmx:after-settle.window="oobSikl++">
   <div class="controls" style="justify-content:space-between;margin-bottom:12px;">
     <div class="controls">
       <div class="search">
@@ -114,7 +114,7 @@
         {% include "web/kafedra/_fs_qatori.html" %}
         <tr class="panel-row"
             data-nomi="{{ satr.fan_semestr.variant.nomi|lower }} {{ satr.fan_semestr.variant.kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_nomi|lower }}"
-            x-show="(!faqat_qoldiq || document.getElementById('fs-qator-{{ satr.fan_semestr.pk }}')?.dataset.qoldiq === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))"><td colspan="10" style="padding:0;border-bottom:0;">
+            x-show="(oobSikl >= 0) && (!faqat_qoldiq || document.getElementById('fs-qator-{{ satr.fan_semestr.pk }}')?.dataset.qoldiq === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))"><td colspan="10" style="padding:0;border-bottom:0;">
           <div id="panel-yuk-{{ satr.fan_semestr.pk }}" class="htmx-indicator" style="padding:12px 16px;">
             <div class="skeleton-bar" style="width:32%;height:12px;"></div>
           </div>

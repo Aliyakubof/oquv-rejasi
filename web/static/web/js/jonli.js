@@ -8,6 +8,14 @@
   const INTERVAL_MS = 8000;
   let joriyVersiya = null;
   let sorovKetmoqda = false;
+  let timerId = null;
+
+  function kirishManzili() {
+    return (
+      document.querySelector('meta[name="login-url"]')?.getAttribute("content") ||
+      "/kirish/"
+    );
+  }
 
   function blokBandmi(el) {
     const globalModal = document.getElementById("app-global-modal");
@@ -15,6 +23,9 @@
       return true;
     }
     if (document.querySelector(".table-modal-backdrop")) {
+      return true;
+    }
+    if (el.querySelector('[data-ozgardi="1"]')) {
       return true;
     }
     const aktiv = document.activeElement;
@@ -27,7 +38,8 @@
     }
     const popoverlar = el.querySelectorAll(".popover, .action-menu");
     for (const p of popoverlar) {
-      if (p.offsetParent !== null) return true;
+      const st = window.getComputedStyle(p);
+      if (st.display !== "none" && st.visibility !== "hidden") return true;
     }
     if (el.querySelector("details[open]")) return true;
     const panellar = el.querySelectorAll('[id^="panel-"], [id^="dastur-panel-"]');
@@ -54,6 +66,11 @@
       credentials: "same-origin",
       cache: "no-store",
     });
+    if (javob.status === 401) {
+      if (timerId) clearInterval(timerId);
+      window.location.assign(kirishManzili());
+      return true;
+    }
     if (!javob.ok) return true;
 
     const matn = await javob.text();
@@ -62,6 +79,9 @@
     let ozgarishBor = false;
 
     for (const el of bloklar) {
+      if (el.parentElement && el.parentElement.closest("[data-jonli]")) {
+        continue;
+      }
       const kalit = el.getAttribute("data-jonli");
       const yangiEl = doc.querySelector(`[data-jonli="${kalit}"]`);
       if (!yangiEl) {
@@ -91,6 +111,11 @@
         credentials: "same-origin",
         cache: "no-store",
       });
+      if (javob.status === 401) {
+        if (timerId) clearInterval(timerId);
+        window.location.assign(kirishManzili());
+        return;
+      }
       if (!javob.ok) return;
       const data = await javob.json();
       if (!joriyVersiya) {
@@ -106,9 +131,27 @@
     }
   }
 
+  function ozgarishniBelgilash(event) {
+    const kirit = event.target;
+    if (!kirit || !kirit.matches("input, textarea, select")) return;
+    if (kirit.closest('[data-jonli] form[method="post"], [data-jonli] form[hx-post]')) {
+      kirit.dataset.ozgardi = "1";
+    }
+  }
+
+  function belgilarniTozalash(scope) {
+    (scope || document).querySelectorAll('[data-ozgardi="1"]').forEach((el) => {
+      delete el.dataset.ozgardi;
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     tekshir();
-    setInterval(tekshir, INTERVAL_MS);
+    timerId = setInterval(tekshir, INTERVAL_MS);
+    document.body.addEventListener("input", ozgarishniBelgilash);
+    document.body.addEventListener("change", ozgarishniBelgilash);
+    document.body.addEventListener("submit", (e) => belgilarniTozalash(e.target));
+    document.body.addEventListener("htmx:afterSwap", (e) => belgilarniTozalash(e.target));
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") tekshir();
     });

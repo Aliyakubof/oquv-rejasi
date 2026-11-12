@@ -1,5 +1,5 @@
 {% load ui %}
-<div class="popover popover-kafedra" x-show="ochiq" x-cloak
+<div class="popover popover-kafedra" x-show="ochiq" x-transition x-cloak
      x-data="{ faqatKamomad: false }"
      x-effect="if (ochiq) { $nextTick(() => $refs.qidiruvInput?.focus()); }">
   {% if bulk_mode %}
@@ -22,7 +22,7 @@
     {% for profil in oqituvchilar %}
     <button type="button" class="opt"
             x-show="(!faqatKamomad || {{ profil.kamomad|yesno:'true,false' }}) && (q === '' || $el.textContent.toLowerCase().includes(q.toLowerCase()))"
-            hx-post="{% url url_nomi fs.pk %}"
+            hx-post="{% url url_nomi fs.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
             {% if bulk_mode %}
             hx-vals='{"oqituvchi": {{ profil.pk }}, "tur": "{{ holat_tur }}"}'
             {% elif slot_guruh %}

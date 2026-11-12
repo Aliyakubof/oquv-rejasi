@@ -1,10 +1,14 @@
-<nav class="navbar">
+<nav class="navbar" x-data="{ menyuOchiq: false }" @keydown.escape.window="menyuOchiq = false">
   <div class="navbar-inner">
     <a class="brand" href="{% url 'bosh_sahifa' %}">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.95;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
       O'quv yuklamasi
     </a>
-    <div class="navbar-nav">
+    <button type="button" class="navbar-toggle" @click="menyuOchiq = !menyuOchiq" :aria-expanded="menyuOchiq.toString()" aria-label="Menyuni ochish">
+      <svg x-show="!menyuOchiq" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <svg x-show="menyuOchiq" x-cloak width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="navbar-nav" :class="menyuOchiq && 'ochiq'" @click="if ($event.target.closest('a')) menyuOchiq = false">
       {% if user.is_office_admin or user.is_superadmin %}
         <a class="nav-link {% if request.resolver_match.view_name == 'office:dashboard' %}active{% endif %}" href="{% url 'office:dashboard' %}">Boshqaruv paneli</a>
         <a class="nav-link {% if 'reja' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'office:reja_list' %}">O'quv rejalar</a>
@@ -22,7 +26,7 @@
         <a class="nav-link {% if request.resolver_match.view_name == 'men:yuklamalar' %}active{% endif %}" href="{% url 'men:yuklamalar' %}">Mening yuklamam</a>
       {% endif %}
     </div>
-    <div class="navbar-actions">
+    <div class="navbar-actions" :class="menyuOchiq && 'ochiq'">
       {% if debug_rejim %}
         {% include "web/parts/_rol_almashtirgich.html" %}
       {% else %}

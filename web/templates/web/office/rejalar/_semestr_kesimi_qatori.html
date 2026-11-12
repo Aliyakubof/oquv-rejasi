@@ -25,14 +25,14 @@
     <span class="muted">—</span>
     {% endif %}
   </td>
-  <td class="col-kafedra assign-cell cell-relative" x-data="{ ochiq_k: false, q_k: '' }" @click.outside="ochiq_k = false">
+  <td class="col-kafedra assign-cell cell-relative" x-data="{ ochiq_k: false, q_k: '' }" @click.outside="ochiq_k = false" @keydown.escape.window="ochiq_k = false">
     {% if satr.tanlanmagan %}
     <button type="button" class="teacher-chip empty" @click="ochiq_k = !ochiq_k">Variant tanlanmagan</button>
-    <div class="popover" x-show="ochiq_k" x-cloak>
+    <div class="popover" x-show="ochiq_k" x-transition x-cloak>
       {% for v in satr.fan.variantlar.all %}
       <form method="post" action="{% url 'office:variant_tanlash' satr.fan.pk %}"
             hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}"
-            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-swap="outerHTML">
+            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish">
         {% csrf_token %}
         <input type="hidden" name="variant" value="{{ v.pk }}">
         <input type="hidden" name="redirect" value="{% url 'office:reja_detail' reja.pk %}?tab=semestr&sem={{ s }}">
@@ -52,12 +52,12 @@
       <span>Kafedra biriktirish</span>
     </button>
     {% endif %}
-    <div class="popover" x-show="ochiq_k" x-cloak>
+    <div class="popover" x-show="ochiq_k" x-transition x-cloak>
       <input type="text" placeholder="Kafedra qidirish" x-model="q_k">
       {% for k in kafedralar %}
       <form method="post" action="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
             hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
-            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-swap="outerHTML"
+            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish"
             x-show="q_k === '' || $el.textContent.toLowerCase().includes(q_k.toLowerCase())">
         {% csrf_token %}
         <input type="hidden" name="kafedra" value="{{ k.pk }}">
@@ -68,7 +68,7 @@
       {% if satr.kafedra %}
       <form method="post" action="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
             hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
-            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-swap="outerHTML">
+            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish">
         {% csrf_token %}
         <input type="hidden" name="kafedra" value="">
         <input type="hidden" name="redirect" value="{% url 'office:reja_detail' reja.pk %}?tab=semestr&sem={{ s }}">
@@ -78,13 +78,13 @@
     </div>
     {% endif %}
   </td>
-  <td class="col-oqituvchi assign-cell cell-relative" x-data="{ ochiq_o: false }" @click.outside="ochiq_o = false">
+  <td class="col-oqituvchi assign-cell cell-relative" x-data="{ ochiq_o: false }" @click.outside="ochiq_o = false" @keydown.escape.window="ochiq_o = false">
     {% if satr.taqsimlangan %}
     <button type="button" class="teacher-chip status ok" @click="ochiq_o = !ochiq_o">Taqsimlangan</button>
     {% else %}
     <button type="button" class="teacher-chip status warn" @click="ochiq_o = !ochiq_o">Taqsimlanmagan</button>
     {% endif %}
-    <div class="popover" x-show="ochiq_o" x-cloak>
+    <div class="popover" x-show="ochiq_o" x-transition x-cloak>
       {% for y in satr.yuklamalar %}
       <div class="opt" style="cursor:default;">{{ y.tur_matni }}: {{ y.oqituvchi }}{% if y.guruh %} ({{ y.guruh.nomi }}){% endif %}</div>
       {% empty %}

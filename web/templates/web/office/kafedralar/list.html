@@ -62,7 +62,7 @@
               <span>Mudir tayinlash</span>
             </button>
             {% endif %}
-            <div class="popover" x-show="ochiq" x-cloak>
+            <div class="popover" x-show="ochiq" x-transition x-cloak>
               {% if q.kafedra.oqituvchilar.all %}
               <input type="text" placeholder="O'qituvchi qidirish" aria-label="O'qituvchi qidirish" x-model="q_m">
               {% endif %}

@@ -51,7 +51,7 @@
           <span class="chip-label">{{ holat.maruza_yuklama.oqituvchi }} · {{ holat.maruza_yuklama.soat }} soat</span>
           {% if not qulflangan %}
           <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
-                  hx-post="{% url 'kafedra:yuklama_ochirish' holat.maruza_yuklama.pk %}"
+                  hx-post="{% url 'kafedra:yuklama_ochirish' holat.maruza_yuklama.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                   hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -90,7 +90,7 @@
           {% if holat.taqsimlangan_soat > 0 %}
           <button type="button" class="btn btn-sm" style="height:28px;font-size:11.5px;padding:0 8px;color:var(--danger, #ef4444);background:none;border:1px solid transparent;display:inline-flex;align-items:center;gap:4px;"
                   title="Ushbu mashg'ulot bo'yicha barcha guruhlar taqsimotini tozalash"
-                  hx-post="{% url 'kafedra:guruhlarni_tozalash' fs.pk %}"
+                  hx-post="{% url 'kafedra:guruhlarni_tozalash' fs.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                   hx-vals='{"tur": "{{ holat.tur }}"}'
                   hx-confirm="Haqiqatan ham {{ holat.tur_nomi }} bo'yicha barcha guruhlar taqsimotini bekor qilmoqchimisiz?"
                   hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
@@ -115,7 +115,7 @@
             <span class="chip-label">{{ slot.yuklama.oqituvchi }}</span>
             {% if not qulflangan %}
             <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
-                    hx-post="{% url 'kafedra:yuklama_ochirish' slot.yuklama.pk %}"
+                    hx-post="{% url 'kafedra:yuklama_ochirish' slot.yuklama.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                     hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -147,7 +147,7 @@
             <span class="chip-label">{{ yuklama.oqituvchi }} · {{ yuklama.talabalar_soni }} talaba · {{ yuklama.soat }} soat</span>
             {% if not qulflangan %}
             <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
-                    hx-post="{% url 'kafedra:yuklama_ochirish' yuklama.pk %}"
+                    hx-post="{% url 'kafedra:yuklama_ochirish' yuklama.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                     hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -161,7 +161,7 @@
         {% else %}
         <div class="credits" style="margin:2px 0 8px;">Qolgan talabalar: <strong>{{ holat.qolgan_talabalar }}</strong> (1 talaba = 2 soat)</div>
         {% if holat.qolgan_talabalar > 0 and not qulflangan %}
-        <form hx-post="{% url 'kafedra:kurs_ishi_yaratish' fs.pk %}" hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML"
+        <form method="post" hx-post="{% url 'kafedra:kurs_ishi_yaratish' fs.pk %}" hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-indicator="#panel-yuk-{{ fs.pk }}"
               class="controls" style="align-items:center;">
           <select name="oqituvchi" aria-label="O'qituvchi" required style="height:38px;">
             <option value="">O'qituvchi tanlang</option>

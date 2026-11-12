@@ -17,19 +17,16 @@
   <div class="form-errors">{{ xato }}</div>
   {% endif %}
   {% include "web/dastur/_tarix_royxati.html" with urinishlar=urinishlar fayl_url_nomi="office:dastur_fayl" %}
-  {% if t %}
+  {% if t and t.holat == "KUTILMOQDA" %}
   <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-    {% if t.holat != "QABUL_QILINDI" %}
-    <form hx-post="{% url 'office:dastur_qabul' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML">
+    <form method="post" hx-post="{% url 'office:dastur_qabul' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish">
       {% csrf_token %}
       <button type="submit" class="btn btn-primary">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
         <span>Qabul qilish</span>
       </button>
     </form>
-    {% endif %}
-    {% if t.holat != "RAD_ETILDI" %}
-    <form hx-post="{% url 'office:dastur_rad' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML"
+    <form method="post" hx-post="{% url 'office:dastur_rad' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
           data-modal-title="O'quv dasturini rad etish"
           data-modal-subtitle="{{ variant.nomi }} — {{ t.oqituvchi }}"
           data-modal-prompt="Rad etish sababi"
@@ -45,7 +42,6 @@
         <span>Rad etish</span>
       </button>
     </form>
-    {% endif %}
   </div>
   {% endif %}
 </div>

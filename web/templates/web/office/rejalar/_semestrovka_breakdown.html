@@ -3,7 +3,7 @@ semester of each course. Ma'ruza/Amaliyot/Lab/Seminar hours and the kurs-ishi
 flag are editable; weekly hours and credits stay as parsed.{% endcomment %}
 <form method="post" action="{% url 'office:semestrovka_saqlash' reja.pk %}"
       hx-post="{% url 'office:semestrovka_saqlash' reja.pk %}"
-      hx-target="#reja-jonli" hx-select="#reja-jonli" hx-swap="outerHTML">
+      hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish">
   {% csrf_token %}
   <div class="controls"
     style="justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#f8fafc;">
@@ -29,27 +29,27 @@ flag are editable; weekly hours and credits stay as parsed.{% endcomment %}
       </tr>
     </thead>
     <tbody x-data="{ majburiy: true, tanlov: true }">
-      <tr class="group-row" :class="!majburiy && 'collapsed'" @click="majburiy = !majburiy">
+      <tr class="group-row" :class="!majburiy && 'collapsed'">
         <td colspan="12">
-          <span class="toggle">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button type="button" class="group-toggle-btn" @click="majburiy = !majburiy" :aria-expanded="majburiy.toString()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M6 9l6 6 6-6" />
             </svg>
-            Majburiy fanlar <span class="group-count">({{ majburiy_satrlar|length }} ta fan)</span>
-          </span>
+            <span>Majburiy fanlar <span class="group-count">({{ majburiy_satrlar|length }} ta fan)</span></span>
+          </button>
         </td>
       </tr>
       {% for satr in majburiy_satrlar %}
       {% include "web/office/rejalar/_semestrovka_breakdown_qatori.html" with guruh_flag="majburiy" %}
       {% endfor %}
-      <tr class="group-row" :class="!tanlov && 'collapsed'" @click="tanlov = !tanlov">
+      <tr class="group-row" :class="!tanlov && 'collapsed'">
         <td colspan="12">
-          <span class="toggle">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button type="button" class="group-toggle-btn" @click="tanlov = !tanlov" :aria-expanded="tanlov.toString()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M6 9l6 6 6-6" />
             </svg>
-            Tanlov fanlari <span class="group-count">({{ tanlov_satrlar|length }} ta fan)</span>
-          </span>
+            <span>Tanlov fanlari <span class="group-count">({{ tanlov_satrlar|length }} ta fan)</span></span>
+          </button>
         </td>
       </tr>
       {% for satr in tanlov_satrlar %}
