@@ -72,36 +72,13 @@ def _tanlov_qatorlari(
     return lines
 
 
-def build_markdown(
-    title: str,
-    start_year: str,
-    degree: str,
-    duration: str,
-    edu_type: str,
+def _majburiy_qatorlar(
     core_courses: list[Course],
-    selective_slots: list[SelectiveSlot] | None = None,
-) -> str:
-    all_items = list(core_courses) + list(selective_slots or [])
-    active_semesters = sorted(
-        {sem for item in all_items for sem in item.semester_credits}
-        | {sem for item in all_items for sem in item.semester_weekly_hours}
-    )
-
-    lines = [f"# Oquv Reja: {title}", ""]
-    if degree:
-        lines.append(f"**Akademik daraja:** {degree}")
-    if duration:
-        lines.append(f"**O'qish muddati:** {duration}")
-    if edu_type:
-        lines.append(f"**Ta'lim shakli:** {edu_type}")
-    if degree or duration or edu_type:
-        lines.append("")
-    lines.append("## Majburiy Fanlar (Core Courses)")
-    lines.append("")
-
-    header, separator = _jadval_sarlavhasi(active_semesters)
-    lines.extend([header, separator])
-
+    active_semesters: list[int],
+    header: str,
+    separator: str,
+) -> list[str]:
+    lines = ["## Majburiy Fanlar (Core Courses)", "", header, separator]
     for course in core_courses:
         cells = [
             course.num,
@@ -112,12 +89,42 @@ def build_markdown(
             *breakdown_cells(course),
         ]
         lines.append(md_row(cells, _sem_cells(course, active_semesters)))
+    return lines
 
+
+def build_markdown(
+    title: str,
+    start_year: str,
+    degree: str,
+    duration: str,
+    edu_type: str,
+    core_courses: list[Course],
+    selective_slots: list[SelectiveSlot] | None = None,
+) -> str:
+    """Render parsed curriculum data into a Markdown document."""
+    all_items = list(core_courses) + list(selective_slots or [])
+    active_semesters = sorted(
+        {sem for item in all_items for sem in item.semester_credits}
+        | {sem for item in all_items for sem in item.semester_weekly_hours}
+    )
+
+    lines = [f"# Oquv Reja: {title}", ""]
+    for yorliq, qiymat in (
+        ("Akademik daraja", degree),
+        ("O'qish muddati", duration),
+        ("Ta'lim shakli", edu_type),
+    ):
+        if qiymat:
+            lines.append(f"**{yorliq}:** {qiymat}")
+    if degree or duration or edu_type:
+        lines.append("")
+
+    header, separator = _jadval_sarlavhasi(active_semesters)
+    lines.extend(_majburiy_qatorlar(core_courses, active_semesters, header, separator))
     if selective_slots:
         lines.extend(
             _tanlov_qatorlari(selective_slots, active_semesters, header, separator)
         )
-
     lines.append("")
     if start_year:
         lines.extend(["---", f"**O'quv yili:** {start_year}", ""])
