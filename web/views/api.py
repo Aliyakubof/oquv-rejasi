@@ -1,8 +1,9 @@
 import json
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.middleware.csrf import CsrfViewMiddleware
 from django.utils.crypto import constant_time_compare
@@ -14,12 +15,13 @@ from accounts.models import Department, OqituvchiProfil
 from plans.audit import audit_yoz
 from plans.models import (
     AuditAmali,
+    FanSemestr,
     KafedraTasdiqHolati,
     KafedraYuklamaTasdiq,
     OquvReja,
     Yuklama,
 )
-from plans.services import guruhlarni_sinxronlash
+from plans.services import eng_kop_kurs_ishi_talabasi, guruhlarni_sinxronlash
 
 _XAVFSIZ_METODLAR = ("GET", "HEAD", "OPTIONS", "TRACE")
 
@@ -43,6 +45,7 @@ def check_api_auth(request: HttpRequest) -> bool:
         return True
     if not (
         request.user.is_authenticated
+        and request.user.is_active
         and (
             request.user.is_staff
             or getattr(request.user, "is_office_admin", False)
@@ -78,16 +81,31 @@ class BaseApiView(View):
         return super().dispatch(request, *args, **kwargs)
 
 
+def _sorov_int_yoki_xato(
+    request: HttpRequest, nomi: str
+) -> tuple[int | None, JsonResponse | None]:
+    xom = request.GET.get(nomi)
+    if not xom:
+        return None, None
+    if not (xom.isascii() and xom.isdigit()):
+        return None, JsonResponse(
+            {"xato": f"'{nomi}' musbat butun son bo'lishi kerak."}, status=400
+        )
+    return int(xom), None
+
+
 class RejalarApiView(BaseApiView):
     """GET /api/v1/rejalar/ - Return list of curricula."""
 
     def get(self, request: HttpRequest) -> JsonResponse:
-        boshlanish_yili = request.GET.get("yil")
+        yil, xato = _sorov_int_yoki_xato(request, "yil")
+        if xato is not None:
+            return xato
         qs = OquvReja.objects.annotate(fanlar_soni=Count("fanlar")).order_by(
             "-boshlanish_yili", "yonalish_kodi"
         )
-        if boshlanish_yili and boshlanish_yili.isdigit():
-            qs = qs.filter(boshlanish_yili=int(boshlanish_yili))
+        if yil is not None:
+            qs = qs.filter(boshlanish_yili=yil)
 
         results = []
         for r in qs:
@@ -142,14 +160,17 @@ class OqituvchilarApiView(BaseApiView):
     """GET /api/v1/oqituvchilar/ - Return teachers and workload stats."""
 
     def get(self, request: HttpRequest) -> JsonResponse:
-        kafedra_id = request.GET.get("kafedra_id")
+        kafedra_id, xato = _sorov_int_yoki_xato(request, "kafedra_id")
+        if xato is not None:
+            return xato
         qs = (
             OqituvchiProfil.objects.toliq()
+            .filter(foydalanuvchi__is_active=True)
             .annotate(jami_yuklama_soat=Sum("yuklamalar__soat"))
             .order_by("foydalanuvchi__last_name", "foydalanuvchi__first_name")
         )
-        if kafedra_id and kafedra_id.isdigit():
-            qs = qs.filter(kafedra_id=int(kafedra_id))
+        if kafedra_id is not None:
+            qs = qs.filter(kafedra_id=kafedra_id)
 
         results = []
         for p in qs:
@@ -168,13 +189,38 @@ class OqituvchilarApiView(BaseApiView):
         return JsonResponse({"count": len(results), "results": results})
 
 
+def _yuklama_dict(y: Yuklama) -> dict[str, object]:
+    variant = y.fan_semestr.variant
+    reja = variant.fan.reja
+    return {
+        "id": y.id,
+        "reja_id": reja.id,
+        "reja_nomi": reja.yonalish_nomi,
+        "reja_kodi": reja.yonalish_kodi,
+        "fan_nomi": variant.nomi,
+        "fan_kodi": variant.kodi,
+        "semestr": y.fan_semestr.semestr,
+        "akademik_yil": y.fan_semestr.akademik_yil,
+        "tur": y.tur,
+        "tur_nomi": y.get_tur_display(),
+        "oqituvchi_id": y.oqituvchi_id,
+        "oqituvchi": y.oqituvchi.foydalanuvchi.get_full_name(),
+        "guruh": y.guruh.nomi if y.guruh else None,
+        "talabalar_soni": y.talabalar_soni,
+        "soat": y.soat,
+    }
+
+
 class YuklamalarApiView(BaseApiView):
     """GET /api/v1/yuklamalar/ - Return delegated course workloads."""
 
     def get(self, request: HttpRequest) -> JsonResponse:
-        yil = request.GET.get("yil")
-        kafedra_id = request.GET.get("kafedra_id")
-        oqituvchi_id = request.GET.get("oqituvchi_id")
+        paramlar: dict[str, int | None] = {}
+        for nomi in ("yil", "kafedra_id", "oqituvchi_id"):
+            qiymat, xato = _sorov_int_yoki_xato(request, nomi)
+            if xato is not None:
+                return xato
+            paramlar[nomi] = qiymat
 
         qs = Yuklama.objects.select_related(
             "fan_semestr__variant__fan__reja",
@@ -183,36 +229,14 @@ class YuklamalarApiView(BaseApiView):
             "guruh",
         ).order_by("fan_semestr__variant__nomi", "tur")
 
-        if kafedra_id and kafedra_id.isdigit():
-            qs = qs.filter(fan_semestr__variant__kafedra_id=int(kafedra_id))
-        if oqituvchi_id and oqituvchi_id.isdigit():
-            qs = qs.filter(oqituvchi_id=int(oqituvchi_id))
-        if yil and yil.isdigit():
-            qs = qs.akademik_yilda(int(yil))
+        if paramlar["kafedra_id"] is not None:
+            qs = qs.filter(fan_semestr__variant__kafedra_id=paramlar["kafedra_id"])
+        if paramlar["oqituvchi_id"] is not None:
+            qs = qs.filter(oqituvchi_id=paramlar["oqituvchi_id"])
+        if paramlar["yil"] is not None:
+            qs = qs.akademik_yilda(paramlar["yil"])
 
-        results = []
-        for y in qs:
-            variant = y.fan_semestr.variant
-            reja = variant.fan.reja
-            results.append(
-                {
-                    "id": y.id,
-                    "reja_id": reja.id,
-                    "reja_nomi": reja.yonalish_nomi,
-                    "reja_kodi": reja.yonalish_kodi,
-                    "fan_nomi": variant.nomi,
-                    "fan_kodi": variant.kodi,
-                    "semestr": y.fan_semestr.semestr,
-                    "akademik_yil": y.fan_semestr.akademik_yil,
-                    "tur": y.tur,
-                    "tur_nomi": y.get_tur_display(),
-                    "oqituvchi_id": y.oqituvchi_id,
-                    "oqituvchi": y.oqituvchi.foydalanuvchi.get_full_name(),
-                    "guruh": y.guruh.nomi if y.guruh else None,
-                    "talabalar_soni": y.talabalar_soni,
-                    "soat": y.soat,
-                }
-            )
+        results = [_yuklama_dict(y) for y in qs]
         return JsonResponse({"count": len(results), "results": results})
 
 
@@ -223,35 +247,81 @@ def _sync_elementlarni_oqish(
         data = json.loads(request.body.decode("utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError):
         return None, JsonResponse({"xato": "Noto'g'ri JSON formati."}, status=400)
+    elementlar: object
     if isinstance(data, list):
-        return [x for x in data if isinstance(x, dict)], None
-    if isinstance(data, dict):
-        xom = data.get("rejalar", [data])
-        if isinstance(xom, list):
-            return [x for x in xom if isinstance(x, dict)], None
-    return None, JsonResponse(
-        {"xato": "JSON ro'yxat yoki obyekt bo'lishi kerak."}, status=400
-    )
+        elementlar = data
+    elif isinstance(data, dict):
+        elementlar = data["rejalar"] if "rejalar" in data else [data]
+    else:
+        return None, JsonResponse(
+            {"xato": "JSON ro'yxat yoki obyekt bo'lishi kerak."}, status=400
+        )
+    if not isinstance(elementlar, list) or not all(
+        isinstance(x, dict) for x in elementlar
+    ):
+        return None, JsonResponse(
+            {"xato": "Har bir element JSON obyekt bo'lishi kerak."}, status=400
+        )
+    return elementlar, None
+
+
+def _butun_son_oqish(
+    item: dict[str, object], maydon: str, *, min_qiymat: int = 1
+) -> int | None:
+    if maydon not in item or item[maydon] is None:
+        return None
+    xom = item[maydon]
+    if isinstance(xom, bool):
+        raise ValueError(f"{maydon} butun son bo'lishi kerak")
+    if isinstance(xom, int):
+        qiymat = xom
+    elif isinstance(xom, str) and xom.strip().isascii() and xom.strip().isdigit():
+        qiymat = int(xom.strip())
+    else:
+        raise ValueError(f"{maydon} butun son bo'lishi kerak")
+    if qiymat < min_qiymat:
+        raise ValueError(f"{maydon} kamida {min_qiymat} bo'lishi kerak")
+    return qiymat
 
 
 def _sync_rejani_top(item: dict[str, object]) -> OquvReja | None:
-    reja_id = item.get("id") or item.get("reja_id")
-    if reja_id:
-        return OquvReja.objects.filter(id=reja_id).first()
+    reja_id = _butun_son_oqish(item, "id") or _butun_son_oqish(item, "reja_id")
+    if reja_id is not None:
+        return OquvReja.objects.select_for_update().filter(id=reja_id).first()
     if "yonalish_kodi" in item and "boshlanish_yili" in item:
+        kod = item["yonalish_kodi"]
+        if not isinstance(kod, str) or not kod.strip():
+            raise ValueError("yonalish_kodi matn bo'lishi kerak")
+        yil = _butun_son_oqish(item, "boshlanish_yili", min_qiymat=1900)
         filtr: dict[str, object] = {
-            "yonalish_kodi": item["yonalish_kodi"],
-            "boshlanish_yili": item["boshlanish_yili"],
+            "yonalish_kodi": kod.strip(),
+            "boshlanish_yili": yil,
         }
         if item.get("talim_shakli"):
-            filtr["talim_shakli"] = item["talim_shakli"]
-        return OquvReja.objects.filter(**filtr).first()
+            if not isinstance(item["talim_shakli"], str):
+                raise ValueError("talim_shakli matn bo'lishi kerak")
+            filtr["talim_shakli"] = item["talim_shakli"].strip()
+        return OquvReja.objects.select_for_update().filter(**filtr).first()
     return None
 
 
 def _reja_qulflanganmi(reja: OquvReja) -> bool:
+    fslar = (
+        FanSemestr.objects.reja_uchun(reja)
+        .filter(variant__kafedra__isnull=False)
+        .values_list("variant__kafedra_id", "semestr")
+    )
+    juftlar = {
+        (kafedra_id, reja.boshlanish_yili + (semestr - 1) // 2)
+        for kafedra_id, semestr in fslar
+    }
+    if not juftlar:
+        return False
+    shart = Q()
+    for kafedra_id, yil in juftlar:
+        shart |= Q(kafedra_id=kafedra_id, akademik_yil=yil)
     return KafedraYuklamaTasdiq.objects.filter(
-        kafedra__fanlar__fan__reja=reja,
+        shart,
         holat__in=(
             KafedraTasdiqHolati.TASDIQDA,
             KafedraTasdiqHolati.TASDIQLANGAN,
@@ -259,20 +329,11 @@ def _reja_qulflanganmi(reja: OquvReja) -> bool:
     ).exists()
 
 
-def _musbat_son_oqish(item: dict[str, object], maydon: str) -> int | None:
-    if maydon not in item or item[maydon] is None:
-        return None
-    qiymat = int(str(item[maydon]))
-    if qiymat < 0:
-        raise ValueError(f"{maydon} manfiy bo'lishi mumkin emas")
-    return qiymat
-
-
 def _sync_rejani_yangila(
     reja: OquvReja, item: dict[str, object]
 ) -> dict[str, object] | None:
-    talabalar = _musbat_son_oqish(item, "talabalar_soni")
-    guruhlar = _musbat_son_oqish(item, "guruhlar_soni")
+    talabalar = _butun_son_oqish(item, "talabalar_soni", min_qiymat=1)
+    guruhlar = _butun_son_oqish(item, "guruhlar_soni", min_qiymat=1)
     ozgardi = False
     if talabalar is not None and reja.talabalar_soni != talabalar:
         reja.talabalar_soni = talabalar
@@ -281,7 +342,9 @@ def _sync_rejani_yangila(
         reja.guruhlar_soni = guruhlar
         ozgardi = True
     if "guruh_prefiksi" in item and item["guruh_prefiksi"] is not None:
-        prefiks = str(item["guruh_prefiksi"]).strip()
+        if not isinstance(item["guruh_prefiksi"], str):
+            raise ValueError("guruh_prefiksi matn bo'lishi kerak")
+        prefiks = item["guruh_prefiksi"].strip()
         if reja.guruh_prefiksi != prefiks:
             reja.guruh_prefiksi = prefiks
             ozgardi = True
@@ -289,6 +352,11 @@ def _sync_rejani_yangila(
         return None
     if _reja_qulflanganmi(reja):
         raise ValueError("tasdiqlangan kafedra yuklamasi qulflangan")
+    if talabalar is not None:
+        eng_kop = eng_kop_kurs_ishi_talabasi(reja)
+        if eng_kop and reja.talabalar_soni < eng_kop:
+            raise ValueError(f"kurs ishiga allaqachon {eng_kop} ta talaba taqsimlangan")
+    reja.full_clean()
     reja.save()
     guruhlarni_sinxronlash(reja)
     return {
@@ -315,13 +383,14 @@ class HemisSyncApiView(BaseApiView):
 
         with transaction.atomic():
             for item in items:
-                reja = _sync_rejani_top(item)
-                if reja is None:
-                    xatolar.append(f"O'quv reja topilmadi: {item}")
-                    continue
                 try:
-                    natija = _sync_rejani_yangila(reja, item)
-                except (ValueError, TypeError) as err:
+                    with transaction.atomic():
+                        reja = _sync_rejani_top(item)
+                        if reja is None:
+                            xatolar.append(f"O'quv reja topilmadi: {item}")
+                            continue
+                        natija = _sync_rejani_yangila(reja, item)
+                except (ValueError, TypeError, ValidationError) as err:
                     xatolar.append(f"Xatolik ({err}): {item}")
                     continue
                 if natija is not None:

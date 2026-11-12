@@ -64,12 +64,14 @@ class OqituvchiTuriAdmin(admin.ModelAdmin):
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
     list_display = ("nomi", "mudir")
+    list_select_related = ("mudir__foydalanuvchi",)
 
 
 @admin.register(OqituvchiProfil)
 class OqituvchiProfilAdmin(admin.ModelAdmin):
     list_display = ("foydalanuvchi", "kafedra", "turi")
     list_filter = ("kafedra", "turi")
+    list_select_related = ("foydalanuvchi", "kafedra", "turi")
     # Required for autocomplete_fields pointing here (plans.Yuklama.oqituvchi).
     search_fields = (
         "foydalanuvchi__first_name",

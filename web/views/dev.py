@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 from django.http import Http404, HttpRequest, HttpResponse
@@ -43,9 +44,24 @@ def debug_talab(view: Callable[..., HttpResponse]) -> Callable[..., HttpResponse
     return wrapper
 
 
-@login_required
+def _dev_ruxsatmi(request: HttpRequest) -> bool:
+    if request.user.rol in (Rol.OFFICE_ADMIN, Rol.SUPERADMIN):
+        return True
+    asl_pk = request.session.get(ASL_KEY)
+    if asl_pk is None:
+        return False
+    return Foydalanuvchi.objects.filter(
+        pk=asl_pk,
+        is_active=True,
+        rol__in=(Rol.OFFICE_ADMIN, Rol.SUPERADMIN),
+    ).exists()
+
+
 @debug_talab
+@login_required
 def rol_paneli(request: HttpRequest) -> HttpResponse:
+    if not _dev_ruxsatmi(request):
+        raise PermissionDenied
     return render(
         request,
         "web/parts/_rol_royxati.html",
@@ -57,13 +73,16 @@ def rol_paneli(request: HttpRequest) -> HttpResponse:
     )
 
 
+@debug_talab
 @require_POST
 @login_required
-@debug_talab
 def rol_almashtirish(request: HttpRequest) -> HttpResponse:
-    nishon = get_object_or_404(
-        Foydalanuvchi, pk=request.POST.get("foydalanuvchi"), is_active=True
-    )
+    if not _dev_ruxsatmi(request):
+        raise PermissionDenied
+    xom_pk = request.POST.get("foydalanuvchi", "")
+    if not (xom_pk.isascii() and xom_pk.isdigit()):
+        raise Http404
+    nishon = get_object_or_404(Foydalanuvchi, pk=int(xom_pk), is_active=True)
     asl_pk = request.session.get(ASL_KEY, request.user.pk)
 
     login(request, nishon, backend=BACKEND)
@@ -76,9 +95,9 @@ def rol_almashtirish(request: HttpRequest) -> HttpResponse:
     return redirect("bosh_sahifa")
 
 
+@debug_talab
 @require_POST
 @login_required
-@debug_talab
 def asl_hisobga_qaytish(request: HttpRequest) -> HttpResponse:
     asl_pk = request.session.get(ASL_KEY)
     if asl_pk is None:
@@ -86,6 +105,7 @@ def asl_hisobga_qaytish(request: HttpRequest) -> HttpResponse:
 
     asl = get_object_or_404(Foydalanuvchi, pk=asl_pk, is_active=True)
     login(request, asl, backend=BACKEND)
+    request.session.pop(ASL_KEY, None)
     messages.success(request, "Asl hisobingizga qaytdingiz.")
     return redirect("bosh_sahifa")
 
