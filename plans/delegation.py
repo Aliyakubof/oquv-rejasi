@@ -106,9 +106,17 @@ class FsSatri:
         )
 
 
-def kafedra_fs_satrlari(kafedra: Department, akademik_yil: int) -> list[FsSatri]:
+def kafedra_fs_satrlari(
+    kafedra: Department,
+    akademik_yil: int,
+    *,
+    taqsimot: list[TalabSatri] | None = None,
+) -> list[FsSatri]:
     guruhlangan: dict[int, dict[str, TalabSatri]] = defaultdict(dict)
-    for satr in kafedra_taqsimoti(kafedra, akademik_yil):
+    satr_manbasi = (
+        taqsimot if taqsimot is not None else kafedra_taqsimoti(kafedra, akademik_yil)
+    )
+    for satr in satr_manbasi:
         guruhlangan[satr.fan_semestr.pk][satr.tur] = satr
     satrlar = [
         FsSatri(next(iter(turlar.values())).fan_semestr, turlar)

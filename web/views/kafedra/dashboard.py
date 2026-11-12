@@ -26,18 +26,17 @@ class KafedraDashboardView(KafedraMudiriTalabMixin, YilTanlovMixin, TemplateView
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        tasdiq = services.kafedra_tasdiq_holati(self.kafedra, self.yil)
+        tasdiq = services.kafedra_tasdiq_oqish(self.kafedra, self.yil)
+        taqsimot = services.kafedra_taqsimoti(self.kafedra, self.yil)
         context.update(
             {
                 "kafedra": self.kafedra,
                 "tasdiq": tasdiq,
-                "qulflangan": services.kafedra_yuklama_qulflanganmi(
-                    self.kafedra, self.yil
+                "qulflangan": services.tasdiq_qulflanganmi(tasdiq),
+                "stat": dashboard.statlarni_hisoblash(taqsimot),
+                "fs_satrlar": delegation.kafedra_fs_satrlari(
+                    self.kafedra, self.yil, taqsimot=taqsimot
                 ),
-                "stat": dashboard.statlarni_hisoblash(
-                    services.kafedra_taqsimoti(self.kafedra, self.yil)
-                ),
-                "fs_satrlar": delegation.kafedra_fs_satrlari(self.kafedra, self.yil),
             }
         )
         return context

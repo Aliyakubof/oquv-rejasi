@@ -3,7 +3,7 @@
 from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView
 
-from accounts.models import OqituvchiProfil
+from accounts.models import OqituvchiProfil, Rol
 from plans import services
 from web.forms.oqituvchi import (
     KafedraOqituvchiTahrirForm,
@@ -63,8 +63,7 @@ class KafedraOqituvchiTahrirView(KafedraMudiriTalabMixin, OqituvchiTahrirAsosVie
     success_url_name = "kafedra:oqituvchi_list"
 
     def profil_olish(self) -> OqituvchiProfil:
-        return get_object_or_404(
-            OqituvchiProfil.objects.bilan_foydalanuvchi(),
-            pk=self.kwargs["pk"],
-            kafedra=self.kafedra,
-        )
+        qs = OqituvchiProfil.objects.bilan_foydalanuvchi().filter(kafedra=self.kafedra)
+        if self.request.user.rol != Rol.SUPERADMIN:
+            qs = qs.exclude(foydalanuvchi__rol__in=(Rol.OFFICE_ADMIN, Rol.SUPERADMIN))
+        return get_object_or_404(qs, pk=self.kwargs["pk"])

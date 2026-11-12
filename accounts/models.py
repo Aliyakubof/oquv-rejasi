@@ -53,8 +53,8 @@ class Foydalanuvchi(AbstractBaseUser, PermissionsMixin):
     )
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
-    rol = models.CharField(max_length=20, choices=Rol.choices)
-    is_active = models.BooleanField(default=True)
+    rol = models.CharField(max_length=20, choices=Rol.choices, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
 

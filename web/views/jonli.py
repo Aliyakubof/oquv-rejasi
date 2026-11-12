@@ -2,9 +2,7 @@
 
 import hashlib
 
-from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
-from django.db.models import Count, Max, Q, Sum
 from django.db.models.signals import post_delete, post_save
 from django.http import HttpRequest, JsonResponse
 
@@ -26,9 +24,11 @@ from plans.models import (
     TalimYonalishi,
     Yuklama,
 )
+from plans.services import JONLI_KESH_KALITI, keshni_tozala
 
-_KESH_KALITI = "jonli_holat_versiyasi"
+_KESH_KALITI = JONLI_KESH_KALITI
 _KESH_MUDDATI = 5
+_keshni_tozala = keshni_tozala
 
 _KUZATILADIGAN_MODELLAR = (
     OquvReja,
@@ -48,94 +48,122 @@ _KUZATILADIGAN_MODELLAR = (
 )
 
 
-def _keshni_tozala(**_kwargs: object) -> None:
-    cache.delete(_KESH_KALITI)
+def signallarni_ulash() -> None:
+    """Connect post_save/post_delete cache invalidators idempotently."""
+    for model in _KUZATILADIGAN_MODELLAR:
+        post_save.connect(
+            keshni_tozala, sender=model, dispatch_uid=f"jonli_save_{model.__name__}"
+        )
+        post_delete.connect(
+            keshni_tozala, sender=model, dispatch_uid=f"jonli_del_{model.__name__}"
+        )
 
 
-for _model in _KUZATILADIGAN_MODELLAR:
-    post_save.connect(
-        _keshni_tozala, sender=_model, dispatch_uid=f"jonli_save_{_model.__name__}"
-    )
-    post_delete.connect(
-        _keshni_tozala, sender=_model, dispatch_uid=f"jonli_del_{_model.__name__}"
-    )
+_KUZATILADIGAN_MAYDONLAR: tuple[tuple[type, tuple[str, ...]], ...] = (
+    (
+        OquvReja,
+        (
+            "pk",
+            "talabalar_soni",
+            "guruhlar_soni",
+            "guruh_prefiksi",
+            "yonalish_nomi",
+            "import_vaqti",
+        ),
+    ),
+    (Guruh, ("pk", "reja_id", "raqam", "nomi")),
+    (Fan, ("pk", "reja_id", "raqam", "turi", "jami_soat", "tanlangan_variant_id")),
+    (
+        FanVariant,
+        (
+            "pk",
+            "fan_id",
+            "kodi",
+            "nomi",
+            "kafedra_id",
+            "auditoriya_soat",
+            "maruza_soat",
+            "amaliyot_soat",
+            "laboratoriya_soat",
+            "seminar_soat",
+            "kurs_ishi_soat",
+        ),
+    ),
+    (
+        FanSemestr,
+        (
+            "pk",
+            "semestr",
+            "maruza_soat",
+            "amaliyot_soat",
+            "laboratoriya_soat",
+            "seminar_soat",
+            "kurs_ishi_bor",
+        ),
+    ),
+    (
+        Yuklama,
+        (
+            "pk",
+            "fan_semestr_id",
+            "tur",
+            "oqituvchi_id",
+            "guruh_id",
+            "soat",
+            "talabalar_soni",
+        ),
+    ),
+    (
+        DasturTopshirish,
+        (
+            "pk",
+            "variant_id",
+            "urinish_raqami",
+            "holat",
+            "izoh",
+            "yuborilgan_vaqt",
+            "korib_chiqilgan_vaqt",
+        ),
+    ),
+    (
+        KafedraYuklamaTasdiq,
+        (
+            "pk",
+            "kafedra_id",
+            "akademik_yil",
+            "holat",
+            "izoh",
+            "yuborilgan_vaqt",
+            "tasdiqlangan_vaqt",
+            "tasdiqlagan_id",
+        ),
+    ),
+    (Department, ("pk", "nomi", "fakultet", "mudir_id")),
+    (
+        OqituvchiProfil,
+        (
+            "pk",
+            "kafedra_id",
+            "turi_id",
+            "foydalanuvchi__first_name",
+            "foydalanuvchi__last_name",
+            "foydalanuvchi__is_active",
+        ),
+    ),
+    (OqituvchiTuri, ("pk", "nomi", "min_soat")),
+    (TalimYonalishi, ("pk", "kodi", "nomi")),
+    (Universitet, ("pk", "rasmiy_nomi")),
+    (
+        Foydalanuvchi,
+        ("pk", "telefon", "first_name", "last_name", "rol", "is_active"),
+    ),
+)
 
 
-def _reja_va_yuklama_qismlari() -> list[object]:
+def _jadval_qismlari() -> list[tuple[object, ...]]:
     return [
-        tuple(
-            OquvReja.objects.values_list(
-                "pk",
-                "talabalar_soni",
-                "guruhlar_soni",
-                "guruh_prefiksi",
-                "yonalish_nomi",
-                "import_vaqti",
-            ).order_by("pk")
-        ),
-        Guruh.objects.aggregate(c=Count("pk"), m=Max("pk")),
-        tuple(
-            Fan.objects.exclude(tanlangan_variant=None)
-            .values_list("pk", "tanlangan_variant_id")
-            .order_by("pk")
-        ),
-        tuple(
-            FanVariant.objects.values_list(
-                "pk", "kafedra_id", "auditoriya_soat", "kurs_ishi_soat"
-            ).order_by("pk")
-        ),
-        FanSemestr.objects.aggregate(
-            c=Count("pk"),
-            m=Sum("maruza_soat"),
-            a=Sum("amaliyot_soat"),
-            l=Sum("laboratoriya_soat"),
-            s=Sum("seminar_soat"),
-            k=Count("pk", filter=Q(kurs_ishi_bor=True)),
-        ),
-        Yuklama.objects.aggregate(
-            c=Count("pk"), m=Max("pk"), s=Sum("soat"), t=Sum("talabalar_soni")
-        ),
-    ]
-
-
-def _hisob_va_kafedra_qismlari() -> list[object]:
-    return [
-        tuple(
-            DasturTopshirish.objects.values_list(
-                "pk", "holat", "izoh", "korib_chiqilgan_vaqt"
-            ).order_by("pk")
-        ),
-        tuple(
-            KafedraYuklamaTasdiq.objects.values_list(
-                "pk",
-                "kafedra_id",
-                "akademik_yil",
-                "holat",
-                "izoh",
-                "tasdiqlangan_vaqt",
-            ).order_by("pk")
-        ),
-        tuple(
-            Department.objects.values_list(
-                "pk", "nomi", "fakultet", "mudir_id"
-            ).order_by("pk")
-        ),
-        tuple(
-            OqituvchiProfil.objects.values_list(
-                "pk",
-                "kafedra_id",
-                "turi_id",
-                "foydalanuvchi__first_name",
-                "foydalanuvchi__last_name",
-                "foydalanuvchi__is_active",
-            ).order_by("pk")
-        ),
-        tuple(
-            OqituvchiTuri.objects.values_list("pk", "nomi", "min_soat").order_by("pk")
-        ),
-        tuple(TalimYonalishi.objects.values_list("pk", "kodi", "nomi").order_by("pk")),
-        tuple(Universitet.objects.values_list("pk", "rasmiy_nomi").order_by("pk")),
-        Foydalanuvchi.objects.aggregate(c=Count("pk"), m=Max("pk")),
+        tuple(model.objects.values_list(*maydonlar).order_by("pk"))
+        for model, maydonlar in _KUZATILADIGAN_MAYDONLAR
     ]
 
 
@@ -144,13 +172,13 @@ def holat_versiyasi() -> str:
     keshdagi = cache.get(_KESH_KALITI)
     if isinstance(keshdagi, str):
         return keshdagi
-    qismlar = [*_reja_va_yuklama_qismlari(), *_hisob_va_kafedra_qismlari()]
-    xom = repr(qismlar).encode("utf-8")
+    xom = repr(_jadval_qismlari()).encode("utf-8")
     versiya = hashlib.sha256(xom).hexdigest()[:16]
     cache.set(_KESH_KALITI, versiya, timeout=_KESH_MUDDATI)
     return versiya
 
 
-@login_required
 def jonli_holat(request: HttpRequest) -> JsonResponse:
+    if not request.user.is_authenticated or not request.user.is_active:
+        return JsonResponse({"detail": "Autentifikatsiya talab qilinadi."}, status=401)
     return JsonResponse({"versiya": holat_versiyasi()})

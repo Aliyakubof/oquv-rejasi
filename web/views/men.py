@@ -3,6 +3,7 @@
 from collections import defaultdict
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Prefetch
 from django.http import (
     FileResponse,
@@ -23,35 +24,46 @@ from web.forms.dastur import DasturTopshirishForm
 from web.mixins import OqituvchiTalabMixin, YilTanlovMixin
 
 
+def _mening_yuklamalarim(profil: object, yil: int) -> list[Yuklama]:
+    yuklamalar = list(
+        Yuklama.objects.filter(oqituvchi=profil)
+        .akademik_yilda(yil)
+        .select_related("fan_semestr__variant__fan__reja", "guruh")
+        .prefetch_related(
+            Prefetch(
+                "fan_semestr__variant__dastur_topshirishlari",
+                queryset=DasturTopshirish.objects.select_related("korib_chiqqan"),
+            )
+        )
+        .order_by("fan_semestr__variant__nomi", "fan_semestr__semestr", "tur")
+    )
+    korilgan_variantlar: set[int] = set()
+    for yuklama in yuklamalar:
+        vid = yuklama.fan_semestr.variant_id
+        yuklama.dastur_korsatilsin = (
+            yuklama.tur == SoatTuri.MARUZA and vid not in korilgan_variantlar
+        )
+        if yuklama.dastur_korsatilsin:
+            korilgan_variantlar.add(vid)
+    return yuklamalar
+
+
 class MenYuklamalarimView(OqituvchiTalabMixin, YilTanlovMixin, TemplateView):
     template_name = "web/men/yuklamalar.html"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
-        profil = getattr(self.request.user, "oqituvchi_profil", None)
+        from accounts.models import OqituvchiProfil
+
+        profil = (
+            OqituvchiProfil.objects.select_related("turi", "kafedra")
+            .filter(foydalanuvchi=self.request.user)
+            .first()
+        )
         context["profil"] = profil
         if profil is None:
             return context
-        yuklamalar = list(
-            Yuklama.objects.filter(oqituvchi=profil)
-            .akademik_yilda(self.yil)
-            .select_related("fan_semestr__variant__fan__reja", "guruh")
-            .prefetch_related(
-                Prefetch(
-                    "fan_semestr__variant__dastur_topshirishlari",
-                    queryset=DasturTopshirish.objects.select_related("korib_chiqqan"),
-                )
-            )
-            .order_by("fan_semestr__variant__nomi", "fan_semestr__semestr", "tur")
-        )
-        korilgan_variantlar: set[int] = set()
-        for yuklama in yuklamalar:
-            vid = yuklama.fan_semestr.variant_id
-            yuklama.dastur_korsatilsin = (
-                yuklama.tur == SoatTuri.MARUZA and vid not in korilgan_variantlar
-            )
-            if yuklama.dastur_korsatilsin:
-                korilgan_variantlar.add(vid)
+        yuklamalar = _mening_yuklamalarim(profil, self.yil)
         jami_soat = sum(y.soat for y in yuklamalar)
         context.update(
             {
@@ -92,15 +104,16 @@ class MenDasturTopshirishView(OqituvchiTalabMixin, View):
         xato = None
         if form.is_valid():
             try:
-                topshirish = dastur_topshirish(
-                    variant, profil, form.cleaned_data["fayl"]
-                )
-                audit_yoz(
-                    AuditAmali.TASDIQ_YUBORILDI,
-                    f"Fan dasturi topshirildi: {variant.nomi} ({profil}).",
-                    obyekt=topshirish,
-                    request=request,
-                )
+                with transaction.atomic():
+                    topshirish = dastur_topshirish(
+                        variant, profil, form.cleaned_data["fayl"]
+                    )
+                    audit_yoz(
+                        AuditAmali.TASDIQ_YUBORILDI,
+                        f"Fan dasturi topshirildi: {variant.nomi} ({profil}).",
+                        obyekt=topshirish,
+                        request=request,
+                    )
             except ValidationError as e:
                 xato = " ".join(e.messages)
         else:

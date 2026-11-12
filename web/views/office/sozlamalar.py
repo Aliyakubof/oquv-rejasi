@@ -1,6 +1,7 @@
 """Office settings: institution name, teacher position norms and major classifier."""
 
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Count, ProtectedError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -40,13 +41,14 @@ class SozlamalarView(OfficeAdminTalabMixin, TemplateView):
 @require_POST
 @office_admin_talab
 def universitet_saqlash(request: HttpRequest) -> HttpResponse:
-    universitet = universitet_olish() or Universitet()
-    form = UniversitetForm(request.POST, instance=universitet)
-    if form.is_valid():
-        form.save()
-        messages.success(request, "Universitet rasmiy nomi saqlandi.")
-    else:
-        messages.error(request, "Universitet nomini tekshiring.")
+    with transaction.atomic():
+        universitet = Universitet.objects.select_for_update().first() or Universitet()
+        form = UniversitetForm(request.POST, instance=universitet)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Universitet rasmiy nomi saqlandi.")
+        else:
+            messages.error(request, "Universitet nomini tekshiring.")
     return redirect("office:sozlamalar")
 
 

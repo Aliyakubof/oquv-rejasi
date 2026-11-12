@@ -74,7 +74,7 @@ class OquvReja(models.Model):
     talim_sohasi_nomi = models.CharField(max_length=255)
     yonalish_kodi = models.CharField(max_length=20)
     yonalish_nomi = models.CharField(max_length=255, blank=True)
-    boshlanish_yili = models.PositiveSmallIntegerField()
+    boshlanish_yili = models.PositiveSmallIntegerField(db_index=True)
     daraja = models.CharField(max_length=100, blank=True)
     talim_shakli = models.CharField(max_length=100, blank=True)
     davomiylik_yil = models.PositiveSmallIntegerField(default=4)
@@ -168,6 +168,10 @@ class Fan(models.Model):
     def effektiv_variant(self) -> "FanVariant | None":
         if self.tanlangan_variant_id is not None:
             return self.tanlangan_variant
+        kesh = getattr(self, "_prefetched_objects_cache", {})
+        if "variantlar" in kesh:
+            variantlar = kesh["variantlar"]
+            return min(variantlar, key=lambda v: v.pk) if variantlar else None
         return self.variantlar.first()
 
     def clean(self) -> None:
@@ -329,7 +333,10 @@ class Yuklama(models.Model):
                 name="chk_yuklama_shakl",
             ),
         ]
-        indexes = [models.Index(fields=["oqituvchi", "tur"])]
+        indexes = [
+            models.Index(fields=["oqituvchi", "tur"]),
+            models.Index(fields=["fan_semestr", "tur"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.oqituvchi} / {self.fan_semestr} / {self.get_tur_display()}"
@@ -350,7 +357,11 @@ class Yuklama(models.Model):
         self._clean_soat_mavjud()
         if self.guruh_id is not None:
             self._clean_guruh_rejasi()
-        if self.tur == SoatTuri.KURS_ISHI and self.talabalar_soni:
+        if self.tur == SoatTuri.KURS_ISHI:
+            if not self.talabalar_soni or self.talabalar_soni < 1:
+                raise ValidationError(
+                    {"talabalar_soni": "Talabalar soni kamida 1 bo'lishi kerak."}
+                )
             self._clean_kurs_ishi_sigimi()
 
     def _clean_effektiv_variant(self) -> None:
@@ -422,6 +433,7 @@ class DasturTopshirish(models.Model):
         max_length=20,
         choices=TopshirishHolati.choices,
         default=TopshirishHolati.KUTILMOQDA,
+        db_index=True,
     )
     izoh = models.TextField(blank=True)
     yuborilgan_vaqt = models.DateTimeField(default=timezone.now)
@@ -438,6 +450,20 @@ class DasturTopshirish(models.Model):
         verbose_name = "Dastur topshirig'i"
         verbose_name_plural = "Dastur topshiriqlari"
         ordering = ["-yuborilgan_vaqt"]
+        indexes = [
+            models.Index(fields=["variant", "-yuborilgan_vaqt", "-id"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["variant", "urinish_raqami"],
+                name="uniq_dastur_variant_urinish",
+            ),
+            models.UniqueConstraint(
+                fields=["variant"],
+                condition=models.Q(holat="KUTILMOQDA"),
+                name="uniq_dastur_kutilmoqda_variant",
+            ),
+        ]
 
     def __str__(self) -> str:
         return (
@@ -464,6 +490,7 @@ class KafedraYuklamaTasdiq(models.Model):
         max_length=20,
         choices=KafedraTasdiqHolati.choices,
         default=KafedraTasdiqHolati.QORALAMA,
+        db_index=True,
     )
     yuborilgan_vaqt = models.DateTimeField(null=True, blank=True)
     tasdiqlangan_vaqt = models.DateTimeField(null=True, blank=True)
@@ -509,7 +536,7 @@ class AuditYozuvi(models.Model):
         on_delete=models.SET_NULL,
         related_name="audit_yozuvlari",
     )
-    amal = models.CharField(max_length=30, choices=AuditAmali.choices)
+    amal = models.CharField(max_length=30, choices=AuditAmali.choices, db_index=True)
     model_nomi = models.CharField(max_length=60, db_index=True)
     obyekt_id = models.CharField(max_length=64, blank=True)
     tavsif = models.TextField()
@@ -520,6 +547,9 @@ class AuditYozuvi(models.Model):
         verbose_name = "Audit yozuvi"
         verbose_name_plural = "Audit jurnali"
         ordering = ["-vaqt"]
+        indexes = [
+            models.Index(fields=["model_nomi", "-vaqt"]),
+        ]
 
     def __str__(self) -> str:
         foyd = self.foydalanuvchi.get_full_name() if self.foydalanuvchi else "Tizim"

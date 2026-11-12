@@ -2,7 +2,8 @@
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.http import HttpRequest, HttpResponse
+from django.db import transaction
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -13,7 +14,12 @@ from plans import dashboard, services
 from plans.audit import audit_yoz
 from plans.dashboard import yilni_tanlash
 from plans.models import AuditAmali, Fan, FanVariant
-from web.mixins import OfficeAdminTalabMixin, office_admin_talab, xato_matni
+from web.mixins import (
+    OfficeAdminTalabMixin,
+    musbat_int_yoki_none,
+    office_admin_talab,
+    xato_matni,
+)
 
 TURLAR_METRIKASI = [
     ("MARUZA", "Ma'ruza", "var(--tur-maruza, #10b981)"),
@@ -60,16 +66,20 @@ class DashboardView(OfficeAdminTalabMixin, TemplateView):
 @office_admin_talab
 def variant_tanlash(request: HttpRequest, pk: int) -> HttpResponse:
     fan = get_object_or_404(Fan, pk=pk)
-    variant = get_object_or_404(FanVariant, pk=request.POST.get("variant"), fan=fan)
+    variant_pk = musbat_int_yoki_none(request.POST.get("variant"))
+    if variant_pk is None:
+        raise Http404
+    variant = get_object_or_404(FanVariant, pk=variant_pk, fan=fan)
     xato = None
     try:
-        services.variantni_tanlash(fan, variant)
-        audit_yoz(
-            AuditAmali.TAHRIRLANDI,
-            f"Tanlov fani varianti tanlandi: {variant.nomi} ({fan.reja}).",
-            obyekt=fan,
-            request=request,
-        )
+        with transaction.atomic():
+            services.variantni_tanlash(fan, variant)
+            audit_yoz(
+                AuditAmali.TAHRIRLANDI,
+                f"Tanlov fani varianti tanlandi: {variant.nomi} ({fan.reja}).",
+                obyekt=fan,
+                request=request,
+            )
     except ValidationError as e:
         xato = xato_matni(e)
     return _qator_javobi(request, fan, xato)
@@ -79,18 +89,25 @@ def variant_tanlash(request: HttpRequest, pk: int) -> HttpResponse:
 @office_admin_talab
 def kafedra_biriktirish(request: HttpRequest, pk: int) -> HttpResponse:
     variant = get_object_or_404(FanVariant, pk=pk)
-    kafedra_id = request.POST.get("kafedra") or None
-    kafedra = get_object_or_404(Department, pk=kafedra_id) if kafedra_id else None
+    xom_kafedra = request.POST.get("kafedra")
+    if xom_kafedra:
+        kafedra_pk = musbat_int_yoki_none(xom_kafedra)
+        if kafedra_pk is None:
+            raise Http404
+        kafedra = get_object_or_404(Department, pk=kafedra_pk)
+    else:
+        kafedra = None
     xato = None
     try:
-        services.kafedraga_biriktirish(variant, kafedra)
-        kaf_matni = kafedra.nomi if kafedra else "bekor qilindi"
-        audit_yoz(
-            AuditAmali.TAHRIRLANDI,
-            f"Fan kafedraga biriktirildi: {variant.nomi} -> {kaf_matni}.",
-            obyekt=variant,
-            request=request,
-        )
+        with transaction.atomic():
+            services.kafedraga_biriktirish(variant, kafedra)
+            kaf_matni = kafedra.nomi if kafedra else "bekor qilindi"
+            audit_yoz(
+                AuditAmali.TAHRIRLANDI,
+                f"Fan kafedraga biriktirildi: {variant.nomi} -> {kaf_matni}.",
+                obyekt=variant,
+                request=request,
+            )
     except ValidationError as e:
         xato = xato_matni(e)
     return _qator_javobi(request, variant.fan, xato)
@@ -114,9 +131,18 @@ def _qator_javobi(request: HttpRequest, fan: Fan, xato: str | None) -> HttpRespo
             return redirect(redirect_url)
         return redirect("office:dashboard")
     _, yil = yilni_tanlash(request.POST.get("yil"))
-    kontekst = _dashboard_konteksti(yil) if yil is not None else {}
-    satr = next(
-        (s for s in kontekst.get("fan_satrlari", []) if s.fan.pk == fan.pk), None
-    )
+    if yil is None:
+        kontekst: dict[str, object] = {}
+        satr = None
+    else:
+        taqsimot = services.ofis_taqsimoti(yil)
+        satrlar = dashboard.ofis_fan_satrlari(yil, fan_id=fan.pk)
+        satr = satrlar[0] if satrlar else None
+        kontekst = {
+            "yil": yil,
+            "stat": dashboard.statlarni_hisoblash(taqsimot),
+            "jami_talabalar": dashboard.jami_talabalar(yil),
+            "kafedralar": Department.objects.all(),
+        }
     kontekst.update({"satr": satr, "xato": xato})
     return render(request, "web/office/_qator_va_statlar.html", kontekst)
