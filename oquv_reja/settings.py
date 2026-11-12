@@ -36,10 +36,14 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
+TRUST_X_FORWARDED_FOR = env.bool("TRUST_X_FORWARDED_FOR", default=False)
+TRUSTED_PROXY_IPS = env.list("TRUSTED_PROXY_IPS", default=[])
+
 if not DEBUG:
     SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
     CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=True)
     SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
         "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True
@@ -81,6 +85,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "web.middleware.ActiveUserMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -161,4 +166,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 if IS_TEST:
+    import tempfile
+
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+    MEDIA_ROOT = Path(tempfile.gettempdir()) / "oquv_reja_test_media"

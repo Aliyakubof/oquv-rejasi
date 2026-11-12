@@ -145,10 +145,14 @@ server {
         alias /srv/oquv_reja/staticfiles/;
     }
 
+    # Uploaded files are served only via Django authenticated views (FileResponse).
+    # Keep /media/ internal so anonymous requests cannot download raw uploads.
     location /media/ {
+        internal;
         alias /srv/oquv_reja/media/;
     }
 
+    # Behind local Nginx, set TRUST_X_FORWARDED_FOR=True and TRUSTED_PROXY_IPS=127.0.0.1,::1 in .env
     location / {
         proxy_pass http://127.0.0.1:8001;
         proxy_set_header Host $host;
