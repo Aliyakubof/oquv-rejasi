@@ -151,9 +151,15 @@ class MenDasturTopshirishTests(TestCase):
         self.assertEqual(javob.status_code, 403)
 
     def test_egasi_topshiradi(self) -> None:
+        from io import BytesIO
+        from zipfile import ZipFile
+
+        bufer = BytesIO()
+        with ZipFile(bufer, "w") as arxiv:
+            arxiv.writestr("word/document.xml", "<w:document/>")
         login(self.client, self.maruza_egasi.foydalanuvchi)
         javob = self.client.post(
-            self.url, {"fayl": SimpleUploadedFile("d.docx", b"mazmun")}
+            self.url, {"fayl": SimpleUploadedFile("d.docx", bufer.getvalue())}
         )
         self.assertEqual(javob.status_code, 200)
         self.assertTrue(DasturTopshirish.objects.filter(variant=self.variant).exists())
@@ -169,12 +175,18 @@ class MenDasturTopshirishTests(TestCase):
         self.assertContains(javob, "form-errors")
 
     def test_kutilayotgan_urinish_ustiga_qayta_topshirib_bolmaydi(self) -> None:
+        from io import BytesIO
+        from zipfile import ZipFile
+
+        bufer = BytesIO()
+        with ZipFile(bufer, "w") as arxiv:
+            arxiv.writestr("word/document.xml", "<w:document/>")
         login(self.client, self.maruza_egasi.foydalanuvchi)
         dastur_topshirish(
             self.variant, self.maruza_egasi, SimpleUploadedFile("v1.docx", b"m")
         )
         javob = self.client.post(
-            self.url, {"fayl": SimpleUploadedFile("v2.docx", b"mazmun")}
+            self.url, {"fayl": SimpleUploadedFile("v2.docx", bufer.getvalue())}
         )
         self.assertEqual(javob.status_code, 200)
         self.assertEqual(
