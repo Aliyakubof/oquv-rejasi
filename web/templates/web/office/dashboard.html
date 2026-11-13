@@ -3,7 +3,7 @@
 {% block content %}
 <div class="topbar">
   <div>
-    <div class="title">O'quv yuklamasi boshqaruv paneli</div>
+    <div class="title">Boshqaruv paneli</div>
   </div>
   <div class="controls">
     {% if yillar %}
@@ -25,7 +25,7 @@
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:10px;">
           <path d="M3 7l2-3h14l2 3M3 7v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7h18M8 11h8"/>
         </svg>
-        <div style="margin-bottom:14px;">Hozircha o'quv rejalar yuklanmagan. Ishni boshlash uchun yangi o'quv reja (.xlsx) faylini import qiling.</div>
+        <div style="margin-bottom:14px;">O'quv rejalar hali yuklanmagan.</div>
         <a class="btn btn-primary" href="{% url 'office:reja_yangi' %}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           <span>Yangi reja yuklash</span>

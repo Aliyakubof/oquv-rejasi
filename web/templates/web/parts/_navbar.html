@@ -39,7 +39,10 @@
             {% if oqilmagan_xabarlar_soni %}<span class="nav-notif-badge">{{ oqilmagan_xabarlar_soni }}</span>{% endif %}
           </span>
         </button>
-        <div class="nav-notif-menu" x-show="xabarOchiq" x-cloak x-transition.opacity.duration.150ms>
+        <div class="nav-notif-menu" x-show="xabarOchiq"
+             x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+             x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+             x-cloak>
           <div class="nav-notif-head">
             <span>Bildirishnomalar</span>
             {% if oqilmagan_xabarlar_soni %}

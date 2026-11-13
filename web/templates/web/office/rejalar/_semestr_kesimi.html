@@ -16,7 +16,8 @@ are delegated from the kafedra dashboard).{% endcomment %}
 {% for s in semestr_raqamlari %}
 {% with satrlar=semestr_kesimi|kalit:s %}
 {% if satrlar %}
-<div x-show="sem === '{{ s }}'" x-cloak class="table-wrap narrow table-semestr-kesimi">
+<div x-show="sem === '{{ s }}'" x-cloak class="table-wrap narrow table-semestr-kesimi"
+     x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
   <table>
     <thead>
       <tr>

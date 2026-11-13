@@ -81,7 +81,7 @@
           <div class="cell-relative" x-data="popover" :class="ochiq && 'popover-ochiq'" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
             <button type="button" class="btn btn-sm btn-outline btn-compact-xs" @click="ochiq = !ochiq">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-              <span>Barcha bo'sh guruhlarga biriktirish</span>
+              <span>Bo'sh guruhlarga biriktirish</span>
             </button>
             {% include "web/kafedra/_oqituvchi_popover.html" with url_nomi="kafedra:ommaviy_guruh_yaratish" holat_tur=holat.tur bulk_mode=True %}
           </div>
@@ -144,7 +144,7 @@
         {% endfor %}
       </div>
       {% elif holat.tur != "MARUZA" and holat.tur != "KURS_ISHI" %}
-      <div class="credits">O'quv rejada guruhlar soni kiritilmagan — o'quv bo'limi kiritgach taqsimlash mumkin.</div>
+      <div class="credits">Guruhlar soni kiritilmagan (o'quv bo'limi kiritadi).</div>
       {% endif %}
 
       {% if holat.tur == "KURS_ISHI" %}
@@ -167,7 +167,7 @@
         </div>
         {% endif %}
         {% if holat.qolgan_talabalar == None %}
-        <div class="credits">O'quv rejada talabalar soni kiritilmagan — o'quv bo'limi kiritgach taqsimlash mumkin.</div>
+        <div class="credits">Talabalar soni kiritilmagan (o'quv bo'limi kiritadi).</div>
         {% else %}
         <div class="credits kurs-ishi-hint">Qolgan talabalar: <strong>{{ holat.qolgan_talabalar }}</strong> (1 talaba = 2 soat)</div>
         {% if holat.qolgan_talabalar > 0 and not qulflangan %}

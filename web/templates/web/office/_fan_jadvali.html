@@ -39,7 +39,10 @@
     <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
     <button type="button" class="chip-btn" :class="semestrovka && 'active'" @click="semestrovka = !semestrovka">Semestrovka</button>
   </div>
-  <div class="bulk-bar" x-show="tanlanganlar.length > 0 && !semestrovka" x-transition.duration.220ms x-cloak @keydown.escape.window="tanlanganlar = []; tanlanganKafedra = ''">
+  <div class="bulk-bar" x-show="tanlanganlar.length > 0 && !semestrovka"
+       x-transition:enter="anim-bulk-enter" x-transition:enter-start="anim-bulk-start" x-transition:enter-end="anim-bulk-end"
+       x-transition:leave="anim-bulk-leave" x-transition:leave-start="anim-bulk-end" x-transition:leave-end="anim-bulk-start"
+       x-cloak @keydown.escape.window="tanlanganlar = []; tanlanganKafedra = ''">
     <form method="post" action="{% url 'office:ommaviy_kafedra_biriktirish' %}"
           hx-post="{% url 'office:ommaviy_kafedra_biriktirish' %}"
           hx-target="#kontent" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
@@ -64,7 +67,8 @@
       <button type="button" class="btn btn-sm" @click="tanlanganlar = []; tanlanganKafedra = ''">Bekor qilish</button>
     </form>
   </div>
-  <div class="table-wrap" x-show="!semestrovka">
+  <div class="table-wrap" x-show="!semestrovka"
+       x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
     <table>
       <thead>
         <tr>
@@ -95,7 +99,8 @@
       </tbody>
     </table>
   </div>
-  <div class="table-wrap" x-show="semestrovka" x-cloak data-jonli="office-fan-semestrovka">
+  <div class="table-wrap" x-show="semestrovka" x-cloak data-jonli="office-fan-semestrovka"
+       x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
     {% include "web/office/_fan_semestrovka.html" %}
   </div>
 </div>

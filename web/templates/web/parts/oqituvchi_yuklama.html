@@ -81,7 +81,8 @@
   </div>
 
   {# 1-shakl: rasmiy ta'lim standarti jadvali #}
-  <div class="table-wrap cards" x-show="tab === 'shakl1'">
+  <div class="table-wrap cards" x-show="tab === 'shakl1'"
+       x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
     <table>
       <thead>
         <tr>
@@ -129,7 +130,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
             </div>
             <div class="empty-state-title">Bu o'quv yili uchun yuklama taqsimlanmagan</div>
-            <div class="empty-state-desc">O'qituvchiga fanlar biriktirilgach, 1-shakl individual ish rejasi shu yerda shakllanadi.</div>
+            <div class="empty-state-desc">Fanlar biriktirilgach, 1-shakl reja shu yerda chiqadi.</div>
           </div>
         </td></tr>
         {% endfor %}
@@ -146,7 +147,8 @@
   </div>
 
   {# Batafsil ro'yxat #}
-  <div class="table-wrap cards" x-show="tab === 'royxat'" x-cloak>
+  <div class="table-wrap cards" x-show="tab === 'royxat'" x-cloak
+       x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
     <table data-jonli="oqituvchi-yuklama-jadval">
       <thead>
         <tr>
@@ -186,7 +188,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
             </div>
             <div class="empty-state-title">Bu o'quv yilida o'qituvchiga yuklama taqsimlanmagan</div>
-            <div class="empty-state-desc">Fan taqsimlash sahifasidan o'qituvchiga mashg'ulot biriktirishingiz mumkin.</div>
+            <div class="empty-state-desc">Fan taqsimlashdan mashg'ulot biriktiring.</div>
           </div>
         </td></tr>
         {% endfor %}

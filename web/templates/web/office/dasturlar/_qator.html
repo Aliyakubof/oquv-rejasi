@@ -19,6 +19,6 @@
             hx-get="{% url 'office:dastur_tarixi' t.variant_id %}"
             hx-target="#dastur-panel-{{ t.variant_id }}" hx-swap="innerHTML"
             hx-indicator="#htmx-yuklanish"
-            hx-on::before-request="const p = document.getElementById('dastur-panel-{{ t.variant_id }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">Tarixni ko'rish</button>
+            hx-on::before-request="const p = document.getElementById('dastur-panel-{{ t.variant_id }}'); if (p && p.innerHTML.trim() !== '') { yopishTableModal(p); event.preventDefault(); }">Tarixni ko'rish</button>
   </td>
 </tr>

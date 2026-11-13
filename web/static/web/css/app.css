@@ -414,7 +414,7 @@ input[type="password"]:focus {
   color: var(--text-secondary);
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.16s ease;
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.24s ease;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -425,12 +425,12 @@ input[type="password"]:focus {
   border-color: #94a3b8;
   color: var(--ink);
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4px 10px -2px rgba(15, 23, 42, 0.09);
 }
 
 .chip-btn:active {
   transform: translateY(0) scale(0.96);
-  transition-duration: 0.08s;
+  transition-duration: 0.12s;
 }
 
 .chip-btn.active {
@@ -450,7 +450,7 @@ input[type="password"]:focus {
   text-align: center;
   color: var(--ink);
   background: var(--input-bg);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  transition: border-color 0.24s ease, box-shadow 0.24s ease, background-color 0.24s ease;
 }
 
 .soat-input:focus {
@@ -478,12 +478,12 @@ input[type="password"]:focus {
   border-radius: 12px;
   padding: 20px 22px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, border-color 0.15s ease;
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.34s ease, border-color 0.24s ease;
 }
 
 .stat:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px -4px rgba(26, 42, 110, 0.09);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px -6px rgba(26, 42, 110, 0.12);
   border-color: #cbd5e1;
 }
 
@@ -802,7 +802,7 @@ table a,
 }
 
 .group-toggle-btn svg {
-  transition: transform 0.15s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   flex-shrink: 0;
 }
 
@@ -934,19 +934,19 @@ table a,
   font-weight: 500;
   color: var(--text-main);
   width: 100%;
-  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.16s ease;
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease, background-color 0.22s ease, box-shadow 0.26s ease;
 }
 
 .teacher-chip:hover {
   border-color: var(--ink);
   background: #f8fafc;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(26, 42, 110, 0.08);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 10px -2px rgba(26, 42, 110, 0.12);
 }
 
 .teacher-chip:active {
   transform: translateY(0) scale(0.97);
-  transition-duration: 0.08s;
+  transition-duration: 0.12s;
 }
 
 .avatar {
@@ -1519,7 +1519,11 @@ tfoot td {
   background: #f8fafc;
   border-radius: 10px;
   padding: 12px 14px;
-  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .guruh-slot-card:hover {
@@ -1602,12 +1606,13 @@ tfoot td {
   gap: 4px;
   flex-wrap: wrap;
   flex: 1;
+  min-width: 0;
 }
 
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
   margin-left: auto;
 }
@@ -1623,33 +1628,41 @@ tfoot td {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
 }
 
 .navbar a.nav-link,
 .navbar .nav-pref-btn {
+  display: inline-flex;
+  align-items: center;
   color: #cbd5e1;
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 500;
+  line-height: 1.25;
   padding: 7px 14px;
   border-radius: 7px;
+  white-space: nowrap;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    color 0.24s ease,
+    background-color 0.24s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .navbar .nav-pref-btn {
   background: transparent;
   border: 0;
-  display: inline-flex;
-  align-items: center;
   gap: 6px;
 }
 
 .navbar a.nav-link:hover,
 .navbar .nav-pref-btn:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 .navbar a.nav-link:active,
@@ -1701,6 +1714,10 @@ tfoot td {
   color: #e2e8f0;
   font-size: 13px;
   font-weight: 500;
+  white-space: nowrap;
+  max-width: 175px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .navbar form {
@@ -1710,6 +1727,9 @@ tfoot td {
 .navbar .logout-btn {
   position: relative;
   overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--gold);
   border: 1px solid var(--gold);
   color: #ffffff;
@@ -1717,6 +1737,7 @@ tfoot td {
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   box-shadow: 0 1px 3px rgba(245, 158, 11, 0.25);
@@ -1762,12 +1783,6 @@ tfoot td {
   transform: scale(0.92);
 }
 
-.navbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 @media (max-width: 960px) {
   .navbar-inner {
     flex-wrap: wrap;
@@ -1787,6 +1802,7 @@ tfoot td {
 
   .navbar-nav {
     display: none;
+    flex: none;
     width: 100%;
     flex-direction: column;
     align-items: stretch;
@@ -1797,12 +1813,14 @@ tfoot td {
 
   .navbar-nav.ochiq {
     display: flex;
-    animation: drawer-ochilish 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: drawer-ochilish 0.38s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .navbar-actions {
     display: none;
+    flex: none;
     width: 100%;
+    flex-wrap: wrap;
     justify-content: space-between;
     padding: 8px 0 4px;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
@@ -1810,7 +1828,7 @@ tfoot td {
 
   .navbar-actions.ochiq {
     display: flex;
-    animation: drawer-ochilish 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: drawer-ochilish 0.38s cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
@@ -2074,12 +2092,17 @@ tfoot td {
   text-decoration: none;
   line-height: 1.4;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.16s ease;
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.26s ease;
 }
 
 .btn svg {
   flex-shrink: 0;
   stroke: currentColor;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn:hover svg {
+  transform: translateY(-0.5px) scale(1.06);
 }
 
 .btn:hover {
@@ -2087,13 +2110,13 @@ tfoot td {
   border-color: #94a3b8;
   color: var(--ink);
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px -1px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 5px 12px -2px rgba(15, 23, 42, 0.11);
 }
 
 .btn:active {
   transform: translateY(0) scale(0.965);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition-duration: 0.08s;
+  transition-duration: 0.12s;
 }
 
 .btn:disabled,
@@ -2113,7 +2136,7 @@ button:disabled {
   font-weight: 650;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.14);
   box-shadow: 0 1px 3px rgba(217, 119, 6, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .btn-primary:hover {
@@ -2121,7 +2144,7 @@ button:disabled {
   border-color: #b45309;
   color: #ffffff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .btn-primary:active {
@@ -2258,7 +2281,7 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
   z-index: 99999999;
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s ease;
+  transition: opacity 0.48s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.48s ease;
   pointer-events: all;
 }
 
@@ -2284,11 +2307,11 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
   gap: 0;
   transform: translateY(0);
   opacity: 1;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
+  transition: transform 0.44s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.44s ease;
 }
 
 .page-loader-overlay.is-timed .page-loader-spinner-wrap {
-  animation: loader-enter 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: loader-enter 0.52s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .page-loader-overlay.is-hidden .page-loader-spinner-wrap {
@@ -2345,6 +2368,7 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -2355,12 +2379,15 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
   0% {
     width: 0%;
   }
+
   25% {
     width: 38%;
   }
+
   65% {
     width: 78%;
   }
+
   100% {
     width: 100%;
   }
@@ -2370,6 +2397,7 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
   0% {
     transform: translateX(-110%);
   }
+
   100% {
     transform: translateX(300%);
   }
@@ -2533,17 +2561,34 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
   background: var(--panel);
   box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.14), 0 4px 10px -4px rgba(15, 23, 42, 0.08);
   pointer-events: auto;
-  animation: toast-kirish 0.18s ease-out;
+  animation: toast-kirish 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.messages li.is-leaving {
+  animation: toast-chiqish 0.26s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 @keyframes toast-kirish {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(16px) scale(0.95);
   }
+
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-chiqish {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
   }
 }
 
@@ -2606,7 +2651,7 @@ button:not(.btn-primary):not(.btn-danger):not(.btn-success)[aria-busy="true"]::a
   max-width: 100%;
   border-radius: 9999px;
   background: #10b981;
-  transition: width 0.3s ease;
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .progress .fill.warn {
@@ -2650,14 +2695,15 @@ body.auth-body .app {
 .auth-shell {
   width: 100%;
   max-width: 396px;
-  animation: auth-enter 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: auth-enter 0.56s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes auth-enter {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.99);
+    transform: translateY(18px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -3329,9 +3375,9 @@ body.auth-body .app {
   height: 100%;
   max-width: 100%;
   transition:
-    width 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.16s ease,
-    opacity 0.16s ease;
+    width 0.95s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease;
 }
 
 .composite-segment:hover {
@@ -3492,7 +3538,7 @@ body.auth-body .app {
   height: 100%;
   max-width: 100%;
   border-radius: 9999px;
-  transition: width 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 0.95s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .analitika-table-foot td {
@@ -3897,7 +3943,7 @@ tr.panel-row {
   background: transparent !important;
 }
 
-tr.panel-row > td {
+tr.panel-row>td {
   padding: 0 !important;
   border: 0 !important;
   background: transparent !important;
@@ -3916,7 +3962,7 @@ tr.panel-row > td {
   justify-content: center;
   padding: 20px;
   box-sizing: border-box;
-  animation: modal-fade-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: modal-fade-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: left;
   white-space: normal;
 }
@@ -3928,7 +3974,7 @@ tr.panel-row > td {
 .table-modal-backdrop.is-closing,
 .app-modal-overlay.is-closing {
   pointer-events: none;
-  animation: modal-fade-out 0.16s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: modal-fade-out 0.24s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 .table-modal-dialog,
@@ -3941,14 +3987,14 @@ tr.panel-row > td {
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 8px 16px -6px rgba(15, 23, 42, 0.1);
-  animation: modal-scale-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: modal-scale-in 0.42s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
   position: relative;
 }
 
 .table-modal-backdrop.is-closing .table-modal-dialog,
 .app-modal-overlay.is-closing .app-modal-card {
-  animation: modal-scale-out 0.16s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: modal-scale-out 0.24s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 .table-modal-dialog.table-modal-lg {
@@ -4251,6 +4297,7 @@ tr.panel-row > td {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -4260,6 +4307,7 @@ tr.panel-row > td {
   from {
     opacity: 1;
   }
+
   to {
     opacity: 0;
   }
@@ -4270,6 +4318,7 @@ tr.panel-row > td {
     opacity: 0;
     transform: translateY(14px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -4281,6 +4330,7 @@ tr.panel-row > td {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+
   to {
     opacity: 0;
     transform: translateY(8px) scale(0.96);
@@ -4292,9 +4342,11 @@ tr.panel-row > td {
     opacity: 0;
     transform: scale(0.65);
   }
+
   70% {
     transform: scale(1.08);
   }
+
   100% {
     opacity: 1;
     transform: scale(1);
@@ -4304,8 +4356,9 @@ tr.panel-row > td {
 @keyframes drawer-ochilish {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -4317,6 +4370,7 @@ tr.panel-row > td {
     opacity: 0.24;
     transform: scale(0);
   }
+
   to {
     opacity: 0;
     transform: scale(1);
@@ -4324,7 +4378,7 @@ tr.panel-row > td {
 }
 
 .app-modal-overlay:not(.is-hidden) .app-modal-icon {
-  animation: modal-icon-pop 0.34s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: modal-icon-pop 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .btn-ripple {
@@ -4332,7 +4386,7 @@ tr.panel-row > td {
   border-radius: 50%;
   background: currentColor;
   pointer-events: none;
-  animation: ripple-wave 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: ripple-wave 0.62s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .htmx-swapping {
@@ -4384,6 +4438,7 @@ tr.panel-row > td {
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -4566,15 +4621,11 @@ td.col-check {
 }
 
 .onb-card-enter {
-  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  opacity: 0;
-  transform: translateY(8px) scale(0.98);
+  animation: modal-scale-in 0.46s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .onb-card-leave {
-  transition: opacity 0.16s ease, transform 0.16s ease;
-  opacity: 0;
-  transform: translateY(4px) scale(0.98);
+  animation: modal-scale-out 0.24s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 .onb-top {
@@ -4630,6 +4681,10 @@ td.col-check {
 }
 
 .onb-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   min-height: 40px;
   padding: 8px 10px;
   border: 0;
@@ -4638,6 +4693,8 @@ td.col-check {
   color: var(--text-secondary);
   font-size: 13.5px;
   font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -4674,6 +4731,10 @@ td.col-check {
   border-top: 1px solid var(--line);
 }
 
+.onb-footer .btn {
+  min-height: 42px;
+}
+
 .onb-save-btn {
   flex: 1;
   min-height: 42px;
@@ -4702,30 +4763,48 @@ td.col-check {
 
 /* Shrift o'lchami: Kattaroq (Yirikroq) */
 body.ui-font-yirik {
-  --fs-xs: 13.5px;
-  --fs-sm: 14.5px;
-  --fs-base: 15.5px;
-  --fs-md: 17px;
-  --fs-lg: 19.5px;
-  --fs-xl: 25px;
-  --fs-2xl: 31px;
-  font-size: 15.5px;
-  line-height: 1.62;
+  --fs-xs: 13px;
+  --fs-sm: 14px;
+  --fs-base: 15px;
+  --fs-md: 16.5px;
+  --fs-lg: 18.5px;
+  --fs-xl: 24px;
+  --fs-2xl: 30px;
+  font-size: 15px;
+  line-height: 1.58;
 }
 
 body.ui-font-yirik .title {
-  font-size: 25px;
+  font-size: 24px;
 }
 
 body.ui-font-yirik .subtitle,
 body.ui-font-yirik .breadcrumb,
 body.ui-font-yirik .msg,
 body.ui-font-yirik .legend {
-  font-size: 14.5px;
+  font-size: 14px;
+}
+
+body.ui-font-yirik .stats {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 
 body.ui-font-yirik .stats.wide {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+}
+
+@media (max-width: 1040px) {
+  body.ui-font-yirik .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  body.ui-font-yirik .stats,
+  body.ui-font-yirik .stats.wide {
+    grid-template-columns: 1fr;
+  }
 }
 
 body.ui-font-yirik .stat {
@@ -4733,112 +4812,302 @@ body.ui-font-yirik .stat {
 }
 
 body.ui-font-yirik .stat .num {
-  font-size: 31px;
+  font-size: 30px;
 }
 
 body.ui-font-yirik .stat .lbl {
-  font-size: 14px;
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
 }
 
 body.ui-font-yirik table,
 body.ui-font-yirik td {
-  font-size: 15px;
+  font-size: 14.5px;
 }
 
 body.ui-font-yirik thead th {
-  font-size: 12.5px;
-  padding: 13px 14px;
+  font-size: 12px;
+  padding: 12px 14px;
 }
 
 body.ui-font-yirik td {
-  padding: 13px 14px;
+  padding: 12px 14px;
 }
 
 body.ui-font-yirik .sem-cell,
 body.ui-font-yirik th.sem-h {
-  width: 56px;
+  width: 54px;
+  padding: 10px 4px;
+}
+
+body.ui-font-yirik .table-semestr-kesimi th,
+body.ui-font-yirik .table-semestr-kesimi td {
+  padding: 11px 7px;
+}
+
+body.ui-font-yirik .table-semestr-kesimi th.col-idx,
+body.ui-font-yirik .table-semestr-kesimi td.col-idx {
+  width: 40px;
+  padding: 11px 4px;
+}
+
+body.ui-font-yirik .table-semestr-kesimi th.col-num,
+body.ui-font-yirik .table-semestr-kesimi td.col-num {
+  width: 64px;
+  padding: 11px 5px;
+}
+
+body.ui-font-yirik .panel-row > td {
+  padding: 0 !important;
+}
+
+body.ui-font-yirik .kafedra-dash-table th.col-amal {
+  width: 152px;
+}
+
+body.ui-font-yirik .fan-meta-sub {
+  max-width: 310px;
 }
 
 body.ui-font-yirik .sem-fill {
-  min-width: 38px;
-  height: 29px;
-  font-size: 13.5px;
+  min-width: 36px;
+  height: 28px;
+  font-size: 13px;
   border-radius: 7px;
 }
 
-body.ui-font-yirik .tag,
-body.ui-font-yirik .tur-chip,
+body.ui-font-yirik .tag {
+  font-size: 12.5px;
+  padding: 3px 9px;
+}
+
 body.ui-font-yirik .code,
+body.ui-font-yirik span.col-code {
+  font-size: 12.5px;
+  padding: 2px 7px;
+}
+
 body.ui-font-yirik .credits {
-  font-size: 13px;
+  font-size: 14px;
+}
+
+body.ui-font-yirik .tur-chip {
+  font-size: 13.5px;
+  padding: 8px 14px;
 }
 
 body.ui-font-yirik .teacher-chip {
-  font-size: 14px;
-  padding: 6px 14px 6px 6px;
+  font-size: 13.5px;
+  padding: 5px 13px 5px 5px;
 }
 
 body.ui-font-yirik .avatar {
-  width: 26px;
-  height: 26px;
-  font-size: 11px;
+  width: 25px;
+  height: 25px;
+  font-size: 10.5px;
 }
 
-body.ui-font-yirik .btn,
+body.ui-font-yirik .btn {
+  font-size: 14.5px;
+  padding: 8px 16px;
+}
+
 body.ui-font-yirik .chip-btn {
-  font-size: 15px;
-  padding: 9px 18px;
-}
-
-body.ui-font-yirik .btn-sm {
   font-size: 14px;
   padding: 7px 14px;
 }
 
+body.ui-font-yirik .btn-sm {
+  font-size: 13.5px;
+  padding: 6px 12px;
+}
+
+body.ui-font-yirik .btn-compact-xs {
+  height: auto;
+  min-height: 32px;
+  font-size: 12.5px;
+  padding: 4px 10px;
+}
+
+body.ui-font-yirik .popover-filter-chip {
+  height: auto;
+  min-height: 28px;
+  font-size: 12px;
+  padding: 3px 9px;
+}
+
+body.ui-font-yirik .form-card {
+  max-width: 720px;
+}
+
 body.ui-font-yirik .form-field label {
-  font-size: 14.5px;
+  font-size: 14px;
 }
 
 body.ui-font-yirik .form-field input,
 body.ui-font-yirik .form-field select,
 body.ui-font-yirik .form-field textarea,
 body.ui-font-yirik .search input,
-body.ui-font-yirik .soat-input,
-body.ui-font-yirik .bulk-select {
-  font-size: 15px;
-}
-
-body.ui-font-yirik .search input {
-  width: min(290px, 100%);
-}
-
-body.ui-font-yirik .navbar-inner {
-  min-height: 62px;
-}
-
-body.ui-font-yirik .navbar .brand {
-  font-size: 16.5px;
-}
-
-body.ui-font-yirik .navbar a.nav-link,
-body.ui-font-yirik .navbar .nav-pref-btn,
-body.ui-font-yirik .navbar .user,
-body.ui-font-yirik .navbar .logout-btn {
+body.ui-font-yirik .bulk-select,
+body.ui-font-yirik .audit-filter-form select {
   font-size: 14.5px;
 }
 
+body.ui-font-yirik .audit-filter-form {
+  flex-wrap: wrap;
+}
+
+body.ui-font-yirik .audit-filter-form select,
+body.ui-font-yirik .audit-filter-form .search input,
+body.ui-font-yirik .audit-filter-form .btn,
+body.ui-font-yirik .copy-year-form select,
+body.ui-font-yirik .bulk-select,
+body.ui-font-yirik .kurs-ishi-form select {
+  height: auto;
+  min-height: 40px;
+}
+
+body.ui-font-yirik .soat-input {
+  width: 64px;
+  min-height: 36px;
+  padding: 6px 6px;
+  font-size: 14px;
+}
+
+body.ui-font-yirik .kurs-ishi-form .soat-input {
+  width: 150px;
+  height: auto;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+body.ui-font-yirik .search input {
+  width: min(275px, 100%);
+}
+
+body.ui-font-yirik .navbar-inner {
+  min-height: 60px;
+  padding: 0 24px;
+  gap: 10px;
+}
+
+body.ui-font-yirik .navbar .brand {
+  font-size: 15.5px;
+  margin-right: 8px;
+}
+
+body.ui-font-yirik .navbar a.nav-link,
+body.ui-font-yirik .navbar .nav-pref-btn {
+  font-size: 14px;
+  padding: 7px 10px;
+}
+
+body.ui-font-yirik .navbar .user,
+body.ui-font-yirik .navbar .logout-btn {
+  font-size: 13.5px;
+}
+
+body.ui-font-yirik .navbar .user {
+  max-width: 150px;
+}
+
+body.ui-font-yirik .navbar-actions {
+  gap: 8px;
+}
+
+@media (max-width: 1120px) {
+  body.ui-font-yirik .navbar-inner {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 58px;
+    padding: 8px 16px;
+    gap: 8px;
+  }
+
+  body.ui-font-yirik .navbar-toggle {
+    display: inline-flex;
+  }
+
+  body.ui-font-yirik .navbar-nav {
+    display: none;
+    flex: none;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 8px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  body.ui-font-yirik .navbar-nav.ochiq {
+    display: flex;
+    animation: drawer-ochilish 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  body.ui-font-yirik .navbar-actions {
+    display: none;
+    flex: none;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 8px 0 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  body.ui-font-yirik .navbar-actions.ochiq {
+    display: flex;
+    animation: drawer-ochilish 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  body.ui-font-yirik .nav-notif-menu {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: 66px;
+    width: auto;
+  }
+}
+
 body.ui-font-yirik .onb-title {
-  font-size: 21px;
+  font-size: 20.5px;
 }
 
 body.ui-font-yirik .onb-subtitle,
 body.ui-font-yirik .onb-group-label,
 body.ui-font-yirik .onb-seg-btn {
-  font-size: 15px;
+  font-size: 14.5px;
+}
+
+body.ui-font-yirik .table-modal-dialog {
+  max-width: 720px;
+}
+
+body.ui-font-yirik .table-modal-dialog.table-modal-lg {
+  max-width: 900px;
+}
+
+body.ui-font-yirik .popover {
+  width: 275px;
+}
+
+body.ui-font-yirik .popover.popover-kafedra {
+  width: min(335px, 94vw);
+}
+
+body.ui-font-yirik .action-menu {
+  min-width: 260px;
+}
+
+body.ui-font-yirik .action-title {
+  font-size: 13.5px;
+}
+
+body.ui-font-yirik .action-desc {
+  font-size: 12px;
 }
 
 body.ui-font-yirik .analitika-heading {
-  font-size: 18px;
+  font-size: 17.5px;
 }
 
 body.ui-font-yirik .analitika-subheading,
@@ -4847,187 +5116,451 @@ body.ui-font-yirik .analitika-metric-lbl,
 body.ui-font-yirik .analitika-metric-pct,
 body.ui-font-yirik .ak-kaf-meta,
 body.ui-font-yirik .at-unit {
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 body.ui-font-yirik .analitika-panel-title {
-  font-size: 15px;
+  font-size: 14.5px;
 }
 
 body.ui-font-yirik .analitika-metric-val {
-  font-size: 19px;
+  font-size: 18.5px;
 }
 
 body.ui-font-yirik .analitika-table,
 body.ui-font-yirik .ak-kaf-title,
 body.ui-font-yirik .ak-hours-top strong {
-  font-size: 14.5px;
+  font-size: 14px;
 }
 
 body.ui-font-yirik .analitika-table thead th,
 body.ui-font-yirik .at-pct-val,
 body.ui-font-yirik .ak-status-text,
 body.ui-font-yirik .analitika-table-foot td {
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 body.ui-font-yirik .kafedra-table-scroll {
-  max-height: 400px;
+  max-height: 410px;
 }
 
 /* Shrift o'lchami: Juda katta (ko'zi xira ustozlar uchun) */
 body.ui-font-juda_yirik {
-  --fs-xs: 15px;
-  --fs-sm: 16px;
-  --fs-base: 17.5px;
-  --fs-md: 19px;
-  --fs-lg: 22px;
-  --fs-xl: 28px;
-  --fs-2xl: 36px;
-  font-size: 17.5px;
-  line-height: 1.68;
+  --fs-xs: 14px;
+  --fs-sm: 15px;
+  --fs-base: 16.5px;
+  --fs-md: 18px;
+  --fs-lg: 21px;
+  --fs-xl: 26px;
+  --fs-2xl: 34px;
+  font-size: 16.5px;
+  line-height: 1.62;
 }
 
 body.ui-font-juda_yirik .title {
-  font-size: 29px;
+  font-size: 26px;
 }
 
 body.ui-font-juda_yirik .subtitle,
 body.ui-font-juda_yirik .breadcrumb,
 body.ui-font-juda_yirik .msg,
 body.ui-font-juda_yirik .legend {
-  font-size: 16.5px;
+  font-size: 15.5px;
 }
 
-body.ui-font-juda_yirik .stats,
-body.ui-font-juda_yirik .stats.wide {
-  grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+body.ui-font-juda_yirik .stats {
+  grid-template-columns: repeat(4, 1fr);
   gap: 18px;
 }
 
+body.ui-font-juda_yirik .stats.wide {
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 1120px) {
+  body.ui-font-juda_yirik .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  body.ui-font-juda_yirik .stats,
+  body.ui-font-juda_yirik .stats.wide {
+    grid-template-columns: 1fr;
+  }
+}
+
 body.ui-font-juda_yirik .stat {
-  padding: 22px 24px;
+  padding: 20px 22px;
 }
 
 body.ui-font-juda_yirik .stat .num {
-  font-size: 35px;
+  font-size: 33px;
 }
 
 body.ui-font-juda_yirik .stat .lbl {
-  font-size: 15.5px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
 body.ui-font-juda_yirik table,
 body.ui-font-juda_yirik td {
-  font-size: 16.5px;
+  font-size: 15.5px;
 }
 
 body.ui-font-juda_yirik thead th {
-  font-size: 14px;
-  padding: 15px 16px;
+  font-size: 13px;
+  padding: 13px 14px;
 }
 
 body.ui-font-juda_yirik td {
-  padding: 15px 16px;
+  padding: 13px 14px;
 }
 
 body.ui-font-juda_yirik .sem-cell,
 body.ui-font-juda_yirik th.sem-h {
-  width: 64px;
+  width: 58px;
+  padding: 10px 4px;
+}
+
+body.ui-font-juda_yirik .table-semestr-kesimi th,
+body.ui-font-juda_yirik .table-semestr-kesimi td {
+  padding: 12px 7px;
+}
+
+body.ui-font-juda_yirik .table-semestr-kesimi th.col-idx,
+body.ui-font-juda_yirik .table-semestr-kesimi td.col-idx {
+  width: 42px;
+  padding: 12px 4px;
+}
+
+body.ui-font-juda_yirik .table-semestr-kesimi th.col-num,
+body.ui-font-juda_yirik .table-semestr-kesimi td.col-num {
+  width: 68px;
+  min-width: 56px;
+  padding: 12px 5px;
+}
+
+body.ui-font-juda_yirik .table-semestr-kesimi th.col-kafedra,
+body.ui-font-juda_yirik .table-semestr-kesimi td.col-kafedra {
+  width: 190px;
+}
+
+body.ui-font-juda_yirik .table-semestr-kesimi th.col-oqituvchi,
+body.ui-font-juda_yirik .table-semestr-kesimi td.col-oqituvchi {
+  width: 160px;
+}
+
+body.ui-font-juda_yirik .panel-row > td {
+  padding: 0 !important;
+}
+
+body.ui-font-juda_yirik .col-name {
+  min-width: 260px;
+}
+
+body.ui-font-juda_yirik .assign-cell {
+  min-width: 205px;
+}
+
+body.ui-font-juda_yirik .kafedra-dash-table th.col-amal {
+  width: 172px;
+}
+
+body.ui-font-juda_yirik .kafedra-dash-table th.col-semestr {
+  width: 126px;
+}
+
+body.ui-font-juda_yirik .fan-meta-sub {
+  max-width: 350px;
 }
 
 body.ui-font-juda_yirik .sem-fill {
-  min-width: 44px;
-  height: 34px;
-  font-size: 15px;
-  border-radius: 8px;
+  min-width: 40px;
+  height: 31px;
+  font-size: 14px;
+  border-radius: 7px;
 }
 
-body.ui-font-juda_yirik .tag,
-body.ui-font-juda_yirik .tur-chip,
-body.ui-font-juda_yirik .code,
-body.ui-font-juda_yirik .credits {
-  font-size: 14.5px;
+body.ui-font-juda_yirik .tag {
+  font-size: 13.5px;
   padding: 4px 10px;
 }
 
+body.ui-font-juda_yirik .code,
+body.ui-font-juda_yirik span.col-code {
+  font-size: 13.5px;
+  padding: 3px 8px;
+}
+
+body.ui-font-juda_yirik .credits {
+  font-size: 15px;
+}
+
+body.ui-font-juda_yirik .tur-chip {
+  font-size: 14.5px;
+  padding: 9px 15px;
+}
+
 body.ui-font-juda_yirik .teacher-chip {
-  font-size: 15.5px;
-  padding: 7px 15px 7px 7px;
+  font-size: 14.5px;
+  padding: 6px 14px 6px 6px;
 }
 
 body.ui-font-juda_yirik .avatar {
-  width: 30px;
-  height: 30px;
-  font-size: 12.5px;
+  width: 28px;
+  height: 28px;
+  font-size: 11.5px;
 }
 
-body.ui-font-juda_yirik .btn,
+body.ui-font-juda_yirik .btn {
+  font-size: 15.5px;
+  padding: 9px 18px;
+  min-height: 42px;
+}
+
 body.ui-font-juda_yirik .chip-btn {
-  font-size: 16.5px;
-  padding: 10px 20px;
-  min-height: 46px;
-}
-
-body.ui-font-juda_yirik .btn-sm {
-  font-size: 15px;
-  padding: 8px 16px;
+  font-size: 14.5px;
+  padding: 8px 15px;
   min-height: 40px;
 }
 
+body.ui-font-juda_yirik .btn-sm {
+  font-size: 14px;
+  padding: 7px 13px;
+  min-height: 36px;
+}
+
+body.ui-font-juda_yirik .btn-compact-xs {
+  height: auto;
+  min-height: 34px;
+  font-size: 13px;
+  padding: 5px 11px;
+}
+
+body.ui-font-juda_yirik .popover-filter-chip {
+  height: auto;
+  min-height: 30px;
+  font-size: 12.5px;
+  padding: 4px 10px;
+}
+
+body.ui-font-juda_yirik .form-card {
+  max-width: 760px;
+}
+
 body.ui-font-juda_yirik .form-field label {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 body.ui-font-juda_yirik .form-field input,
 body.ui-font-juda_yirik .form-field select,
 body.ui-font-juda_yirik .form-field textarea,
 body.ui-font-juda_yirik .search input,
-body.ui-font-juda_yirik .soat-input,
-body.ui-font-juda_yirik .bulk-select {
-  font-size: 16.5px;
-  min-height: 46px;
+body.ui-font-juda_yirik .bulk-select,
+body.ui-font-juda_yirik .audit-filter-form select {
+  font-size: 15.5px;
+  min-height: 42px;
+}
+
+body.ui-font-juda_yirik .audit-filter-form {
+  flex-wrap: wrap;
+}
+
+body.ui-font-juda_yirik .audit-filter-form select,
+body.ui-font-juda_yirik .audit-filter-form .search input,
+body.ui-font-juda_yirik .audit-filter-form .btn,
+body.ui-font-juda_yirik .copy-year-form select,
+body.ui-font-juda_yirik .bulk-select,
+body.ui-font-juda_yirik .kurs-ishi-form select {
+  height: auto;
+  min-height: 42px;
+}
+
+body.ui-font-juda_yirik .soat-input {
+  width: 72px;
+  min-height: 38px;
+  padding: 6px 6px;
+  font-size: 15px;
+}
+
+body.ui-font-juda_yirik .kurs-ishi-form .soat-input {
+  width: 155px;
+  height: auto;
+  min-height: 42px;
+  padding: 0 12px;
 }
 
 body.ui-font-juda_yirik .search input {
-  width: min(330px, 100%);
+  width: min(300px, 100%);
 }
 
-body.ui-font-juda_yirik .navbar-inner {
-  min-height: 66px;
-}
-
-body.ui-font-juda_yirik .navbar .brand {
+body.ui-font-juda_yirik .search-clear {
+  width: 26px;
+  height: 26px;
   font-size: 18px;
 }
 
+body.ui-font-juda_yirik .navbar-inner {
+  min-height: 64px;
+  padding: 0 22px;
+  gap: 8px;
+}
+
+body.ui-font-juda_yirik .navbar .brand {
+  font-size: 16.5px;
+  margin-right: 6px;
+}
+
 body.ui-font-juda_yirik .navbar a.nav-link,
-body.ui-font-juda_yirik .navbar .nav-pref-btn,
+body.ui-font-juda_yirik .navbar .nav-pref-btn {
+  font-size: 14.5px;
+  padding: 7px 9px;
+}
+
 body.ui-font-juda_yirik .navbar .user,
 body.ui-font-juda_yirik .navbar .logout-btn {
-  font-size: 16px;
+  font-size: 14px;
+}
+
+body.ui-font-juda_yirik .navbar .user {
+  max-width: 140px;
+}
+
+body.ui-font-juda_yirik .navbar-actions {
+  gap: 7px;
+}
+
+@media (max-width: 1220px) {
+  body.ui-font-juda_yirik .navbar-inner {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 60px;
+    padding: 8px 16px;
+    gap: 8px;
+  }
+
+  body.ui-font-juda_yirik .navbar-toggle {
+    display: inline-flex;
+  }
+
+  body.ui-font-juda_yirik .navbar-nav {
+    display: none;
+    flex: none;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 8px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  body.ui-font-juda_yirik .navbar-nav.ochiq {
+    display: flex;
+    animation: drawer-ochilish 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  body.ui-font-juda_yirik .navbar-actions {
+    display: none;
+    flex: none;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 8px 0 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  body.ui-font-juda_yirik .navbar-actions.ochiq {
+    display: flex;
+    animation: drawer-ochilish 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  body.ui-font-juda_yirik .nav-notif-menu {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: 68px;
+    width: auto;
+  }
+}
+
+body.ui-font-juda_yirik .nav-notif-head {
+  font-size: 15px;
+}
+
+body.ui-font-juda_yirik .nav-notif-title {
+  font-size: 14.5px;
+}
+
+body.ui-font-juda_yirik .nav-notif-body {
+  font-size: 13.5px;
+}
+
+body.ui-font-juda_yirik .nav-notif-time {
+  font-size: 12.5px;
+}
+
+body.ui-font-juda_yirik .nav-notif-foot a {
+  font-size: 14px;
 }
 
 body.ui-font-juda_yirik .onb-card {
-  width: min(500px, 100%);
+  width: min(550px, 100%);
 }
 
 body.ui-font-juda_yirik .onb-title {
-  font-size: 23px;
+  font-size: 22px;
 }
 
 body.ui-font-juda_yirik .onb-subtitle,
 body.ui-font-juda_yirik .onb-group-label,
 body.ui-font-juda_yirik .onb-seg-btn {
-  font-size: 16.5px;
+  font-size: 15.5px;
+}
+
+body.ui-font-juda_yirik .table-modal-dialog {
+  max-width: 750px;
+}
+
+body.ui-font-juda_yirik .table-modal-dialog.table-modal-lg {
+  max-width: 940px;
+}
+
+body.ui-font-juda_yirik .app-modal-card {
+  max-width: 580px;
+}
+
+body.ui-font-juda_yirik .popover {
+  width: 295px;
+}
+
+body.ui-font-juda_yirik .popover.popover-kafedra {
+  width: min(360px, 94vw);
+}
+
+body.ui-font-juda_yirik .action-menu {
+  min-width: 280px;
+}
+
+body.ui-font-juda_yirik .action-title {
+  font-size: 14.5px;
+}
+
+body.ui-font-juda_yirik .action-desc {
+  font-size: 13px;
 }
 
 body.ui-font-juda_yirik .analitika-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(390px, 100%), 1fr));
+}
+
+body.ui-font-juda_yirik .analitika-panel-head {
+  flex-wrap: wrap;
 }
 
 body.ui-font-juda_yirik .analitika-heading {
-  font-size: 20px;
+  font-size: 19px;
 }
 
 body.ui-font-juda_yirik .analitika-subheading,
@@ -5037,32 +5570,28 @@ body.ui-font-juda_yirik .analitika-metric-pct,
 body.ui-font-juda_yirik .ak-kaf-meta,
 body.ui-font-juda_yirik .at-unit,
 body.ui-font-juda_yirik .ak-hours-top {
-  font-size: 14.5px;
+  font-size: 13.5px;
 }
 
 body.ui-font-juda_yirik .analitika-panel-title {
-  font-size: 17px;
+  font-size: 16px;
 }
 
 body.ui-font-juda_yirik .analitika-metric-val {
-  font-size: 22px;
-}
-
-body.ui-font-juda_yirik .analitika-metric-lbl {
-  font-size: 13.5px;
+  font-size: 20.5px;
 }
 
 body.ui-font-juda_yirik .analitika-table,
 body.ui-font-juda_yirik .ak-kaf-title,
 body.ui-font-juda_yirik .ak-hours-top strong {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 body.ui-font-juda_yirik .analitika-table thead th,
 body.ui-font-juda_yirik .at-pct-val,
 body.ui-font-juda_yirik .ak-status-text,
 body.ui-font-juda_yirik .analitika-table-foot td {
-  font-size: 14.5px;
+  font-size: 13.5px;
 }
 
 body.ui-font-juda_yirik .composite-bar {
@@ -5074,53 +5603,75 @@ body.ui-font-juda_yirik .tur-progress-track {
 }
 
 body.ui-font-juda_yirik .tur-color-dot {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
 }
 
 body.ui-font-juda_yirik .kafedra-avatar-mini {
-  width: 34px;
-  height: 34px;
-  font-size: 12px;
+  width: 32px;
+  height: 32px;
+  font-size: 11.5px;
 }
 
 body.ui-font-juda_yirik .kafedra-table-scroll {
-  max-height: 460px;
+  max-height: 450px;
 }
 
-/* Yuqori kontrast rejimi (Chiroyli va ravshan) */
+/* Yuqori kontrast rejimi (Aniq, toza va uyg'un) */
 body.ui-kontrast {
-  --paper: #f8fafc;
+  --paper: #f1f5f9;
   --panel: #ffffff;
-  --text-main: #000000;
-  --text-secondary: #0f172a;
-  --text-muted: #1e293b;
-  --text-light: #1e293b;
+  --text-main: #090d16;
+  --text-secondary: #1e293b;
+  --text-muted: #334155;
+  --text-light: #475569;
   --line: #94a3b8;
-  --line-strong: #475569;
+  --line-strong: #64748b;
   --input-bg: #ffffff;
-  --input-border: #475569;
+  --input-border: #64748b;
   --input-focus-border: #1a2a6e;
-  --input-focus-ring: rgba(26, 42, 110, 0.25);
-  background-color: #f8fafc;
+  --input-focus-ring: rgba(26, 42, 110, 0.22);
+  background-color: #f1f5f9;
+}
+
+body.ui-kontrast ::placeholder,
+body.ui-kontrast input::placeholder,
+body.ui-kontrast textarea::placeholder {
+  color: #475569;
 }
 
 body.ui-kontrast .card,
 body.ui-kontrast .table-wrap,
 body.ui-kontrast .analitika-card,
-body.ui-kontrast .analitika-panel,
 body.ui-kontrast .auth-card,
 body.ui-kontrast .app-modal-card,
-body.ui-kontrast .onb-card {
+body.ui-kontrast .onb-card,
+body.ui-kontrast .report-sheet,
+body.ui-kontrast .sahifalash,
+body.ui-kontrast .bulk-bar {
   background: #ffffff;
-  border: 1.5px solid #475569;
-  box-shadow: 0 8px 24px -8px rgba(15, 23, 42, 0.14);
+  border: 1.5px solid #64748b;
+  box-shadow: 0 6px 18px -6px rgba(15, 23, 42, 0.12);
+}
+
+body.ui-kontrast .analitika-panel,
+body.ui-kontrast .taqsimot-qism,
+body.ui-kontrast .guruh-slot-card,
+body.ui-kontrast .segmented-tabs {
+  border: 1.5px solid #94a3b8;
+}
+
+body.ui-kontrast .kafedra-status-card {
+  border-top: 1.5px solid #64748b;
+  border-right: 1.5px solid #64748b;
+  border-bottom: 1.5px solid #64748b;
+  box-shadow: 0 6px 18px -6px rgba(15, 23, 42, 0.1);
 }
 
 body.ui-kontrast .analitika-panel-head,
 body.ui-kontrast .analitika-table-foot td {
   background: #eef2ff;
-  border-color: #475569;
+  border-color: #94a3b8;
 }
 
 body.ui-kontrast .analitika-heading,
@@ -5129,7 +5680,7 @@ body.ui-kontrast .analitika-metric-val,
 body.ui-kontrast .ak-kaf-title,
 body.ui-kontrast .ak-hours-top strong,
 body.ui-kontrast .analitika-table td {
-  color: #000000;
+  color: #090d16;
 }
 
 body.ui-kontrast .tur-progress-track {
@@ -5139,7 +5690,7 @@ body.ui-kontrast .tur-progress-track {
 
 body.ui-kontrast .composite-bar {
   background: #cbd5e1;
-  border: 1px solid #475569;
+  border: 1px solid #64748b;
 }
 
 body.ui-kontrast .at-pct-val,
@@ -5150,7 +5701,7 @@ body.ui-kontrast .soat-holat {
 
 body.ui-kontrast .stat {
   background: #ffffff;
-  border: 1.5px solid #475569;
+  border: 1.5px solid #64748b;
   border-top: 3px solid var(--ink);
   box-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.1);
 }
@@ -5164,13 +5715,14 @@ body.ui-kontrast .stat.ok {
 }
 
 body.ui-kontrast thead th {
-  background: #eef2ff;
-  color: #0f172a;
+  background: #e8eefc;
+  color: #090d16;
   border-bottom: 2px solid var(--ink);
+  box-shadow: none;
 }
 
 body.ui-kontrast table td {
-  color: #000000;
+  color: #090d16;
   border-bottom: 1px solid #cbd5e1;
 }
 
@@ -5182,19 +5734,26 @@ body.ui-kontrast tbody tr:hover td {
   background: #e0e7ff !important;
 }
 
-body.ui-kontrast .btn,
+body.ui-kontrast .btn:not(.btn-primary):not(.btn-danger):not(.btn-success):not(.btn-ghost-danger):not(.btn-outline),
 body.ui-kontrast .chip-btn {
   border-width: 1.5px;
-  border-color: #334155;
-  color: #000000;
-  font-weight: 700;
+  border-color: #475569;
+  color: #090d16;
+  font-weight: 600;
 }
 
-body.ui-kontrast .btn:hover,
+body.ui-kontrast .btn:not(.btn-primary):not(.btn-danger):not(.btn-success):not(.btn-ghost-danger):not(.btn-outline):hover,
 body.ui-kontrast .chip-btn:hover {
   background: #eef2ff;
   border-color: var(--ink);
   color: var(--ink);
+}
+
+body.ui-kontrast .btn-outline {
+  border-width: 1.5px;
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
 }
 
 body.ui-kontrast .btn-primary,
@@ -5210,21 +5769,92 @@ body.ui-kontrast .btn-primary:hover {
   color: #ffffff;
 }
 
+body.ui-kontrast .btn-danger {
+  background: #b91c1c;
+  border-color: #7f1d1d;
+  color: #ffffff;
+}
+
+body.ui-kontrast .btn-success {
+  background: #047857;
+  border-color: #064e3b;
+  color: #ffffff;
+}
+
+body.ui-kontrast .btn-ghost-danger {
+  border-color: #f87171;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+body.ui-kontrast .navbar .logout-btn {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #090d16;
+  font-weight: 700;
+}
+
+body.ui-kontrast .navbar .logout-btn:hover {
+  background: #fde68a;
+  border-color: #fbbf24;
+  color: #090d16;
+}
+
 body.ui-kontrast .tag,
 body.ui-kontrast .sem-fill,
 body.ui-kontrast .teacher-chip,
-body.ui-kontrast .tur-chip {
-  border-width: 1.5px !important;
+body.ui-kontrast .tur-chip,
+body.ui-kontrast span.col-code,
+body.ui-kontrast .hour-tag {
+  border-width: 1.5px;
   font-weight: 700;
+}
+
+body.ui-kontrast .tag-mand,
+body.ui-kontrast .sem-fill.ok,
+body.ui-kontrast .teacher-chip.status.ok {
+  border-color: #059669;
+  color: #065f46;
+}
+
+body.ui-kontrast .tag-elec,
+body.ui-kontrast .sem-fill,
+body.ui-kontrast .hour-tag {
+  border-color: #d97706;
+  color: #78350f;
+}
+
+body.ui-kontrast .tag-rad,
+body.ui-kontrast .sem-fill.warn,
+body.ui-kontrast .sem-fill.danger,
+body.ui-kontrast .teacher-chip.empty,
+body.ui-kontrast .teacher-chip.status.warn,
+body.ui-kontrast .tur-chip.warn {
+  border-color: #dc2626;
+  color: #991b1b;
+}
+
+body.ui-kontrast .teacher-chip,
+body.ui-kontrast .tur-chip,
+body.ui-kontrast span.col-code {
+  border-color: #64748b;
+  color: #090d16;
+}
+
+body.ui-kontrast .popover .opt:hover,
+body.ui-kontrast .action-item:hover,
+body.ui-kontrast .menu-item:hover {
+  background: #e2e8f0;
+  color: #090d16;
 }
 
 body.ui-kontrast .onb-segmented {
   background: #e2e8f0;
-  border-color: #475569;
+  border-color: #64748b;
 }
 
 body.ui-kontrast .onb-seg-btn {
-  color: #0f172a;
+  color: #090d16;
 }
 
 body.ui-kontrast .onb-seg-btn.active {
@@ -5237,26 +5867,76 @@ body.ui-kontrast *:focus-visible {
   outline-offset: 2px !important;
 }
 
+body.ui-kontrast .navbar *:focus-visible {
+  outline: 3px solid #fde68a !important;
+  outline-offset: 2px !important;
+}
+
 /* Keng va sokin boshqaruv rejimi */
-body.ui-keng .btn,
-body.ui-keng .chip-btn,
 body.ui-keng .navbar a.nav-link,
 body.ui-keng .navbar .nav-pref-btn,
+body.ui-keng .navbar .logout-btn {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+}
+
+body.ui-keng .user-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+body.ui-keng .btn:not(.btn-sm):not(.btn-compact-xs):not(.popover-filter-chip),
 body.ui-keng .onb-seg-btn {
-  min-height: 44px;
+  min-height: 42px;
+  padding: 9px 18px;
+}
+
+body.ui-keng .chip-btn:not(.popover-filter-chip) {
+  min-height: 38px;
+  padding: 7px 15px;
+}
+
+body.ui-keng .btn-sm {
+  min-height: 36px;
+  padding: 7px 14px;
+}
+
+body.ui-keng .btn-compact-xs {
+  height: auto;
+  min-height: 32px;
+  padding: 5px 11px;
+}
+
+body.ui-keng .popover-filter-chip {
+  height: auto;
+  min-height: 28px;
+}
+
+body.ui-keng th.col-check,
+body.ui-keng td.col-check {
+  width: 44px;
+  min-width: 44px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 body.ui-keng .row-check,
-body.ui-keng input[type="checkbox"],
+body.ui-keng input[type="checkbox"]:not(.chip-check-native),
 body.ui-keng input[type="radio"] {
-  width: 21px;
-  height: 21px;
+  width: 18px;
+  height: 18px;
   accent-color: var(--ink);
 }
 
 body.ui-keng .btn-dots {
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+body.ui-keng .topbar {
+  gap: 18px;
+  margin-bottom: 26px;
 }
 
 body.ui-keng .stats {
@@ -5265,32 +5945,50 @@ body.ui-keng .stats {
 }
 
 body.ui-keng .controls {
-  gap: 14px;
+  gap: 12px;
 }
 
 body.ui-keng td,
 body.ui-keng thead th {
-  padding-top: 16px;
-  padding-bottom: 16px;
-  line-height: 1.65;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  line-height: 1.6;
+}
+
+body.ui-keng .sem-cell,
+body.ui-keng th.sem-h {
+  padding: 11px 4px;
+}
+
+body.ui-keng .table-semestr-kesimi th,
+body.ui-keng .table-semestr-kesimi td {
+  padding: 12px 8px;
+}
+
+body.ui-keng .panel-row > td {
+  padding: 0 !important;
 }
 
 body.ui-keng .card {
-  padding: 28px 32px;
-  margin-bottom: 26px;
+  padding: 26px 30px;
+  margin-bottom: 24px;
 }
 
 body.ui-keng .analitika-grid {
-  gap: 24px;
+  gap: 22px;
 }
 
 body.ui-keng .analitika-table th,
 body.ui-keng .analitika-table td {
-  padding: 13px 16px;
+  padding: 11px 14px;
+}
+
+body.ui-keng .form-card {
+  max-width: 740px;
 }
 
 body.ui-keng .form-field {
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 body.ui-keng *,
@@ -5303,6 +6001,7 @@ body.ui-keng *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -6038,7 +6737,7 @@ body.ui-keng *::after {
   padding: 7px 14px;
   border-radius: 7px;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.24s ease, color 0.24s ease, box-shadow 0.24s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .seg-tab:hover {
@@ -6174,64 +6873,725 @@ body.ui-keng *::after {
 
 /* Yoshi katta / Ko'rish qulayligi rejimlari (Kafedra & Formlar) */
 body.ui-font-yirik .badge-major,
-body.ui-font-yirik .hour-tag,
+body.ui-font-yirik .hour-tag {
+  font-size: 13px;
+}
+
 body.ui-font-yirik .kafedra-status-desc,
 body.ui-font-yirik .kafedra-status-pill-item,
 body.ui-font-yirik .seg-tab,
 body.ui-font-yirik .popover .opt-lavozim,
 body.ui-font-yirik .fan-meta-sub {
-  font-size: 14px !important;
+  font-size: 13.5px;
 }
 
 body.ui-font-yirik .taqsimot-panel-title,
 body.ui-font-yirik .kafedra-status-label {
-  font-size: 16.5px !important;
+  font-size: 16px;
 }
 
 body.ui-font-juda_yirik .badge-major,
-body.ui-font-juda_yirik .hour-tag,
+body.ui-font-juda_yirik .hour-tag {
+  font-size: 14px;
+}
+
 body.ui-font-juda_yirik .kafedra-status-desc,
 body.ui-font-juda_yirik .kafedra-status-pill-item,
 body.ui-font-juda_yirik .seg-tab,
 body.ui-font-juda_yirik .popover .opt-lavozim,
 body.ui-font-juda_yirik .fan-meta-sub,
 body.ui-font-juda_yirik .sahifalash-info {
-  font-size: 15.5px !important;
+  font-size: 15px;
 }
 
 body.ui-font-juda_yirik .taqsimot-panel-title,
 body.ui-font-juda_yirik .kafedra-status-label,
 body.ui-font-juda_yirik .empty-state-title {
-  font-size: 18px !important;
+  font-size: 17.5px;
 }
 
 body.ui-font-juda_yirik .guruh-slot-grid {
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
-body.ui-font-juda_yirik .popover.popover-kafedra {
-  width: min(360px, 94vw);
+body.ui-kontrast .kafedra-status-card {
+  border-top-color: #64748b;
+  border-right-color: #64748b;
+  border-bottom-color: #64748b;
 }
 
-body.ui-kontrast .kafedra-status-card,
 body.ui-kontrast .taqsimot-qism,
 body.ui-kontrast .guruh-slot-card,
-body.ui-kontrast .report-sheet,
-body.ui-kontrast .sahifalash,
 body.ui-kontrast .segmented-tabs {
-  border-color: #475569 !important;
+  border-color: #94a3b8;
 }
 
-body.ui-kontrast .hour-tag {
-  border-color: #64748b !important;
-  color: #0f172a !important;
+body.ui-kontrast .report-sheet,
+body.ui-kontrast .sahifalash,
+body.ui-kontrast .kafedra-status-pill-item {
+  border-color: #64748b;
 }
 
 body.ui-kontrast .badge-major {
-  border-color: #1a2a6e !important;
-  color: #1a2a6e !important;
+  background: var(--ink);
+  border: 1.5px solid #0f172a;
+  color: #ffffff;
+}
+
+body.ui-kontrast .seg-tab {
+  border: 1.5px solid transparent;
+  color: #1e293b;
 }
 
 body.ui-kontrast .seg-tab.active {
-  border: 1.5px solid #1a2a6e !important;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* ================= Refinements: Smooth Motion & Micro-interactions ================= */
+@keyframes ui-fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ui-fade-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ui-scale-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes htmx-row-flash {
+  0% {
+    background-color: #dbeafe;
+  }
+
+  35% {
+    background-color: #eff6ff;
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes bell-sway {
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  20% {
+    transform: rotate(-12deg);
+  }
+
+  42% {
+    transform: rotate(10deg);
+  }
+
+  64% {
+    transform: rotate(-6deg);
+  }
+
+  82% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes notif-halo {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.36);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px rgba(220, 38, 38, 0);
+  }
+}
+
+@keyframes empty-icon-float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Sahifa loader ochiq paytda kirish kaskadini ushlab turish (loader yopilgach chiroyli chiqishi uchun) */
+body.is-page-loading:not(.ui-keng) .app>.breadcrumb,
+body.is-page-loading:not(.ui-keng) .app .topbar,
+body.is-page-loading:not(.ui-keng) .app .filter-toolbar,
+body.is-page-loading:not(.ui-keng) .app .subtoolbar,
+body.is-page-loading:not(.ui-keng) .app .legend,
+body.is-page-loading:not(.ui-keng) .app .stats .stat,
+body.is-page-loading:not(.ui-keng) .app .card,
+body.is-page-loading:not(.ui-keng) .app .report-sheet,
+body.is-page-loading:not(.ui-keng) .app .table-wrap,
+body.is-page-loading:not(.ui-keng) .app .analitika-card,
+body.is-page-loading:not(.ui-keng) .app .analitika-panel,
+body.is-page-loading:not(.ui-keng) .app .analitika-metric,
+body.is-page-loading:not(.ui-keng) .app .empty-state-rich,
+body.is-page-loading:not(.ui-keng) .app .table-wrap tbody tr:not(.panel-row):not(.group-row),
+body.is-page-loading:not(.ui-keng) .app .analitika-table tbody tr,
+body.is-page-loading:not(.ui-keng) .app .form-card .form-field,
+body.is-page-loading:not(.ui-keng) .app .form-card .form-section,
+body.is-page-loading:not(.ui-keng) .app .form-card .form-actions {
+  opacity: 0;
+  animation: none !important;
+}
+
+/* Sahifa kirish animatsiyalari (xoreografiyali va mayin) */
+.app>.breadcrumb {
+  animation: ui-fade-slide-down 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.app>.topbar,
+#kafedra-dashboard-jonli>.topbar,
+#kafedra-hisobot-jonli>.topbar,
+#kafedra-oqituvchilar-jonli>.topbar {
+  animation: ui-fade-slide-down 0.5s cubic-bezier(0.22, 1, 0.36, 1) 40ms both;
+}
+
+.filter-toolbar,
+.subtoolbar,
+.legend {
+  animation: ui-fade-slide-up 0.48s cubic-bezier(0.22, 1, 0.36, 1) 90ms both;
+}
+
+.stats .stat {
+  animation: ui-scale-fade-in 0.56s cubic-bezier(0.22, 1, 0.36, 1) 520ms both;
+}
+
+.stats .stat:nth-child(1) {
+  animation-delay: 60ms;
+}
+
+.stats .stat:nth-child(2) {
+  animation-delay: 130ms;
+}
+
+.stats .stat:nth-child(3) {
+  animation-delay: 200ms;
+}
+
+.stats .stat:nth-child(4) {
+  animation-delay: 270ms;
+}
+
+.stats .stat:nth-child(5) {
+  animation-delay: 340ms;
+}
+
+.stats .stat:nth-child(6) {
+  animation-delay: 410ms;
+}
+
+.stats .stat:nth-child(7) {
+  animation-delay: 470ms;
+}
+
+.stats .stat:nth-child(8) {
+  animation-delay: 520ms;
+}
+
+.stats .stat:nth-child(2) {
+  animation-delay: 32ms;
+}
+
+.stats .stat:nth-child(3) {
+  animation-delay: 64ms;
+}
+
+.stats .stat:nth-child(4) {
+  animation-delay: 96ms;
+}
+
+.stats .stat:nth-child(5) {
+  animation-delay: 128ms;
+}
+
+.stats .stat:nth-child(6) {
+  animation-delay: 160ms;
+}
+
+.stats .stat:nth-child(7) {
+  animation-delay: 192ms;
+}
+
+.stats .stat:nth-child(8) {
+  animation-delay: 224ms;
+}
+
+.card,
+.report-sheet,
+.table-wrap,
+.analitika-card,
+.empty-state-rich {
+  animation: ui-fade-slide-up 0.54s cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+/* Analitika panellari va ko'rsatkichlari kaskadi */
+.analitika-panel {
+  animation: ui-scale-fade-in 0.54s cubic-bezier(0.22, 1, 0.36, 1) 260ms both;
+}
+
+.analitika-panel:nth-child(1) {
+  animation-delay: 140ms;
+}
+
+.analitika-panel:nth-child(2) {
+  animation-delay: 240ms;
+}
+
+.analitika-metric {
+  animation: ui-fade-slide-up 0.46s cubic-bezier(0.22, 1, 0.36, 1) 360ms both;
+}
+
+.analitika-metric:nth-child(1) {
+  animation-delay: 160ms;
+}
+
+.analitika-metric:nth-child(2) {
+  animation-delay: 220ms;
+}
+
+.analitika-metric:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+.analitika-metric:nth-child(4) {
+  animation-delay: 340ms;
+}
+
+/* Jadval qatorlari ketma-ket mayin chiqishi */
+.table-wrap tbody tr:not(.panel-row):not(.group-row),
+.analitika-table tbody tr {
+  transition: background-color 0.22s ease;
+  animation: ui-fade-slide-up 0.46s cubic-bezier(0.22, 1, 0.36, 1) 520ms both;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(1),
+.analitika-table tbody tr:nth-child(1) {
+  animation-delay: 80ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(2),
+.analitika-table tbody tr:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(3),
+.analitika-table tbody tr:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(4),
+.analitika-table tbody tr:nth-child(4) {
+  animation-delay: 200ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(5),
+.analitika-table tbody tr:nth-child(5) {
+  animation-delay: 240ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(6),
+.analitika-table tbody tr:nth-child(6) {
+  animation-delay: 280ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(7),
+.analitika-table tbody tr:nth-child(7) {
+  animation-delay: 320ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(8),
+.analitika-table tbody tr:nth-child(8) {
+  animation-delay: 360ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(9),
+.analitika-table tbody tr:nth-child(9) {
+  animation-delay: 400ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(10),
+.analitika-table tbody tr:nth-child(10) {
+  animation-delay: 440ms;
+}
+
+.table-wrap tbody tr:not(.panel-row):not(.group-row):nth-child(11),
+.analitika-table tbody tr:nth-child(11) {
+  animation-delay: 480ms;
+}
+
+/* Forma maydonlari ketma-ket kirishi */
+.form-card .form-field,
+.form-card .form-section,
+.form-card .form-actions,
+.auth-card .form-field,
+.auth-card .auth-submit {
+  animation: ui-fade-slide-up 0.46s cubic-bezier(0.22, 1, 0.36, 1) 420ms both;
+}
+
+.form-card .form-field:nth-child(1),
+.auth-card .form-field:nth-child(1) {
+  animation-delay: 90ms;
+}
+
+.form-card .form-field:nth-child(2),
+.auth-card .form-field:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.form-card .form-field:nth-child(3),
+.auth-card .form-field:nth-child(3) {
+  animation-delay: 210ms;
+}
+
+.form-card .form-field:nth-child(4) {
+  animation-delay: 270ms;
+}
+
+.form-card .form-field:nth-child(5) {
+  animation-delay: 330ms;
+}
+
+.form-card .form-section {
+  animation-delay: 290ms;
+}
+
+.form-card .form-actions,
+.auth-card .auth-submit {
+  animation-delay: 360ms;
+}
+
+/* Taqsimot modal ichidagi bo'limlar, slot kartochkalar va chiplar kaskadi */
+.taqsimot-qism {
+  animation: ui-fade-slide-up 0.48s cubic-bezier(0.22, 1, 0.36, 1) 320ms both;
+}
+
+.taqsimot-qism:nth-child(1) {
+  animation-delay: 60ms;
+}
+
+.taqsimot-qism:nth-child(2) {
+  animation-delay: 130ms;
+}
+
+.taqsimot-qism:nth-child(3) {
+  animation-delay: 200ms;
+}
+
+.taqsimot-qism:nth-child(4) {
+  animation-delay: 260ms;
+}
+
+.taqsimot-qism:nth-child(5) {
+  animation-delay: 320ms;
+}
+
+.guruh-slot-card {
+  transition: border-color 0.24s ease, background-color 0.24s ease, box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1), transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: ui-scale-fade-in 0.44s cubic-bezier(0.22, 1, 0.36, 1) 420ms both;
+}
+
+.guruh-slot-card:nth-child(1) {
+  animation-delay: 70ms;
+}
+
+.guruh-slot-card:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.guruh-slot-card:nth-child(3) {
+  animation-delay: 170ms;
+}
+
+.guruh-slot-card:nth-child(4) {
+  animation-delay: 220ms;
+}
+
+.guruh-slot-card:nth-child(5) {
+  animation-delay: 270ms;
+}
+
+.guruh-slot-card:nth-child(6) {
+  animation-delay: 320ms;
+}
+
+.guruh-slot-card:nth-child(7) {
+  animation-delay: 370ms;
+}
+
+.tur-chip {
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease, border-color 0.24s ease;
+  animation: ui-scale-fade-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 340ms both;
+}
+
+.tur-chip:nth-child(1) {
+  animation-delay: 60ms;
+}
+
+.tur-chip:nth-child(2) {
+  animation-delay: 110ms;
+}
+
+.tur-chip:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+.tur-chip:nth-child(4) {
+  animation-delay: 210ms;
+}
+
+.tur-chip:nth-child(5) {
+  animation-delay: 260ms;
+}
+
+.tur-chip:nth-child(6) {
+  animation-delay: 310ms;
+}
+
+.tur-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px -4px rgba(15, 23, 42, 0.1);
+}
+
+.taqsimot-qism:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.taqsimot-qism:nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.taqsimot-qism:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+.taqsimot-qism:nth-child(5) {
+  animation-delay: 160ms;
+}
+
+/* Kartochka va guruh kataklari hover holati */
+.analitika-card,
+.card.kafedra-status-card {
+  transition: border-color 0.26s ease, box-shadow 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.analitika-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 26px -10px rgba(26, 42, 110, 0.12);
+}
+
+.guruh-slot-card:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  box-shadow: 0 6px 16px -4px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Yoqimli mikro-interaksiyalar: raqam barqarorligi, qo'ng'iroq, bo'sh holat, avatar va input fokus */
+.stat .num,
+.analitika-metric-val {
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-notif-btn svg {
+  transform-origin: 50% 18%;
+}
+
+.nav-notif-btn:hover svg {
+  animation: bell-sway 0.62s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-notif-badge {
+  animation: notif-halo 2.6s ease-in-out infinite;
+}
+
+.empty-state-icon {
+  animation: empty-icon-float 3.6s ease-in-out infinite;
+}
+
+.kafedra-status-icon {
+  animation: modal-icon-pop 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) 140ms both;
+}
+
+.avatar {
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.teacher-chip:hover .avatar,
+.oqituvchi-link:hover .avatar {
+  transform: scale(1.1);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea,
+.search input,
+.controls select {
+  transition: border-color 0.24s ease, box-shadow 0.24s ease, background-color 0.24s ease;
+}
+
+/* Chip checkbox yumshoq prujina */
+.chip-check-box svg {
+  transition: opacity 0.24s ease, transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chip-toggle:not(.active) .chip-check-box svg {
+  transform: scale(0.55);
+}
+
+.chip-toggle.active .chip-check-box svg {
+  transform: scale(1);
+}
+
+/* Popover va menyular uchun Alpine o'tishlari */
+.anim-pop-enter {
+  transition:
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.anim-pop-leave {
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 1, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.anim-pop-start {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.96);
+}
+
+.popover-up.anim-pop-start {
+  transform: translateY(8px) scale(0.96);
+}
+
+.anim-pop-end {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.anim-pop-leave-end {
+  opacity: 0;
+  transform: translateY(-5px) scale(0.97);
+}
+
+.popover-up.anim-pop-leave-end {
+  transform: translateY(5px) scale(0.97);
+}
+
+/* Tab va bo'lim almashinuvi */
+.anim-tab-enter {
+  transition:
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.anim-tab-start {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.anim-tab-end {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Ommaviy amallar paneli (markazlashgan holatni buzmaydi) */
+.anim-bulk-enter {
+  transition:
+    opacity 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.anim-bulk-leave {
+  transition:
+    opacity 0.24s cubic-bezier(0.4, 0, 1, 1),
+    transform 0.24s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.anim-bulk-start {
+  opacity: 0;
+  transform: translate(-50%, 18px) scale(0.96);
+}
+
+.anim-bulk-end {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+
+@media (max-width: 640px) {
+  .anim-bulk-start {
+    transform: translateY(18px) scale(0.97);
+  }
+
+  .anim-bulk-end {
+    transform: none;
+  }
+}
+
+/* Toast o'tishlari */
+.anim-toast-enter {
+  transition:
+    opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.anim-toast-leave {
+  transition:
+    opacity 0.26s cubic-bezier(0.4, 0, 1, 1),
+    transform 0.26s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.anim-toast-start {
+  opacity: 0;
+  transform: translateY(14px) scale(0.95);
+}
+
+.anim-toast-end {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* HTMX orqali yangilangan qator va bo'limlar */
+tr.htmx-added>td {
+  animation: htmx-row-flash 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.htmx-added:not(tr):not(.table-modal-backdrop) {
+  animation: ui-fade-slide-up 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

@@ -1,5 +1,8 @@
 {% load ui %}
-<div class="popover popover-kafedra" x-show="ochiq" x-transition x-cloak
+<div class="popover popover-kafedra" x-show="ochiq"
+     x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+     x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+     x-cloak
      x-data="{
        faqatKamomad: false,
        tepagaOchil: false,

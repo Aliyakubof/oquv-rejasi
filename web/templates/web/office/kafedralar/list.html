@@ -153,7 +153,8 @@
 
               <div class="action-menu action-menu-fixed"
                    x-show="ochiq"
-                   x-transition.duration.200ms
+                   x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+                   x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
                    x-cloak
                    :style="'top:' + pos.top + '; left:' + pos.left + ';'">
                 <button type="button" class="action-item" @click="ochiq = false"
@@ -168,7 +169,6 @@
                   </svg>
                   <div class="action-text">
                     <span class="action-title">Ma'lumot</span>
-                    <span class="action-desc">Kafedra ko'rsatkichlarini oynada ko'rish</span>
                   </div>
                 </button>
                 <div class="action-divider"></div>
@@ -189,7 +189,6 @@
                       </svg>
                       <div class="action-text">
                         <span class="action-title">Tasdiqlash</span>
-                        <span class="action-desc">Yuklamani tasdiqlash va qulflash</span>
                       </div>
                     </button>
                   </form>
@@ -213,7 +212,6 @@
                       </svg>
                       <div class="action-text">
                         <span class="action-title">Qaytarish</span>
-                        <span class="action-desc">Tuzatish uchun kafedraga qaytarish</span>
                       </div>
                     </button>
                   </form>
@@ -239,7 +237,6 @@
                       </svg>
                       <div class="action-text">
                         <span class="action-title">Qulfni ochish</span>
-                        <span class="action-desc">Qayta tahrirlash uchun qaytarish</span>
                       </div>
                     </button>
                   </form>
@@ -253,7 +250,6 @@
                   </svg>
                   <div class="action-text">
                     <span class="action-title">Tahrirlash</span>
-                    <span class="action-desc">Kafedra nomi va fakultetni o'zgartirish</span>
                   </div>
                 </a>
 
@@ -271,7 +267,6 @@
                     </svg>
                     <div class="action-text">
                       <span class="action-title">O'chirish</span>
-                      <span class="action-desc">Kafedrani tizimdan o'chirish</span>
                     </div>
                   </button>
                 </form>
