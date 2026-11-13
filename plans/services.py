@@ -361,6 +361,43 @@ def kafedraga_biriktirish(variant: FanVariant, kafedra: Department | None) -> No
     variant.save(update_fields=["kafedra"])
 
 
+@transaction.atomic
+def kafedraga_ommaviy_biriktirish(
+    variant_idlar: list[int], kafedra: Department | None
+) -> int:
+    """Assign (or clear) one department across multiple selected FanVariant rows."""
+    noyob_idlar = sorted(set(variant_idlar))
+    if not noyob_idlar:
+        return 0
+    variantlar = list(
+        FanVariant.objects.select_for_update()
+        .select_related("fan")
+        .filter(pk__in=noyob_idlar)
+        .order_by("pk")
+    )
+    band_variantlar = set(
+        Yuklama.objects.filter(fan_semestr__variant_id__in=noyob_idlar).values_list(
+            "fan_semestr__variant_id", flat=True
+        )
+    )
+    yangilanadigan: list[FanVariant] = []
+    for variant in variantlar:
+        if variant.fan.tanlangan_variant_id != variant.pk:
+            raise ValidationError("Tanlangan fanlar orasida varianti tanlanmagani bor.")
+        if variant.kafedra_id is not None and kafedra != variant.kafedra:
+            if variant.pk in band_variantlar:
+                raise ValidationError(
+                    f"«{variant.nomi}» fanida yuklamalar bor — avval bekor qiling."
+                )
+        if variant.kafedra != kafedra:
+            variant.kafedra = kafedra
+            yangilanadigan.append(variant)
+    if yangilanadigan:
+        FanVariant.objects.bulk_update(yangilanadigan, ["kafedra"])
+        keshni_tozala()
+    return len(yangilanadigan)
+
+
 def eng_kop_kurs_ishi_talabasi(reja: OquvReja) -> int:
     """Return the highest assigned KURS_ISHI student count in any semester of reja."""
     return (

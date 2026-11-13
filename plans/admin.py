@@ -4,6 +4,7 @@ from django.db.models import QuerySet
 from django.http import HttpRequest
 
 from plans.models import (
+    Bildirishnoma,
     DasturTopshirish,
     Fan,
     FanSemestr,
@@ -292,3 +293,11 @@ class DasturTopshirishAdmin(admin.ModelAdmin):
                 "variant__fan__reja", "oqituvchi__foydalanuvchi", "korib_chiqqan"
             )
         )
+
+
+@admin.register(Bildirishnoma)
+class BildirishnomaAdmin(admin.ModelAdmin):
+    list_display = ("qabul_qiluvchi", "sarlavha", "turi", "oqilgan", "yaratilgan_vaqt")
+    list_filter = ("turi", "oqilgan")
+    search_fields = ("sarlavha", "matn", "qabul_qiluvchi__telefon")
+    list_select_related = ("qabul_qiluvchi",)

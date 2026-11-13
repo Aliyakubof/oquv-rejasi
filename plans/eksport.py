@@ -9,8 +9,9 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
 from accounts.models import Department
-from plans.models import Yuklama
-from plans.services import YuklamaHolati, yuklama_kamomadi
+from plans.dashboard import KafedraQamrov, kafedra_qamrovi
+from plans.models import OquvReja, Yuklama
+from plans.services import YuklamaHolati, ofis_taqsimoti, yuklama_kamomadi
 
 _XML_TAQIQ = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 _SARLAVHA_SHRIFT = Font(bold=True, size=12)
@@ -196,3 +197,147 @@ def _kengliklarni_moslash(ws: Worksheet, *, bosh_qator: int = 1) -> None:
             default=10,
         )
         ws.column_dimensions[harf].width = min(max(uzunlik + 4, 10), 42)
+
+
+_SVOD_KAFEDRA_USTUNLAR = [
+    "№",
+    "Kafedra",
+    "Fakultet",
+    "O'qituvchilar",
+    "Biriktirilgan soat",
+    "Taqsimlangan soat",
+    "Qoldiq soat",
+    "Qoplanish (%)",
+    "Tasdiq holati",
+]
+_SVOD_REJA_USTUNLAR = [
+    "№",
+    "Yo'nalish kodi",
+    "Yo'nalish nomi",
+    "Qabul yili",
+    "Ta'lim shakli",
+    "Guruhlar",
+    "Talabalar",
+    "Jami soat",
+    "Taqsimlangan",
+    "Qoldiq",
+    "Qoplanish (%)",
+]
+
+
+def _svod_kafedra_varaqi(
+    ws: Worksheet, qamrovlar: list[KafedraQamrov], akademik_yil: int
+) -> None:
+    sarlavha = f"Kafedralar kesimida svod yuklama ({akademik_yil}/{akademik_yil + 1})"
+    ws.append([_xavfsiz_matn(sarlavha)])
+    ws["A1"].font = _SARLAVHA_SHRIFT
+    ws.append([])
+    ws.append(_SVOD_KAFEDRA_USTUNLAR)
+    _ustun_qatorini_bezash(ws, 3, len(_SVOD_KAFEDRA_USTUNLAR))
+    for idx, q in enumerate(qamrovlar, start=1):
+        qoldiq = max(0, q.biriktirilgan_soat - q.taqsimlangan_soat)
+        foiz = (
+            round(q.taqsimlangan_soat * 100 / q.biriktirilgan_soat)
+            if q.biriktirilgan_soat
+            else 0
+        )
+        holat = q.tasdiq.get_holat_display() if q.tasdiq else "Yuborilmagan"
+        ws.append(
+            [
+                idx,
+                _xavfsiz_matn(q.kafedra.nomi),
+                _xavfsiz_matn(q.kafedra.fakultet or "—"),
+                q.oqituvchilar_soni,
+                q.biriktirilgan_soat,
+                q.taqsimlangan_soat,
+                qoldiq,
+                foiz,
+                holat,
+            ]
+        )
+    jami_talab = sum(q.biriktirilgan_soat for q in qamrovlar)
+    jami_taqsim = sum(q.taqsimlangan_soat for q in qamrovlar)
+    jami_foiz = round(jami_taqsim * 100 / jami_talab) if jami_talab else 0
+    ws.append(
+        [
+            "",
+            "JAMI",
+            "",
+            sum(q.oqituvchilar_soni for q in qamrovlar),
+            jami_talab,
+            jami_taqsim,
+            max(0, jami_talab - jami_taqsim),
+            jami_foiz,
+            "",
+        ]
+    )
+    _kataklarni_chegaralash(ws, 4, 4 + len(qamrovlar), len(_SVOD_KAFEDRA_USTUNLAR))
+    _kengliklarni_moslash(ws, bosh_qator=3)
+
+
+def _svod_yonalish_varaqi(ws: Worksheet, akademik_yil: int) -> None:
+    sarlavha = (
+        "O'quv rejalar va yo'nalishlar kesimida svod "
+        f"({akademik_yil}/{akademik_yil + 1})"
+    )
+    ws.append([_xavfsiz_matn(sarlavha)])
+    ws["A1"].font = _SARLAVHA_SHRIFT
+    ws.append([])
+    ws.append(_SVOD_REJA_USTUNLAR)
+    _ustun_qatorini_bezash(ws, 3, len(_SVOD_REJA_USTUNLAR))
+    talab_yig: dict[int, int] = {}
+    taqsim_yig: dict[int, int] = {}
+    rejalar_map: dict[int, OquvReja] = {}
+    for satr in ofis_taqsimoti(akademik_yil):
+        reja = satr.fan_semestr.variant.fan.reja
+        rejalar_map[reja.pk] = reja
+        talab_yig[reja.pk] = talab_yig.get(reja.pk, 0) + (satr.talab_soat or 0)
+        taqsim_yig[reja.pk] = taqsim_yig.get(reja.pk, 0) + satr.taqsimlangan_soat
+    rejalar = sorted(
+        rejalar_map.values(),
+        key=lambda r: (r.yonalish_kodi, r.boshlanish_yili, r.talim_shakli),
+    )
+    for idx, r in enumerate(rejalar, start=1):
+        talab = talab_yig.get(r.pk, 0)
+        taqsim = taqsim_yig.get(r.pk, 0)
+        foiz = round(taqsim * 100 / talab) if talab else 0
+        ws.append(
+            [
+                idx,
+                _xavfsiz_matn(r.yonalish_kodi),
+                _xavfsiz_matn(r.yonalish_nomi or "—"),
+                r.boshlanish_yili,
+                _xavfsiz_matn(r.talim_shakli or "—"),
+                r.guruhlar_soni or 0,
+                r.talabalar_soni or 0,
+                talab,
+                taqsim,
+                max(0, talab - taqsim),
+                foiz,
+            ]
+        )
+    _kataklarni_chegaralash(ws, 4, 3 + len(rejalar), len(_SVOD_REJA_USTUNLAR))
+    _kengliklarni_moslash(ws, bosh_qator=3)
+
+
+def svod_excel(akademik_yil: int) -> BytesIO:
+    """Build university-wide 3-sheet consolidated workload .xlsx report."""
+    kitob = openpyxl.Workbook()
+    taqsimot = ofis_taqsimoti(akademik_yil)
+    qamrovlar = kafedra_qamrovi(akademik_yil, taqsimot=taqsimot)
+    holatlar = yuklama_kamomadi(akademik_yil)
+
+    ws_kaf = kitob.active
+    ws_kaf.title = "Kafedralar kesimi"
+    _svod_kafedra_varaqi(ws_kaf, qamrovlar, akademik_yil)
+
+    ws_oqit = kitob.create_sheet("O'qituvchilar kesimi")
+    _umumiy_varaqni_toldir(ws_oqit, holatlar, akademik_yil, None)
+
+    ws_yon = kitob.create_sheet("Yo'nalishlar kesimi")
+    _svod_yonalish_varaqi(ws_yon, akademik_yil)
+
+    buffer = BytesIO()
+    kitob.save(buffer)
+    buffer.seek(0)
+    return buffer

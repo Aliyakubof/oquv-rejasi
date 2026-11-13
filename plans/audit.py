@@ -24,7 +24,8 @@ def _toza_ip(nomzod: str | None) -> str | None:
         return None
 
 
-def _sorovdan_ip(request: HttpRequest) -> str | None:
+def sorovdan_ip(request: HttpRequest) -> str | None:
+    """Resolve client IP from request, honoring configured trusted proxies."""
     remote_ip = _toza_ip(request.META.get("REMOTE_ADDR"))
     if not getattr(settings, "TRUST_X_FORWARDED_FOR", False):
         return remote_ip
@@ -40,6 +41,10 @@ def _sorovdan_ip(request: HttpRequest) -> str | None:
             if ip is not None and ip not in ishonchli_proksilar:
                 return ip
     return remote_ip
+
+
+def _sorovdan_ip(request: HttpRequest) -> str | None:
+    return sorovdan_ip(request)
 
 
 def _obyekt_meta(

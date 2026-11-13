@@ -555,3 +555,41 @@ class AuditYozuvi(models.Model):
         foyd = self.foydalanuvchi.get_full_name() if self.foydalanuvchi else "Tizim"
         qisqa = self.tavsif[:30]
         return f"[{self.vaqt:%d.%m %H:%M}] {foyd} — {self.get_amal_display()}: {qisqa}"
+
+
+class BildirishnomaTuri(models.TextChoices):
+    INFO = "INFO", "Ma'lumot"
+    MUVAFFAQIYAT = "MUVAFFAQIYAT", "Muvaffaqiyat"
+    OGOHLANTIRISH = "OGOHLANTIRISH", "Ogohlantirish"
+    XATO = "XATO", "Rad etildi / Qaytarildi"
+
+
+class Bildirishnoma(models.Model):
+    """In-app notification delivered to a user (optionally mirrored to Telegram)."""
+
+    qabul_qiluvchi = models.ForeignKey(
+        Foydalanuvchi,
+        on_delete=models.CASCADE,
+        related_name="bildirishnomalar",
+    )
+    sarlavha = models.CharField(max_length=200)
+    matn = models.TextField(blank=True)
+    havola = models.CharField(max_length=255, blank=True)
+    turi = models.CharField(
+        max_length=20,
+        choices=BildirishnomaTuri.choices,
+        default=BildirishnomaTuri.INFO,
+    )
+    oqilgan = models.BooleanField(default=False, db_index=True)
+    yaratilgan_vaqt = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        verbose_name = "Bildirishnoma"
+        verbose_name_plural = "Bildirishnomalar"
+        ordering = ["-yaratilgan_vaqt", "-pk"]
+        indexes = [
+            models.Index(fields=["qabul_qiluvchi", "oqilgan", "-yaratilgan_vaqt"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.qabul_qiluvchi}: {self.sarlavha}"
