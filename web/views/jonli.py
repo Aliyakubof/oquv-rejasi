@@ -2,6 +2,7 @@
 
 import hashlib
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.http import HttpRequest, JsonResponse
@@ -14,6 +15,7 @@ from accounts.models import (
     Universitet,
 )
 from plans.models import (
+    Bildirishnoma,
     DasturTopshirish,
     Fan,
     FanSemestr,
@@ -27,10 +29,18 @@ from plans.models import (
 from plans.services import JONLI_KESH_KALITI, keshni_tozala
 
 _KESH_KALITI = JONLI_KESH_KALITI
-_KESH_MUDDATI = 5
+_REDIS_KESH_MUDDATI = 3600
+_LOKAL_KESH_MUDDATI = 5
 _keshni_tozala = keshni_tozala
 
+
+def _kesh_muddati() -> int:
+    backend = str(settings.CACHES.get("default", {}).get("BACKEND", "")).lower()
+    return _REDIS_KESH_MUDDATI if "redis" in backend else _LOKAL_KESH_MUDDATI
+
+
 _KUZATILADIGAN_MODELLAR = (
+    Bildirishnoma,
     OquvReja,
     Guruh,
     Fan,
@@ -153,6 +163,7 @@ _KUZATILADIGAN_MAYDONLAR: tuple[tuple[type, tuple[str, ...]], ...] = (
     (OqituvchiTuri, ("pk", "nomi", "min_soat")),
     (TalimYonalishi, ("pk", "kodi", "nomi")),
     (Universitet, ("pk", "rasmiy_nomi")),
+    (Bildirishnoma, ("pk", "oqilgan")),
     (
         Foydalanuvchi,
         ("pk", "telefon", "first_name", "last_name", "rol", "is_active"),
@@ -174,7 +185,7 @@ def holat_versiyasi() -> str:
         return keshdagi
     xom = repr(_jadval_qismlari()).encode("utf-8")
     versiya = hashlib.sha256(xom).hexdigest()[:16]
-    cache.set(_KESH_KALITI, versiya, timeout=_KESH_MUDDATI)
+    cache.set(_KESH_KALITI, versiya, timeout=_kesh_muddati())
     return versiya
 
 

@@ -9,6 +9,7 @@ from django.views.generic import ListView
 
 from accounts.models import Department
 from plans.audit import audit_yoz
+from plans.bildirishnoma import dastur_korildi_xabari
 from plans.dastur.topshirish import (
     dastur_qabul_qilish,
     dastur_rad_etish,
@@ -113,6 +114,7 @@ def dastur_qabul(request: HttpRequest, pk: int) -> HttpResponse:
                 obyekt=topshirish,
                 request=request,
             )
+            dastur_korildi_xabari(topshirish)
     except ValidationError as e:
         xato = xato_matni(e)
     return _javob(request, topshirish.variant, xato=xato)
@@ -135,6 +137,7 @@ def dastur_rad(request: HttpRequest, pk: int) -> HttpResponse:
                     obyekt=topshirish,
                     request=request,
                 )
+                dastur_korildi_xabari(topshirish)
         except ValidationError as e:
             xato = xato_matni(e)
     else:

@@ -59,6 +59,11 @@ HEMIS_API_KEY = env(
     "HEMIS_API_KEY",
     default="hemis-secret-key-2026" if (DEBUG or IS_TEST) else "",
 )
+HEMIS_BASE_URL = env("HEMIS_BASE_URL", default="").strip()
+HEMIS_TIMEOUT = env.int("HEMIS_TIMEOUT", default=15)
+TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="").strip()
+LOGIN_MAX_URINISH = env.int("LOGIN_MAX_URINISH", default=5)
+LOGIN_BLOK_SONIYA = env.int("LOGIN_BLOK_SONIYA", default=300)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -86,6 +91,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "web.middleware.ActiveUserMiddleware",
+    "web.middleware.ParolAlmashtirishMajburiyMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -114,8 +120,26 @@ WSGI_APPLICATION = "oquv_reja.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": env.db("DATABASE_URL"),
+    "default": {
+        **env.db("DATABASE_URL"),
+        "CONN_MAX_AGE": env.int("DB_CONN_MAX_AGE", default=0 if IS_TEST else 60),
+    },
 }
+
+REDIS_URL = env("REDIS_URL", default="").strip()
+if REDIS_URL and not IS_TEST:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
 
 
 # Password validation
@@ -156,6 +180,16 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+if not DEBUG and not IS_TEST:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+        },
+    }
+
 # Uploaded curriculum files (used from a later phase; defined now so paths exist)
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -170,3 +204,47 @@ if IS_TEST:
 
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
     MEDIA_ROOT = Path(tempfile.gettempdir()) / "oquv_reja_test_media"
+
+_LOG_HANDLERS: dict[str, dict[str, object]] = {
+    "console": {
+        "class": "logging.StreamHandler",
+        "formatter": "standart",
+    },
+}
+_ROOT_HANDLERS = ["console"]
+
+if not IS_TEST:
+    LOG_DIR = BASE_DIR / "logs"
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _LOG_HANDLERS["file"] = {
+        "class": "logging.handlers.RotatingFileHandler",
+        "filename": str(LOG_DIR / "app.log"),
+        "maxBytes": 5 * 1024 * 1024,
+        "backupCount": 5,
+        "encoding": "utf-8",
+        "formatter": "standart",
+    }
+    _ROOT_HANDLERS.append("file")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standart": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": _LOG_HANDLERS,
+    "root": {
+        "handlers": _ROOT_HANDLERS,
+        "level": "DEBUG" if DEBUG else "INFO",
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": _ROOT_HANDLERS,
+            "level": "ERROR" if IS_TEST else "WARNING",
+            "propagate": False,
+        },
+    },
+}

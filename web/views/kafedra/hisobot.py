@@ -6,6 +6,7 @@ from django.views.generic import TemplateView
 
 from plans import dashboard, eksport, services
 from plans.dashboard import yilni_tanlash
+from plans.shakl1_doc import shakl1_zip_yarat
 from web.mixins import KafedraMudiriTalabMixin, YilTanlovMixin
 
 
@@ -35,4 +36,15 @@ class HisobotExcelView(KafedraMudiriTalabMixin, View):
             eksport.oqituvchilar_excel(yil, kafedra=self.kafedra),
             as_attachment=True,
             filename=fayl_nomi,
+        )
+
+
+class HisobotZipView(KafedraMudiriTalabMixin, View):
+    def get(self, request: HttpRequest) -> HttpResponse:
+        _, yil = yilni_tanlash(request.GET.get("yil"))
+        yil = yil or dashboard.joriy_akademik_yil()
+        return FileResponse(
+            shakl1_zip_yarat(yil, kafedra=self.kafedra),
+            as_attachment=True,
+            filename=f"kafedra_1shakl_{yil}_{yil + 1}.zip",
         )

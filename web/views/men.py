@@ -16,10 +16,14 @@ from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.generic import TemplateView
 
+from plans import dashboard
 from plans.audit import audit_yoz
+from plans.bildirishnoma import dastur_topshirildi_xabari
+from plans.dashboard import yilni_tanlash
 from plans.dastur.service import dastur_egasimi, dastur_render
 from plans.dastur.topshirish import dastur_topshirish
 from plans.models import AuditAmali, DasturTopshirish, FanVariant, SoatTuri, Yuklama
+from plans.shakl1_doc import shakl1_docx_render
 from web.forms.dastur import DasturTopshirishForm
 from web.mixins import OqituvchiTalabMixin, YilTanlovMixin
 
@@ -114,6 +118,7 @@ class MenDasturTopshirishView(OqituvchiTalabMixin, View):
                         obyekt=topshirish,
                         request=request,
                     )
+                    dastur_topshirildi_xabari(topshirish)
             except ValidationError as e:
                 xato = " ".join(e.messages)
         else:
@@ -175,3 +180,17 @@ def _tur_jami(yuklamalar: list[Yuklama]) -> list[tuple[str, int]]:
     for yuklama in yuklamalar:
         jami[yuklama.tur] += yuklama.soat
     return [(SoatTuri(tur).label, soat) for tur, soat in jami.items()]
+
+
+class MenShakl1DocxView(OqituvchiTalabMixin, View):
+    def get(self, request: HttpRequest) -> HttpResponse:
+        profil = getattr(request.user, "oqituvchi_profil", None)
+        if profil is None:
+            raise Http404("O'qituvchi profili topilmadi.")
+        _, yil = yilni_tanlash(request.GET.get("yil"))
+        yil = yil or dashboard.joriy_akademik_yil()
+        return FileResponse(
+            shakl1_docx_render(profil, yil),
+            as_attachment=True,
+            filename=f"1shakl_{profil.pk}_{yil}_{yil + 1}.docx",
+        )

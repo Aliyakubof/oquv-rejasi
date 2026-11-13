@@ -1,9 +1,7 @@
 import json
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Sum
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.middleware.csrf import CsrfViewMiddleware
 from django.utils.crypto import constant_time_compare
@@ -12,16 +10,8 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from accounts.models import Department, OqituvchiProfil
-from plans.audit import audit_yoz
-from plans.models import (
-    AuditAmali,
-    FanSemestr,
-    KafedraTasdiqHolati,
-    KafedraYuklamaTasdiq,
-    OquvReja,
-    Yuklama,
-)
-from plans.services import eng_kop_kurs_ishi_talabasi, guruhlarni_sinxronlash
+from plans.hemis_client import hemis_elementlarni_sinxronlash
+from plans.models import OquvReja, Yuklama
 
 _XAVFSIZ_METODLAR = ("GET", "HEAD", "OPTIONS", "TRACE")
 
@@ -265,111 +255,6 @@ def _sync_elementlarni_oqish(
     return elementlar, None
 
 
-def _butun_son_oqish(
-    item: dict[str, object], maydon: str, *, min_qiymat: int = 1
-) -> int | None:
-    if maydon not in item or item[maydon] is None:
-        return None
-    xom = item[maydon]
-    if isinstance(xom, bool):
-        raise ValueError(f"{maydon} butun son bo'lishi kerak")
-    if isinstance(xom, int):
-        qiymat = xom
-    elif isinstance(xom, str) and xom.strip().isascii() and xom.strip().isdigit():
-        qiymat = int(xom.strip())
-    else:
-        raise ValueError(f"{maydon} butun son bo'lishi kerak")
-    if qiymat < min_qiymat:
-        raise ValueError(f"{maydon} kamida {min_qiymat} bo'lishi kerak")
-    return qiymat
-
-
-def _sync_rejani_top(item: dict[str, object]) -> OquvReja | None:
-    reja_id = _butun_son_oqish(item, "id") or _butun_son_oqish(item, "reja_id")
-    if reja_id is not None:
-        return OquvReja.objects.select_for_update().filter(id=reja_id).first()
-    if "yonalish_kodi" in item and "boshlanish_yili" in item:
-        kod = item["yonalish_kodi"]
-        if not isinstance(kod, str) or not kod.strip():
-            raise ValueError("yonalish_kodi matn bo'lishi kerak")
-        yil = _butun_son_oqish(item, "boshlanish_yili", min_qiymat=1900)
-        filtr: dict[str, object] = {
-            "yonalish_kodi": kod.strip(),
-            "boshlanish_yili": yil,
-        }
-        if item.get("talim_shakli"):
-            if not isinstance(item["talim_shakli"], str):
-                raise ValueError("talim_shakli matn bo'lishi kerak")
-            filtr["talim_shakli"] = item["talim_shakli"].strip()
-        return OquvReja.objects.select_for_update().filter(**filtr).first()
-    return None
-
-
-def _reja_qulflanganmi(reja: OquvReja) -> bool:
-    fslar = (
-        FanSemestr.objects.reja_uchun(reja)
-        .filter(variant__kafedra__isnull=False)
-        .values_list("variant__kafedra_id", "semestr")
-    )
-    juftlar = {
-        (kafedra_id, reja.boshlanish_yili + (semestr - 1) // 2)
-        for kafedra_id, semestr in fslar
-    }
-    if not juftlar:
-        return False
-    shart = Q()
-    for kafedra_id, yil in juftlar:
-        shart |= Q(kafedra_id=kafedra_id, akademik_yil=yil)
-    return KafedraYuklamaTasdiq.objects.filter(
-        shart,
-        holat__in=(
-            KafedraTasdiqHolati.TASDIQDA,
-            KafedraTasdiqHolati.TASDIQLANGAN,
-        ),
-    ).exists()
-
-
-def _sync_rejani_yangila(
-    reja: OquvReja, item: dict[str, object]
-) -> dict[str, object] | None:
-    talabalar = _butun_son_oqish(item, "talabalar_soni", min_qiymat=1)
-    guruhlar = _butun_son_oqish(item, "guruhlar_soni", min_qiymat=1)
-    ozgardi = False
-    if talabalar is not None and reja.talabalar_soni != talabalar:
-        reja.talabalar_soni = talabalar
-        ozgardi = True
-    if guruhlar is not None and reja.guruhlar_soni != guruhlar:
-        reja.guruhlar_soni = guruhlar
-        ozgardi = True
-    if "guruh_prefiksi" in item and item["guruh_prefiksi"] is not None:
-        if not isinstance(item["guruh_prefiksi"], str):
-            raise ValueError("guruh_prefiksi matn bo'lishi kerak")
-        prefiks = item["guruh_prefiksi"].strip()
-        if reja.guruh_prefiksi != prefiks:
-            reja.guruh_prefiksi = prefiks
-            ozgardi = True
-    if not ozgardi:
-        return None
-    if _reja_qulflanganmi(reja):
-        raise ValueError("tasdiqlangan kafedra yuklamasi qulflangan")
-    if talabalar is not None:
-        eng_kop = eng_kop_kurs_ishi_talabasi(reja)
-        if eng_kop and reja.talabalar_soni < eng_kop:
-            raise ValueError(f"kurs ishiga allaqachon {eng_kop} ta talaba taqsimlangan")
-    reja.full_clean()
-    reja.save()
-    guruhlarni_sinxronlash(reja)
-    return {
-        "id": reja.id,
-        "yonalish_kodi": reja.yonalish_kodi,
-        "yonalish_nomi": reja.yonalish_nomi,
-        "boshlanish_yili": reja.boshlanish_yili,
-        "talabalar_soni": reja.talabalar_soni,
-        "guruhlar_soni": reja.guruhlar_soni,
-        "guruhlar": [g.nomi for g in reja.guruhlar.all()],
-    }
-
-
 class HemisSyncApiView(BaseApiView):
     """POST /api/v1/sync/ - Synchronize students and groups from HEMIS."""
 
@@ -378,33 +263,10 @@ class HemisSyncApiView(BaseApiView):
         if xato_javob is not None or items is None:
             return xato_javob  # type: ignore[return-value]
 
-        yangilangan: list[dict[str, object]] = []
-        xatolar: list[str] = []
-
-        with transaction.atomic():
-            for item in items:
-                try:
-                    with transaction.atomic():
-                        reja = _sync_rejani_top(item)
-                        if reja is None:
-                            xatolar.append(f"O'quv reja topilmadi: {item}")
-                            continue
-                        natija = _sync_rejani_yangila(reja, item)
-                except (ValueError, TypeError, ValidationError) as err:
-                    xatolar.append(f"Xatolik ({err}): {item}")
-                    continue
-                if natija is not None:
-                    yangilangan.append(natija)
-
-            if yangilangan:
-                kodlar = ", ".join(str(r["yonalish_kodi"]) for r in yangilangan)
-                audit_yoz(
-                    AuditAmali.TAHRIRLANDI,
-                    f"HEMIS Sync: {len(yangilangan)} ta reja sinxronlandi ({kodlar})",
-                    model_nomi="OquvReja",
-                    request=request,
-                )
-
+        foydalanuvchi = request.user if request.user.is_authenticated else None
+        yangilangan, xatolar = hemis_elementlarni_sinxronlash(
+            items, foydalanuvchi=foydalanuvchi, request=request
+        )
         return JsonResponse(
             {
                 "holat": "muvaffaqiyatli",

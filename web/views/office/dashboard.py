@@ -3,14 +3,15 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 
 from accounts.models import Department
-from plans import dashboard, services
+from plans import dashboard, eksport, nusxalash, services
 from plans.audit import audit_yoz
 from plans.dashboard import yilni_tanlash
 from plans.models import AuditAmali, Fan, FanVariant
@@ -34,6 +35,7 @@ def _dashboard_konteksti(yil: int) -> dict[str, object]:
     taqsimot = services.ofis_taqsimoti(yil)
     return {
         "yil": yil,
+        "manba_yillar": nusxalash.manba_yillar_royxati(yil),
         "stat": dashboard.statlarni_hisoblash(taqsimot),
         "jami_talabalar": dashboard.jami_talabalar(yil),
         "fan_satrlari": dashboard.ofis_fan_satrlari(yil),
@@ -113,6 +115,53 @@ def kafedra_biriktirish(request: HttpRequest, pk: int) -> HttpResponse:
     return _qator_javobi(request, variant.fan, xato)
 
 
+@require_POST
+@office_admin_talab
+def ommaviy_kafedra_biriktirish(request: HttpRequest) -> HttpResponse:
+    _, yil = yilni_tanlash(request.POST.get("yil"))
+    yil = yil or dashboard.joriy_akademik_yil()
+    variant_idlar = [
+        pk
+        for xom in request.POST.getlist("variantlar")
+        if (pk := musbat_int_yoki_none(xom)) is not None
+    ]
+    kafedra = _post_kafedra_olish(request.POST.get("kafedra"))
+    if not variant_idlar:
+        messages.warning(request, "Kamida bitta fanni tanlang.")
+    else:
+        try:
+            with transaction.atomic():
+                soni = services.kafedraga_ommaviy_biriktirish(variant_idlar, kafedra)
+                kaf_nomi = kafedra.nomi if kafedra else "bekor qilindi"
+                audit_yoz(
+                    AuditAmali.TAHRIRLANDI,
+                    f"Ommaviy biriktirish ({soni} ta fan) -> {kaf_nomi}.",
+                    model_nomi="FanVariant",
+                    request=request,
+                )
+            xabar = (
+                f"{soni} ta fan {kafedra.nomi} ga biriktirildi."
+                if kafedra
+                else f"{soni} ta fan biriktirilishi bekor qilindi."
+            )
+            messages.success(request, xabar)
+        except ValidationError as exc:
+            messages.error(request, xato_matni(exc))
+    if request.headers.get("HX-Request"):
+        kontekst = {"yil": yil, **_dashboard_konteksti(yil)}
+        return render(request, "web/office/_kontent_va_xabarlar.html", kontekst)
+    return redirect(f"{reverse('office:dashboard')}?yil={yil}")
+
+
+def _post_kafedra_olish(xom_kafedra: str | None) -> Department | None:
+    if not xom_kafedra:
+        return None
+    kafedra_pk = musbat_int_yoki_none(xom_kafedra)
+    if kafedra_pk is None:
+        raise Http404
+    return get_object_or_404(Department, pk=kafedra_pk)
+
+
 def _qator_javobi(request: HttpRequest, fan: Fan, xato: str | None) -> HttpResponse:
     """Re-render the mutated course row plus an out-of-band stats block.
 
@@ -143,6 +192,55 @@ def _qator_javobi(request: HttpRequest, fan: Fan, xato: str | None) -> HttpRespo
             "stat": dashboard.statlarni_hisoblash(taqsimot),
             "jami_talabalar": dashboard.jami_talabalar(yil),
             "kafedralar": Department.objects.all(),
+            "qamrovlar": dashboard.kafedra_qamrovi(yil, taqsimot=taqsimot),
+            "turlar_metrikasi": TURLAR_METRIKASI,
         }
     kontekst.update({"satr": satr, "xato": xato})
     return render(request, "web/office/_qator_va_statlar.html", kontekst)
+
+
+@require_POST
+@office_admin_talab
+def taqsimot_nusxalash_view(request: HttpRequest) -> HttpResponse:
+    _, maqsad_yil = yilni_tanlash(request.POST.get("yil"))
+    maqsad_yil = maqsad_yil or dashboard.joriy_akademik_yil()
+    manba_yil = musbat_int_yoki_none(request.POST.get("manba_yil"))
+    if manba_yil is None:
+        messages.error(request, "Manba o'quv yilini tanlang.")
+        return redirect(f"{reverse('office:dashboard')}?yil={maqsad_yil}")
+    try:
+        natija = nusxalash.ofis_taqsimotini_nusxalash(manba_yil, maqsad_yil)
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            (
+                f"{manba_yil}/{manba_yil + 1} dan {maqsad_yil}/{maqsad_yil + 1} ga "
+                f"nusxa: {natija.tanlangan_variantlar} ta variant, "
+                f"{natija.biriktirilgan_kafedralar} ta kafedra biriktirildi."
+            ),
+            model_nomi="FanVariant",
+            request=request,
+        )
+        xabar = (
+            f"{manba_yil}/{manba_yil + 1} yildan {natija.tanlangan_variantlar} ta "
+            f"tanlov fani va {natija.biriktirilgan_kafedralar} ta kafedra ko'chirildi."
+        )
+        if natija.otkazildi_qulflangan:
+            xabar += (
+                f" ({natija.otkazildi_qulflangan} ta qulflangan kafedra "
+                "o'tkazib yuborildi.)"
+            )
+        messages.success(request, xabar)
+    except ValidationError as e:
+        messages.error(request, xato_matni(e))
+    return redirect(f"{reverse('office:dashboard')}?yil={maqsad_yil}")
+
+
+@office_admin_talab
+def svod_excel_view(request: HttpRequest) -> HttpResponse:
+    _, yil = yilni_tanlash(request.GET.get("yil"))
+    yil = yil or dashboard.joriy_akademik_yil()
+    return FileResponse(
+        eksport.svod_excel(yil),
+        as_attachment=True,
+        filename=f"svod_yuklama_{yil}_{yil + 1}.xlsx",
+    )

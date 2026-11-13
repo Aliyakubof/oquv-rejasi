@@ -2,11 +2,13 @@ from django.urls import path
 
 from web.views.kafedra.dashboard import (
     KafedraDashboardView,
+    taqsimot_nusxalash_view,
     tasdiqqa_yuborish_view,
 )
-from web.views.kafedra.hisobot import HisobotExcelView, HisobotView
+from web.views.kafedra.hisobot import HisobotExcelView, HisobotView, HisobotZipView
 from web.views.kafedra.oqituvchilar import (
     KafedraOqituvchiListView,
+    KafedraOqituvchiShakl1DocxView,
     KafedraOqituvchiTahrirView,
     KafedraOqituvchiYangiView,
     KafedraOqituvchiYuklamaView,
@@ -21,6 +23,7 @@ from web.views.kafedra.yuklama import (
 
 urlpatterns = [
     path("", KafedraDashboardView.as_view(), name="dashboard"),
+    path("nusxalash/", taqsimot_nusxalash_view, name="taqsimot_nusxalash"),
     path("tasdiqqa-yuborish/", tasdiqqa_yuborish_view, name="tasdiqqa_yuborish"),
     path(
         "fan-semestr/<int:pk>/panel/",
@@ -69,10 +72,16 @@ urlpatterns = [
         name="oqituvchi_yuklama",
     ),
     path(
+        "oqituvchilar/<int:pk>/shakl1-docx/",
+        KafedraOqituvchiShakl1DocxView.as_view(),
+        name="oqituvchi_shakl1_docx",
+    ),
+    path(
         "oqituvchilar/<int:pk>/tahrir/",
         KafedraOqituvchiTahrirView.as_view(),
         name="oqituvchi_tahrir",
     ),
     path("hisobot/", HisobotView.as_view(), name="hisobot"),
     path("hisobot/excel/", HisobotExcelView.as_view(), name="hisobot_excel"),
+    path("hisobot/zip/", HisobotZipView.as_view(), name="hisobot_zip"),
 ]

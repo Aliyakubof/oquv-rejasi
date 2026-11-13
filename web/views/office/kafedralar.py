@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import ProtectedError
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
@@ -14,8 +14,10 @@ from accounts.models import Department, OqituvchiProfil
 from accounts.services import mudir_tayinlash
 from plans import dashboard, services
 from plans.audit import audit_yoz
+from plans.bildirishnoma import kafedra_javobi_xabari
 from plans.dashboard import yilni_tanlash
 from plans.models import AuditAmali
+from plans.shakl1_doc import shakl1_zip_yarat
 from web.forms.kafedra import KafedraForm
 from web.mixins import (
     OfficeAdminTalabMixin,
@@ -156,6 +158,7 @@ def kafedra_yuklama_tasdiqlash(request: HttpRequest, pk: int) -> HttpResponse:
             obyekt_id=tasdiq.pk,
             request=request,
         )
+        kafedra_javobi_xabari(kafedra, yil, tasdiq)
     messages.success(request, f"{kafedra.nomi} yuklamasi tasdiqlandi.")
     return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
 
@@ -177,5 +180,21 @@ def kafedra_yuklama_qaytarish(request: HttpRequest, pk: int) -> HttpResponse:
             obyekt_id=tasdiq.pk,
             request=request,
         )
+        kafedra_javobi_xabari(kafedra, yil, tasdiq)
     messages.warning(request, f"{kafedra.nomi} yuklamasi qaytarildi.")
     return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
+
+
+@office_admin_talab
+def kafedra_shakl1_zip_view(
+    request: HttpRequest, pk: int | None = None
+) -> HttpResponse:
+    _, yil = yilni_tanlash(request.GET.get("yil"))
+    yil = yil or dashboard.joriy_akademik_yil()
+    kafedra = get_object_or_404(Department, pk=pk) if pk is not None else None
+    prefiks = f"kafedra_{pk}_shakl1" if pk is not None else "universitet_1shakl"
+    return FileResponse(
+        shakl1_zip_yarat(yil, kafedra=kafedra),
+        as_attachment=True,
+        filename=f"{prefiks}_{yil}_{yil + 1}.zip",
+    )
