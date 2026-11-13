@@ -1,26 +1,45 @@
 {% load ui %}
 <div class="popover popover-kafedra" x-show="ochiq" x-transition x-cloak
-     x-data="{ faqatKamomad: false }"
-     x-effect="if (ochiq) { $nextTick(() => $refs.qidiruvInput?.focus()); }">
+     x-data="{
+       faqatKamomad: false,
+       tepagaOchil: false,
+       mosOqituvchiBor() {
+         const body = this.$refs.scrollBody;
+         if (!body) return true;
+         const qLower = (this.q || '').toLowerCase();
+         return Array.from(body.querySelectorAll('button.opt')).some((el) =>
+           (!this.faqatKamomad || el.dataset.kamomad === '1') &&
+           (qLower === '' || (el.dataset.ism || '').includes(qLower))
+         );
+       }
+     }"
+     :class="tepagaOchil && 'popover-up'"
+     x-effect="if (ochiq) { $nextTick(() => { $refs.qidiruvInput?.focus(); const dialog = $el.closest('.table-modal-dialog'); const rect = $el.parentElement.getBoundingClientRect(); const bottomBound = dialog ? dialog.getBoundingClientRect().bottom : window.innerHeight; const topBound = dialog ? dialog.getBoundingClientRect().top : 0; tepagaOchil = (bottomBound - rect.bottom) < 280 && (rect.top - topBound) > 220; }); } else { tepagaOchil = false; }">
   {% if bulk_mode %}
-  <div style="font-size:11.5px;font-weight:700;color:var(--brand);margin-bottom:6px;display:flex;align-items:center;gap:5px;">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+  <div class="popover-bulk-head">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
     <span>Barcha bo'sh guruhlarga biriktirish</span>
   </div>
   {% endif %}
-  <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
-    <input type="text" x-ref="qidiruvInput" placeholder="O'qituvchi qidirish..." aria-label="O'qituvchi qidirish" x-model="q">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <button type="button" class="chip-btn" :class="faqatKamomad && 'active'" @click="faqatKamomad = !faqatKamomad"
-              style="font-size:11px;padding:3px 8px;height:24px;border-radius:12px;">
+  <div class="popover-search-wrap">
+    <div class="popover-input-box">
+      <input type="text" x-ref="qidiruvInput" placeholder="O'qituvchi qidirish..." aria-label="O'qituvchi qidirish" x-model="q">
+      <button type="button" class="search-clear" x-show="q !== ''" x-cloak @click="q = ''; $refs.qidiruvInput?.focus()" aria-label="Qidiruvni tozalash" title="Tozalash">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="popover-filter-row">
+      <button type="button" class="chip-btn popover-filter-chip" :class="faqatKamomad && 'active'" @click="faqatKamomad = !faqatKamomad">
         <span x-text="faqatKamomad ? '✓ Faqat kamomadli' : 'Faqat kamomadli'"></span>
       </button>
-      <span class="credits" style="font-size:11px;">Jami: {{ oqituvchilar|length }} ta</span>
+      <span class="credits">Jami: {{ oqituvchilar|length }} ta</span>
     </div>
   </div>
-  <div class="popover-scroll-body" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;">
+  <div class="popover-scroll-body" x-ref="scrollBody">
     {% for profil in oqituvchilar %}
     <button type="button" class="opt"
+            data-kamomad="{% if profil.kamomad %}1{% else %}0{% endif %}"
+            data-ism="{{ profil|lower }} {{ profil.turi.nomi|lower }}"
             x-show="(!faqatKamomad || {{ profil.kamomad|yesno:'true,false' }}) && (q === '' || $el.textContent.toLowerCase().includes(q.toLowerCase()))"
             hx-post="{% url url_nomi fs.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
             {% if bulk_mode %}
@@ -45,5 +64,10 @@
     {% empty %}
     <div class="hint" style="padding:8px;">Kafedrada o'qituvchi yo'q</div>
     {% endfor %}
+    {% if oqituvchilar %}
+    <div class="hint" style="padding:8px;" x-show="(q !== '' || faqatKamomad) && !mosOqituvchiBor()" x-cloak>
+      Mos o'qituvchi topilmadi
+    </div>
+    {% endif %}
   </div>
 </div>

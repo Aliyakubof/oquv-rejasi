@@ -1,36 +1,36 @@
 {% load ui %}
 <div class="table-modal-backdrop"
-     @keydown.escape.window="document.getElementById('panel-{{ fs.pk }}').innerHTML = ''"
-     onclick="if(event.target===this) document.getElementById('panel-{{ fs.pk }}').innerHTML = ''">
+     onclick="if(event.target===this) yopishTableModal('panel-{{ fs.pk }}')">
 <div class="table-modal-dialog table-modal-lg taqsimot-panel" role="dialog" aria-modal="true" @click.stop>
   <div class="taqsimot-panel-head">
     <div>
-      <div class="taqsimot-panel-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        {% if fs.variant.kodi %}<span class="code" style="font-size:12.5px;">{{ fs.variant.kodi }}</span>{% endif %}
+      <div class="taqsimot-panel-title taqsimot-panel-title-wrap">
+        {% if fs.variant.kodi %}<span class="code">{{ fs.variant.kodi }}</span>{% endif %}
         <span>{{ fs.variant.nomi }} — {{ fs.semestr }}-semestr taqsimoti</span>
         {% if qulflangan %}<span class="tag tag-elec">Qulflangan</span>{% endif %}
       </div>
-      <div class="credits" style="margin-top:4px;">
+      <div class="credits taqsimot-panel-sub">
         {{ fs.variant.fan.reja.yonalish_kodi }} — {{ fs.variant.fan.reja.yonalish_nomi }}
         · {{ fs.variant.fan.reja.guruhlar_soni|default:"?" }} guruh
         · {{ fs.variant.fan.reja.talabalar_soni|default:"?" }} talaba
       </div>
     </div>
-    <button type="button" class="btn" onclick="document.getElementById('panel-{{ fs.pk }}').innerHTML = ''" style="display:inline-flex;align-items:center;gap:6px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <button type="button" class="btn btn-sm" onclick="yopishTableModal('panel-{{ fs.pk }}')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       <span>Yopish (Esc)</span>
     </button>
   </div>
   {% if xato %}
-  <div class="form-errors alert alert-danger" style="margin:12px 0 6px;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);color:var(--danger);font-size:13px;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  <div class="form-errors alert-danger-inline" role="alert">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span>{{ xato }}</span>
   </div>
   {% endif %}
-  <div class="taqsimot-qismlar">
+  <div class="taqsimot-qismlar taqsimot-scroll-body">
     {% for holat in holatlar %}
     <div class="taqsimot-qism">
       <div class="taqsimot-tur-sarlavha">
+        <span class="tur-dot {% if holat.tur == 'MARUZA' %}tur-dot-maruza{% elif holat.tur == 'AMALIYOT' %}tur-dot-amaliyot{% elif holat.tur == 'LABORATORIYA' %}tur-dot-lab{% elif holat.tur == 'SEMINAR' %}tur-dot-seminar{% elif holat.tur == 'KURS_ISHI' %}tur-dot-kurs{% endif %}"></span>
         <strong>{{ holat.tur_nomi }}</strong>
         <span class="credits">
           {% if holat.talab_soat == None %}talab noma'lum (soni kiritilmagan)
@@ -44,22 +44,22 @@
       </div>
 
       {% if holat.tur == "MARUZA" %}
-      <div style="max-width:340px;" class="cell-relative" x-data="popover" :class="ochiq && 'popover-ochiq'" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
+      <div style="max-width:360px;" class="cell-relative" x-data="popover" :class="ochiq && 'popover-ochiq'" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
         {% if holat.maruza_yuklama %}
-        <span class="teacher-chip" style="cursor:default;">
+        <span class="teacher-chip static-chip">
           <span class="avatar">{{ holat.maruza_yuklama.oqituvchi|stringformat:"s"|bosh_harflar }}</span>
           <span class="chip-label">{{ holat.maruza_yuklama.oqituvchi }} · {{ holat.maruza_yuklama.soat }} soat</span>
           {% if not qulflangan %}
           <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
                   hx-post="{% url 'kafedra:yuklama_ochirish' holat.maruza_yuklama.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                   hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
           {% endif %}
         </span>
         {% elif not qulflangan %}
         <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           <span>O'qituvchi biriktirish ({{ holat.talab_soat }} soat)</span>
         </button>
         {% include "web/kafedra/_oqituvchi_popover.html" with url_nomi="kafedra:maruza_yaratish" vals="" %}
@@ -71,16 +71,16 @@
 
       {% if holat.guruh_slotlar %}
       {% if not qulflangan and holat.guruh_slotlar|length > 1 %}
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:6px 0 10px;padding:6px 10px;background:var(--bg-subtle, #f8fafc);border:1px dashed var(--line, #e2e8f0);border-radius:8px;">
-        <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <div class="guruh-bulk-bar">
+        <div class="guruh-bulk-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           <span>Guruhlar amallari ({{ holat.guruh_slotlar|length }} ta):</span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div class="guruh-bulk-actions">
           {% if holat.qoldiq_soat > 0 %}
           <div class="cell-relative" x-data="popover" :class="ochiq && 'popover-ochiq'" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
-            <button type="button" class="btn btn-sm btn-outline" @click="ochiq = !ochiq" style="height:28px;font-size:11.5px;padding:0 10px;display:inline-flex;align-items:center;gap:5px;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+            <button type="button" class="btn btn-sm btn-outline btn-compact-xs" @click="ochiq = !ochiq">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
               <span>Barcha bo'sh guruhlarga biriktirish</span>
             </button>
             {% include "web/kafedra/_oqituvchi_popover.html" with url_nomi="kafedra:ommaviy_guruh_yaratish" holat_tur=holat.tur bulk_mode=True %}
@@ -88,15 +88,24 @@
           {% endif %}
 
           {% if holat.taqsimlangan_soat > 0 %}
-          <button type="button" class="btn btn-sm" style="height:28px;font-size:11.5px;padding:0 8px;color:var(--danger, #ef4444);background:none;border:1px solid transparent;display:inline-flex;align-items:center;gap:4px;"
-                  title="Ushbu mashg'ulot bo'yicha barcha guruhlar taqsimotini tozalash"
-                  hx-post="{% url 'kafedra:guruhlarni_tozalash' fs.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
-                  hx-vals='{"tur": "{{ holat.tur }}"}'
-                  hx-confirm="Haqiqatan ham {{ holat.tur_nomi }} bo'yicha barcha guruhlar taqsimotini bekor qilmoqchimisiz?"
-                  hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            <span>Tozalash</span>
-          </button>
+          <form method="post"
+                hx-post="{% url 'kafedra:guruhlarni_tozalash' fs.pk %}"
+                hx-indicator="#panel-yuk-{{ fs.pk }}"
+                hx-target="#panel-{{ fs.pk }}"
+                hx-swap="innerHTML"
+                data-modal-title="Guruh taqsimotlarini tozalash"
+                data-modal-subtitle="{{ fs.variant.nomi }} — {{ holat.tur_nomi }}"
+                data-modal-confirm="Haqiqatan ham {{ holat.tur_nomi }} bo'yicha barcha guruhlar taqsimotini bekor qilmoqchimisiz?"
+                data-modal-type="danger"
+                data-modal-btn="Ha, tozalash">
+            {% csrf_token %}
+            <input type="hidden" name="tur" value="{{ holat.tur }}">
+            <button type="submit" class="btn btn-sm btn-ghost-danger btn-compact-xs"
+                    title="Ushbu mashg'ulot bo'yicha barcha guruhlar taqsimotini tozalash">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>Tozalash</span>
+            </button>
+          </form>
           {% endif %}
         </div>
       </div>
@@ -104,26 +113,27 @@
 
       <div class="guruh-slot-grid">
         {% for slot in holat.guruh_slotlar %}
-        <div class="guruh-slot-card cell-relative" x-data="popover" :class="ochiq && 'popover-ochiq'" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
+        <div class="guruh-slot-card cell-relative {% if slot.yuklama %}filled{% else %}unassigned{% endif %}"
+             x-data="popover" :class="ochiq && 'popover-ochiq'" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
           <div class="guruh-slot-meta">
             <span class="guruh-nomi">{{ slot.guruh.nomi }}</span>
             <span class="credits">{{ holat.guruh_soat }} soat</span>
           </div>
           {% if slot.yuklama %}
-          <span class="teacher-chip" style="cursor:default;">
+          <span class="teacher-chip static-chip">
             <span class="avatar">{{ slot.yuklama.oqituvchi|stringformat:"s"|bosh_harflar }}</span>
             <span class="chip-label">{{ slot.yuklama.oqituvchi }}</span>
             {% if not qulflangan %}
             <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
                     hx-post="{% url 'kafedra:yuklama_ochirish' slot.yuklama.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                     hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             {% endif %}
           </span>
           {% elif not qulflangan %}
           <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             <span>O'qituvchi biriktirish</span>
           </button>
           {% include "web/kafedra/_oqituvchi_popover.html" with url_nomi="kafedra:guruh_yaratish" slot_guruh=slot.guruh holat_tur=holat.tur %}
@@ -140,16 +150,16 @@
       {% if holat.tur == "KURS_ISHI" %}
       <div>
         {% if holat.kurs_ishi_yuklamalar %}
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div class="kurs-ishi-chips">
           {% for yuklama in holat.kurs_ishi_yuklamalar %}
-          <span class="teacher-chip" style="cursor:default;width:auto;max-width:380px;">
+          <span class="teacher-chip static-chip wide-chip">
             <span class="avatar">{{ yuklama.oqituvchi|stringformat:"s"|bosh_harflar }}</span>
             <span class="chip-label">{{ yuklama.oqituvchi }} · {{ yuklama.talabalar_soni }} talaba · {{ yuklama.soat }} soat</span>
             {% if not qulflangan %}
             <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
                     hx-post="{% url 'kafedra:yuklama_ochirish' yuklama.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                     hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             {% endif %}
           </span>
@@ -159,11 +169,12 @@
         {% if holat.qolgan_talabalar == None %}
         <div class="credits">O'quv rejada talabalar soni kiritilmagan — o'quv bo'limi kiritgach taqsimlash mumkin.</div>
         {% else %}
-        <div class="credits" style="margin:2px 0 8px;">Qolgan talabalar: <strong>{{ holat.qolgan_talabalar }}</strong> (1 talaba = 2 soat)</div>
+        <div class="credits kurs-ishi-hint">Qolgan talabalar: <strong>{{ holat.qolgan_talabalar }}</strong> (1 talaba = 2 soat)</div>
         {% if holat.qolgan_talabalar > 0 and not qulflangan %}
         <form method="post" hx-post="{% url 'kafedra:kurs_ishi_yaratish' fs.pk %}" hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-indicator="#panel-yuk-{{ fs.pk }}"
-              class="controls" style="align-items:center;">
-          <select name="oqituvchi" aria-label="O'qituvchi" required style="height:38px;">
+              class="kurs-ishi-form" x-data="{ talabaSoni: '' }">
+          {% csrf_token %}
+          <select name="oqituvchi" aria-label="O'qituvchi" required>
             <option value="">O'qituvchi tanlang</option>
             {% for profil in oqituvchilar %}
             {% if profil.pk not in holat.band_oqituvchi_idlar %}
@@ -173,9 +184,10 @@
             {% endif %}
             {% endfor %}
           </select>
-          <input type="number" name="talabalar_soni" min="1" max="{{ holat.qolgan_talabalar }}"
-                 placeholder="Talabalar soni" aria-label="Talabalar soni" class="soat-input" style="width:140px;height:38px;text-align:center;padding:0 12px;" required>
-          <button type="submit" class="btn btn-primary" style="height:38px;">Qo'shish</button>
+          <input type="number" name="talabalar_soni" min="1" max="{{ holat.qolgan_talabalar }}" x-model="talabaSoni"
+                 placeholder="Talabalar soni" aria-label="Talabalar soni" class="soat-input" required>
+          <span class="kurs-ishi-preview" x-show="Number(talabaSoni) > 0" x-cloak x-text="'= ' + (Number(talabaSoni) * 2) + ' soat'"></span>
+          <button type="submit" class="btn btn-primary">Qo'shish</button>
         </form>
         {% endif %}
         {% endif %}
@@ -184,8 +196,8 @@
     </div>
     {% endfor %}
   </div>
-  <div style="display:flex;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
-    <button type="button" class="btn btn-primary" onclick="document.getElementById('panel-{{ fs.pk }}').innerHTML = ''">Tayyor / Yopish</button>
+  <div class="taqsimot-panel-foot">
+    <button type="button" class="btn btn-primary" onclick="yopishTableModal('panel-{{ fs.pk }}')">Tayyor / Yopish</button>
   </div>
 </div>
 </div>
