@@ -39,7 +39,8 @@
   <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
 </div>
 
-<div class="table-wrap" x-show="tab === 'jadval'">
+<div class="table-wrap" x-show="tab === 'jadval'"
+     x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
   <table>
     <thead>
       <tr>
@@ -77,10 +78,12 @@
     </tbody>
   </table>
 </div>
-<div class="table-wrap" x-show="tab === 'semestrovka'" x-cloak data-jonli="reja-semestrovka">
+<div class="table-wrap" x-show="tab === 'semestrovka'" x-cloak data-jonli="reja-semestrovka"
+     x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
   {% include "web/office/rejalar/_semestrovka_breakdown.html" %}
 </div>
-<div x-show="tab === 'semestr'" x-cloak>
+<div x-show="tab === 'semestr'" x-cloak
+     x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
   {% include "web/office/rejalar/_semestr_kesimi.html" %}
 </div>
 </div>

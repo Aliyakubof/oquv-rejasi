@@ -7,9 +7,6 @@
       <span>Kafedra yuklamasi boshqaruv paneli</span>
       <span class="badge-major">{{ kafedra.nomi }}</span>
     </div>
-    <div class="subtitle">
-      Fanlar kesimida o'quv soatlarini o'qituvchilarga taqsimlash va nazorat qilish
-    </div>
   </div>
   <div class="controls">
     {% if yillar %}
@@ -50,13 +47,13 @@
       </div>
       <div class="kafedra-status-desc">
         {% if tasdiq.holat == "TASDIQLANGAN" %}
-          {{ tasdiq.tasdiqlangan_vaqt|date:"d.m.Y H:i" }} da tasdiqlandi. Taqsimot qulflangan.
+          {{ tasdiq.tasdiqlangan_vaqt|date:"d.m.Y H:i" }} da tasdiqlandi · Qulflangan
         {% elif tasdiq.holat == "TASDIQDA" %}
-          O'quv bo'limi ko'rib chiqmoqda. Taqsimot qulflangan.
+          O'quv bo'limi ko'rib chiqmoqda · Qulflangan
         {% elif tasdiq.holat == "QAYTARILGAN" %}
           <span class="kafedra-status-reason">Sabab: {{ tasdiq.izoh|default:"Xatoliklarni to'g'irlab qayta yuboring." }}</span>
         {% else %}
-          Taqsimot yakunlangach, o'quv bo'limiga tasdiqlash uchun yuboring.
+          Taqsimot tugagach, tasdiqqa yuboring.
         {% endif %}
       </div>
     </div>
@@ -172,7 +169,7 @@
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             </div>
             <div class="empty-state-title">Bu o'quv yilida kafedraga biriktirilgan fanlar yo'q</div>
-            <div class="empty-state-desc">O'quv bo'limi o'quv rejadagi fanlarni kafedraga biriktirgach, soatlarni shu yerdan taqsimlashingiz mumkin bo'ladi.</div>
+            <div class="empty-state-desc">O'quv bo'limi fanlarni biriktirgach, ular shu yerda ko'rinadi.</div>
           </div>
         </td></tr>
         {% endfor %}

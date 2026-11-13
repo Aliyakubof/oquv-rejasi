@@ -28,7 +28,7 @@
           hx-target="#dastur-panel-{{ variant.pk }}"
           hx-swap="innerHTML"
           hx-indicator="#htmx-yuklanish"
-          hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }"
+          hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { yopishTableModal(p); event.preventDefault(); }"
           title="Topshirish va tarixni ko'rish">
     {% if joriy %}
       {% if joriy.holat == "QABUL_QILINDI" %}
@@ -67,7 +67,8 @@
 
     <div class="action-menu action-menu-fixed"
          x-show="ochiq"
-         x-transition.duration.200ms
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
          x-cloak
          :style="'top:' + pos.top + '; left:' + pos.left + ';'">
       <a class="action-item" href="{% url 'men:dastur' variant.pk %}" hx-boost="false" @click="ochiq = false">
@@ -78,7 +79,6 @@
         </svg>
         <div class="action-text">
           <span class="action-title">Shablon (.docx)</span>
-          <span class="action-desc">Tayyor shablonni yuklab olish</span>
         </div>
       </a>
 
@@ -88,7 +88,7 @@
               hx-swap="innerHTML"
               hx-indicator="#htmx-yuklanish"
               @click="ochiq = false"
-              hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">
+              hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { yopishTableModal(p); event.preventDefault(); }">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
@@ -97,7 +97,6 @@
         </svg>
         <div class="action-text">
           <span class="action-title">Topshirish va tarix</span>
-          <span class="action-desc">Fayl yuklash yoki natijalarni ko'rish</span>
         </div>
       </button>
     </div>

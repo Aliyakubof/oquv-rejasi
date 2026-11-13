@@ -16,7 +16,7 @@
     </div>
     <div>
       <div style="font-size:15px;font-weight:700;color:var(--ink);">Universitet ma'lumotlari</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Tizim hisobotlari va 1-shakl hujjatlarida aks etuvchi rasmiy muassasa nomi</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">1-shakl va hisobotlarda chiqadigan muassasa nomi</div>
     </div>
   </div>
   <form method="post" action="{% url 'office:universitet_saqlash' %}" class="controls" style="align-items:flex-end;gap:12px;">
@@ -33,7 +33,7 @@
 
 <div class="topbar" style="margin-top:20px;">
   <div>
-    <h2>Lavozimlar va minimal yuklama normalari</h2>
+    <h2>Lavozim normalari</h2>
   </div>
   <div class="controls">
     <a class="btn btn-primary" href="{% url 'office:lavozim_yangi' %}">
@@ -93,7 +93,7 @@
 
 <div class="topbar">
   <div>
-    <h2>Ta'lim yo'nalishlari klassifikatori</h2>
+    <h2>Ta'lim yo'nalishlari</h2>
   </div>
   <div class="controls" style="flex-wrap:wrap;gap:8px;">
     <a class="btn" href="{% url 'office:yonalish_namuna_excel' %}" hx-boost="false">Namuna (.xlsx)</a>

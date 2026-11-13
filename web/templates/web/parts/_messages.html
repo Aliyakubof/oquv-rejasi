@@ -1,7 +1,13 @@
 {% if messages %}
 <ul class="messages" aria-live="polite">
   {% for message in messages %}
-  <li class="{{ message.tags }}" x-data="{ ochiq: true }" x-show="ochiq" x-transition.duration.220ms
+  <li class="{{ message.tags }}" x-data="{ ochiq: true }" x-show="ochiq"
+      x-transition:enter="anim-toast-enter"
+      x-transition:enter-start="anim-toast-start"
+      x-transition:enter-end="anim-toast-end"
+      x-transition:leave="anim-toast-leave"
+      x-transition:leave-start="anim-toast-end"
+      x-transition:leave-end="anim-toast-start"
       {% if 'error' not in message.tags %}x-init="setTimeout(() => ochiq = false, 6000)"{% endif %}>
     <span class="msg-text">{{ message }}</span>
     <button type="button" class="msg-close" @click="ochiq = false" aria-label="Yopish">

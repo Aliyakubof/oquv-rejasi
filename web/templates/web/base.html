@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
   <meta name="login-url" content="{% url 'kirish' %}">
-  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=52">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=55">
   <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=6">
   <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
   <script>
@@ -86,17 +86,23 @@
         _toastKorsat(matn) {
           const joy = document.getElementById('app-messages');
           if (!joy) return;
-          let box = joy.querySelector('.messages');
+          let box = joy.querySelector('ul.messages');
           if (!box) {
-            box = document.createElement('div');
+            box = document.createElement('ul');
             box.className = 'messages';
             joy.appendChild(box);
           }
-          const el = document.createElement('div');
-          el.className = 'msg msg-success';
-          el.textContent = matn;
+          const el = document.createElement('li');
+          el.className = 'success';
+          const text = document.createElement('span');
+          text.className = 'msg-text';
+          text.textContent = matn;
+          el.appendChild(text);
           box.appendChild(el);
-          setTimeout(() => el.remove(), 3500);
+          setTimeout(() => {
+            el.classList.add('is-leaving');
+            setTimeout(() => el.remove(), 260);
+          }, 3500);
         },
         async saqlash() {
           this.saqlanmoqda = true;
@@ -163,6 +169,7 @@
         this.el.classList.remove('is-timed');
         const reveal = () => {
           if (!this.el) return;
+          document.body?.classList.add('is-page-loading');
           this.el.classList.remove('is-hidden');
           this.safetyTimer = setTimeout(() => this.hide(true), maxMs);
         };
@@ -179,6 +186,7 @@
         clearTimeout(this.delayTimer);
         clearTimeout(this.safetyTimer);
         this.lockedUntil = Date.now() + ms;
+        document.body?.classList.add('is-page-loading');
         this.el.classList.add('is-timed');
         this.el.classList.remove('is-hidden');
         this._progressQayta();
@@ -197,6 +205,7 @@
           this.el.classList.add('is-hidden');
           this.el.classList.remove('is-timed');
         }
+        document.body?.classList.remove('is-page-loading');
         window.__pageLoaderYopilgan = true;
         window.dispatchEvent(new CustomEvent('pageloader:hidden'));
       }
@@ -229,15 +238,69 @@
 
     function applyDynamicStyles(root) {
       const scope = root && root.querySelectorAll ? root : document;
-      scope.querySelectorAll('[data-width]').forEach((el) => {
-        const w = Math.min(100, Math.max(0, Number(el.getAttribute('data-width')) || 0));
-        el.style.width = w + '%';
-      });
       scope.querySelectorAll('[data-bg]').forEach((el) => {
         el.style.background = el.getAttribute('data-bg');
       });
+      if (document.body?.classList.contains('is-page-loading')) return;
+      const reduced = document.body?.classList.contains('ui-keng')
+        || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      scope.querySelectorAll('[data-width]').forEach((el) => {
+        const w = Math.min(100, Math.max(0, Number(el.getAttribute('data-width')) || 0));
+        if (!reduced && !el.style.width) {
+          el.style.width = '0%';
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              el.style.width = w + '%';
+            });
+          });
+        } else {
+          el.style.width = w + '%';
+        }
+      });
+      animateCounters(scope);
     }
     window.applyDynamicStyles = applyDynamicStyles;
+
+    function animateCounters(root) {
+      if (document.body?.classList.contains('is-page-loading')) return;
+      if (
+        document.body?.classList.contains('ui-keng')
+        || window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
+        return;
+      }
+      const scope = root && root.querySelectorAll ? root : document;
+      const duration = 760;
+      scope.querySelectorAll('.stat .num, .analitika-metric-val').forEach((el) => {
+        if (el.dataset.counted === '1') return;
+        const raw = (el.textContent || '').trim();
+        const m = raw.match(/^(\d+)(%?)$/);
+        if (!m) return;
+        const target = Number(m[1]);
+        const suffix = m[2] || '';
+        el.dataset.counted = '1';
+        if (!Number.isFinite(target) || target <= 0) return;
+        const start = performance.now();
+        const step = (now) => {
+          const t = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          el.textContent = Math.round(target * eased) + suffix;
+          if (t < 1) {
+            requestAnimationFrame(step);
+          } else {
+            el.textContent = target + suffix;
+          }
+        };
+        el.textContent = '0' + suffix;
+        requestAnimationFrame(step);
+      });
+    }
+    window.animateCounters = animateCounters;
+
+    window.addEventListener('pageloader:hidden', () => {
+      applyDynamicStyles(document);
+      animateCounters(document);
+    });
 
     // ================= Status Bar Link Masking (Sichqoncha borganda URL yo'nalishi ko'rinmasligi) =================
     document.addEventListener('pointerover', (e) => {
@@ -331,24 +394,29 @@
       document.addEventListener('DOMContentLoaded', () => {
         PageLoader.hide();
         applyDynamicStyles(document);
+        animateCounters(document);
       });
     } else {
       PageLoader.hide();
       applyDynamicStyles(document);
+      animateCounters(document);
     }
 
     window.addEventListener('pageshow', (e) => {
       PageLoader.hide(Boolean(e && e.persisted));
       resetLoadingButtons();
       applyDynamicStyles(document);
+      animateCounters(document);
     });
 
     document.addEventListener('htmx:afterSwap', () => {
       PageLoader.hide();
       applyDynamicStyles(document);
+      animateCounters(document);
     });
     document.addEventListener('htmx:afterSettle', () => {
       applyDynamicStyles(document);
+      animateCounters(document);
     });
     document.addEventListener('htmx:afterRequest', () => {
       PageLoader.hide();
@@ -567,12 +635,15 @@
       close() {
         const overlay = document.getElementById('app-global-modal');
         if (!overlay || overlay.classList.contains('is-hidden') || overlay.classList.contains('is-closing')) return;
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (
+          document.body?.classList.contains('ui-keng')
+          || window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
           this._yakunlash();
           return;
         }
         overlay.classList.add('is-closing');
-        this.closeTimer = setTimeout(() => this._yakunlash(), 160);
+        this.closeTimer = setTimeout(() => this._yakunlash(), 240);
       }
     };
     window.AppModal = AppModal;
@@ -587,14 +658,17 @@
         return;
       }
       if (bd.classList.contains('is-closing')) return;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (
+        document.body?.classList.contains('ui-keng')
+        || window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
         box.innerHTML = '';
         return;
       }
       bd.classList.add('is-closing');
       setTimeout(() => {
         if (box.contains(bd)) box.innerHTML = '';
-      }, 160);
+      }, 240);
     };
 
     // Escape va Focus Trap boshqaruvi (ustma-ust modallarni navbat bilan yopish)
@@ -731,7 +805,11 @@
 
     // ================= 3. Tugma bosilganda mayin click-ripple animatsiyasi =================
     document.addEventListener('pointerdown', (e) => {
-      if (e.button > 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (
+        e.button > 0
+        || document.body?.classList.contains('ui-keng')
+        || window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) return;
       const btn = e.target.closest('.btn, .chip-btn, .logout-btn, .btn-modal-view, .btn-dots, .teacher-chip, .app-modal-close');
       if (!btn || btn.disabled || btn.classList.contains('is-loading')) return;
       btn.querySelectorAll('.btn-ripple').forEach((old) => old.remove());
@@ -747,7 +825,7 @@
       btn.appendChild(wave);
       const tozalash = () => wave.remove();
       wave.addEventListener('animationend', tozalash, { once: true });
-      setTimeout(tozalash, 480);
+      setTimeout(tozalash, 650);
     });
   </script>
   <script src="{% static 'web/js/alpine.min.js' %}" defer></script>

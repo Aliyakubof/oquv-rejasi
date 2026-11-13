@@ -28,7 +28,10 @@
   <td class="col-kafedra assign-cell cell-relative" :class="ochiq_k && 'popover-ochiq'" x-data="{ ochiq_k: false, q_k: '' }" x-effect="if (ochiq_k) $nextTick(() => $refs.qidiruvInput?.focus())" @click.outside="ochiq_k = false" @keydown.escape.window="ochiq_k = false">
     {% if satr.tanlanmagan %}
     <button type="button" class="teacher-chip empty" @click="ochiq_k = !ochiq_k">Variant tanlanmagan</button>
-    <div class="popover" x-show="ochiq_k" x-transition.duration.180ms x-cloak>
+    <div class="popover" x-show="ochiq_k"
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+         x-cloak>
       {% for v in satr.fan.variantlar.all %}
       <form method="post" action="{% url 'office:variant_tanlash' satr.fan.pk %}"
             hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}"
@@ -52,7 +55,10 @@
       <span>Kafedra biriktirish</span>
     </button>
     {% endif %}
-    <div class="popover" x-show="ochiq_k" x-transition.duration.180ms x-cloak>
+    <div class="popover" x-show="ochiq_k"
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+         x-cloak>
       <input type="text" placeholder="Kafedra qidirish" x-model="q_k" x-ref="qidiruvInput">
       {% for k in kafedralar %}
       <form method="post" action="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
@@ -84,7 +90,10 @@
     {% else %}
     <button type="button" class="teacher-chip status warn" @click="ochiq_o = !ochiq_o">Taqsimlanmagan</button>
     {% endif %}
-    <div class="popover" x-show="ochiq_o" x-transition.duration.180ms x-cloak>
+    <div class="popover" x-show="ochiq_o"
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+         x-cloak>
       {% for y in satr.yuklamalar %}
       <div class="opt" style="cursor:default;">{{ y.tur_matni }}: {{ y.oqituvchi }}{% if y.guruh %} ({{ y.guruh.nomi }}){% endif %}</div>
       {% empty %}

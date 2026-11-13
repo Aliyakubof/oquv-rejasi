@@ -9,9 +9,6 @@
       <span>Kafedra yuklama hisoboti</span>
       <span class="badge-major">{{ kafedra.nomi }}</span>
     </div>
-    <div class="subtitle">
-      Kafedra o'qituvchilarining yillik o'quv yuklama hisoboti va 1-shakl eksporti
-    </div>
   </div>
   <div class="controls">
     {% if yillar %}
@@ -133,7 +130,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
             </div>
             <div class="empty-state-title">Kafedrada o'qituvchilar yo'q</div>
-            <div class="empty-state-desc">Hisobot shakllanishi uchun avval kafedraga o'qituvchilarni qo'shing.</div>
+            <div class="empty-state-desc">Hisobot uchun kafedraga o'qituvchi qo'shing.</div>
             <a class="btn btn-primary btn-sm" href="{% url 'kafedra:oqituvchi_yangi' %}">Yangi o'qituvchi qo'shish</a>
           </div>
         </td></tr>

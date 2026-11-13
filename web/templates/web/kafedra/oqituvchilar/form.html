@@ -6,7 +6,4 @@
   <span class="current">{% if form.profil %}{{ form.profil }}{% else %}Yangi o'qituvchi{% endif %}</span>
 {% endblock %}
 {% block form_nomi %}{% if form.profil %}{{ form.profil }}{% else %}Yangi o'qituvchi{% endif %}{% endblock %}
-{% block subtitle %}
-<div class="subtitle">{% if form.profil %}O'qituvchi profili va lavozim ma'lumotlarini tahrirlash{% else %}Kafedra tarkibiga yangi o'qituvchi hisobini qo'shish{% endif %}</div>
-{% endblock %}
 {% block bekor_url %}{% url 'kafedra:oqituvchi_list' %}{% endblock %}

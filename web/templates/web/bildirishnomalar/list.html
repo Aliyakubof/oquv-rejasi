@@ -4,15 +4,12 @@
 <div class="topbar">
   <div>
     <div class="title">Bildirishnomalar</div>
-    <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">
-      Tizim hodisalari, dastur va kafedra yuklamalari bo'yicha xabarnomalar
-    </div>
   </div>
   {% if oqilmagan_xabarlar_soni %}
   <div class="controls">
     <form method="post" action="{% url 'bildirishnoma_barchasi_oqildi' %}">
       {% csrf_token %}
-      <button type="submit" class="btn">Barchasini o'qilgan deb belgilash</button>
+      <button type="submit" class="btn">Barchasini o'qish</button>
     </form>
   </div>
   {% endif %}

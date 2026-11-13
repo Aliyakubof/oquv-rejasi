@@ -39,7 +39,10 @@
     {% if xato %}<div class="hint" style="color:var(--unassigned);margin:0 0 4px;">{{ xato }}</div>{% endif %}
     {% if satr.tanlanmagan %}
     <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">Variant tanlanmagan</button>
-    <div class="popover" x-show="ochiq" x-transition.duration.180ms x-cloak>
+    <div class="popover" x-show="ochiq"
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+         x-cloak>
       {% for v in satr.fan.variantlar.all %}
       <button type="button" class="opt"
               hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}" hx-indicator="#htmx-yuklanish"
@@ -58,7 +61,10 @@
       <span>Kafedra biriktirish</span>
     </button>
     {% endif %}
-    <div class="popover" x-show="ochiq" x-transition.duration.180ms x-cloak>
+    <div class="popover" x-show="ochiq"
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+         x-cloak>
       <input type="text" placeholder="Kafedra qidirish" x-model="q" x-ref="qidiruvInput">
       {% for k in kafedralar %}
       <button type="button" class="opt"
