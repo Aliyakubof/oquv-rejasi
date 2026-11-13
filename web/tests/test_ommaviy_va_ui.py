@@ -181,11 +181,13 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
         for belgi in (
             'media="print" onload="this.media=\'all\'"',
             "<noscript>",
-            "app.css?v=52",
+            "app.css?v=55",
             "jonli.js?v=3",
             "window.yopishTableModal",
             "btn-ripple",
             "is-closing",
+            "is-page-loading",
+            "animateCounters",
             'class="loader-emblem"',
             'class="loader-progress-fill"',
             "PageLoader.playFor(muddat)",
@@ -195,12 +197,16 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
             "sun&#x27;iy intellekt 60610200",
             ":class=\"ochiq && 'popover-ochiq'\"",
             'x-ref="qidiruvInput"',
+            "anim-pop-enter",
+            "anim-bulk-enter",
+            "anim-tab-enter",
         ):
             self.assertContains(dash, belgi)
 
         semestrovka = self.client.get(reverse("office:reja_detail", args=[reja.pk]))
         self.assertContains(semestrovka, ":class=\"ochiq && 'popover-ochiq'\"")
         self.assertContains(semestrovka, 'x-ref="qidiruvInput"')
+        self.assertContains(semestrovka, "anim-tab-enter")
 
         semestr = self.client.get(
             reverse("office:reja_detail", args=[reja.pk]),
