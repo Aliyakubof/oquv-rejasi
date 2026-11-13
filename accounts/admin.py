@@ -20,6 +20,19 @@ class FoydalanuvchiAdmin(UserAdmin):
         (None, {"fields": ("telefon", "password")}),
         ("Shaxsiy ma'lumot", {"fields": ("first_name", "last_name")}),
         (
+            "Ko'rinish sozlamalari",
+            {
+                "fields": (
+                    "shrift_olchami",
+                    "yuqori_kontrast",
+                    "keng_rejim",
+                    "korinish_tanlangan",
+                    "parol_ozgartirish_kerak",
+                    "telegram_chat_id",
+                )
+            },
+        ),
+        (
             "Ruxsatlar",
             {
                 "fields": (

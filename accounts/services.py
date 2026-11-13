@@ -1,5 +1,7 @@
 """Staff management actions: teacher accounts and department heads."""
 
+import secrets
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
@@ -12,6 +14,23 @@ from accounts.models import (
     Universitet,
 )
 from accounts.phone import normalize_phone
+
+_VAQTINCHALIK_ALIFBO = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def vaqtinchalik_parol_tasodifiy(uzunlik: int = 10) -> str:
+    """Generate a readable cryptographic temporary password."""
+    return "".join(secrets.choice(_VAQTINCHALIK_ALIFBO) for _ in range(uzunlik))
+
+
+@transaction.atomic
+def vaqtinchalik_parol_yarat(foydalanuvchi: Foydalanuvchi) -> str:
+    """Assign a one-time temporary password requiring immediate change on login."""
+    parol = vaqtinchalik_parol_tasodifiy()
+    foydalanuvchi.set_password(parol)
+    foydalanuvchi.parol_ozgartirish_kerak = True
+    foydalanuvchi.save(update_fields=["password", "parol_ozgartirish_kerak"])
+    return parol
 
 
 def universitet_olish() -> Universitet | None:
