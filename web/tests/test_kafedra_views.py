@@ -303,3 +303,61 @@ class YuklamaOchirishTests(KafedraAsosTest):
         javob = self.client.post(reverse("kafedra:yuklama_ochirish", args=[yuklama.pk]))
         self.assertEqual(javob.status_code, 404)
         self.assertTrue(Yuklama.objects.filter(pk=yuklama.pk).exists())
+
+
+class KafedraUiTuzatishlarTests(KafedraAsosTest):
+    """Kafedra bo'limi sahifalaridagi UI/UX va kirish qulayligi tekshiruvi."""
+
+    def test_dashboard_va_taqsimot_panel_ui(self) -> None:
+        dash = self.client.get(reverse("kafedra:dashboard"))
+        self.assertEqual(dash.status_code, 200)
+        for belgi in (
+            "print.css?v=6",
+            "popover-ochiq",
+            "kafedra-status-icon",
+            "fan-meta-sub",
+            "tur-dot-maruza",
+            "table-wrap cards",
+            "search-clear",
+        ):
+            self.assertContains(dash, belgi)
+
+        Yuklama.objects.create(
+            fan_semestr=self.fs,
+            tur=SoatTuri.AMALIYOT,
+            guruh=self.guruhlar[0],
+            oqituvchi=self.oqituvchi,
+        )
+        panel = self.client.get(reverse("kafedra:taqsimot_panel", args=[self.fs.pk]))
+        self.assertEqual(panel.status_code, 200)
+        for belgi in (
+            "tepagaOchil",
+            "mosOqituvchiBor()",
+            "guruh-bulk-bar",
+            "kurs-ishi-preview",
+            'data-modal-type="danger"',
+        ):
+            self.assertContains(panel, belgi)
+        self.assertNotContains(panel, "hx-confirm")
+
+    def test_oqituvchi_form_yuklama_va_hisobot_ui(self) -> None:
+        royxat = self.client.get(reverse("kafedra:oqituvchi_list"))
+        self.assertContains(royxat, "chip-toggle")
+        self.assertContains(royxat, "chip-check-box")
+        self.assertContains(royxat, "table-wrap cards")
+
+        forma = self.client.get(reverse("kafedra:oqituvchi_yangi"))
+        self.assertContains(forma, "card form-card")
+        self.assertContains(forma, "form-actions")
+
+        yuklama = self.client.get(
+            reverse("kafedra:oqituvchi_yuklama", args=[self.oqituvchi.pk])
+        )
+        self.assertContains(yuklama, "subtoolbar print-hide")
+        self.assertContains(yuklama, "segmented-tabs")
+        self.assertContains(yuklama, "report-sheet")
+
+        hisobot = self.client.get(reverse("kafedra:hisobot"))
+        self.assertContains(hisobot, "stats wide stats-compact")
+        self.assertContains(hisobot, "Qoplanish:")
+        self.assertContains(hisobot, "yuklama hisoboti")

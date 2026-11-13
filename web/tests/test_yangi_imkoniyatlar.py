@@ -342,6 +342,28 @@ class AnalitikaDashboardTests(TestCase):
         self.assertContains(javob, "Yuklama taqsimoti va analitika")
         self.assertContains(javob, "Mashg'ulot turlari bo'yicha soatlar nisbati")
         self.assertContains(javob, "Kafedralar bo'yicha yuklama qamrovi")
+        self.assertContains(javob, 'id="analitika-kartochka"')
+        self.assertContains(javob, 'class="analitika-table analitika-turlar-table"')
+        self.assertContains(javob, 'class="analitika-table analitika-kafedra-table"')
+
+    def test_kafedra_biriktirishda_analitika_oob_qaytadi(self) -> None:
+        login(self.client, office_admin_yarat())
+        yil = dashboard.joriy_akademik_yil()
+        reja = make_reja(boshlanish_yili=yil)
+        kafedra = Department.objects.create(nomi="Amaliy matematika")
+        fan = make_fan(reja)
+        assert fan.tanlangan_variant is not None
+        make_fan_semestr(fan.tanlangan_variant, semestr=1)
+
+        javob = self.client.post(
+            reverse("office:kafedra_biriktirish", args=[fan.tanlangan_variant.pk]),
+            {"kafedra": kafedra.pk, "yil": yil},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(javob.status_code, 200)
+        self.assertContains(javob, 'id="analitika-kartochka"')
+        self.assertContains(javob, 'hx-swap-oob="true"')
+        self.assertContains(javob, "Amaliy matematika")
 
 
 class RestApiTests(TestCase):
