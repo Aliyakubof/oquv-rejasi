@@ -58,7 +58,12 @@ def yilni_tanlash(sorov_yil: str | None) -> tuple[list[int], int | None]:
     yillar = tanlanadigan_yillar()
     if not yillar:
         return [], None
-    if sorov_yil and sorov_yil.isdigit() and int(sorov_yil) in yillar:
+    if (
+        sorov_yil
+        and sorov_yil.isascii()
+        and sorov_yil.isdigit()
+        and int(sorov_yil) in yillar
+    ):
         return yillar, int(sorov_yil)
     joriy = joriy_akademik_yil()
     return yillar, joriy if joriy in yillar else yillar[0]
@@ -140,27 +145,43 @@ class FanSatri:
     @property
     def variant(self) -> "FanVariant":
         """Selected variant, or the representative one for unselected tanlov."""
-        return self.fan.tanlangan_variant or self.fan_semestrlar[0].variant
+        if not self.tanlanmagan and self.fan_semestrlar:
+            return self.fan_semestrlar[0].variant
+        if self.fan.tanlangan_variant_id is not None:
+            return self.fan.tanlangan_variant
+        return self.fan_semestrlar[0].variant
 
 
-def ofis_fan_satrlari(akademik_yil: int) -> list[FanSatri]:
+def ofis_fan_satrlari(
+    akademik_yil: int, *, fan_id: int | None = None
+) -> list[FanSatri]:
     """Course rows for the office dashboard, unallocated ones flagged.
 
     Unselected tanlov slots are included with their first variant's semesters
     as representative demand — alternatives share the slot's semester
     distribution by importer design.
     """
-    satrlar = _effektiv_satrlar(akademik_yil) + _tanlov_satrlari(akademik_yil)
+    satrlar = _effektiv_satrlar(akademik_yil, fan_id=fan_id) + _tanlov_satrlari(
+        akademik_yil, fan_id=fan_id
+    )
     return sorted(satrlar, key=lambda satr: (satr.fan.reja_id, satr.fan.raqam))
 
 
-def _effektiv_satrlar(akademik_yil: int) -> list[FanSatri]:
+def _effektiv_satrlar(
+    akademik_yil: int, *, fan_id: int | None = None
+) -> list[FanSatri]:
     semestrlar = (
         FanSemestr.objects.effektiv()
         .akademik_yilda(akademik_yil)
-        .select_related("variant__fan__reja", "variant__kafedra")
+        .select_related(
+            "variant__fan__reja",
+            "variant__fan__tanlangan_variant",
+            "variant__kafedra",
+        )
         .order_by("semestr")
     )
+    if fan_id is not None:
+        semestrlar = semestrlar.filter(variant__fan_id=fan_id)
     taqsimlangan = taqsimlangan_soatlar(semestrlar)
     fs_taqsimlangan: dict[int, int] = defaultdict(int)
     for (fs_pk, _), soat in taqsimlangan.items():
@@ -181,13 +202,16 @@ def _effektiv_satrlar(akademik_yil: int) -> list[FanSatri]:
     ]
 
 
-def _tanlov_satrlari(akademik_yil: int) -> list[FanSatri]:
+def _tanlov_satrlari(akademik_yil: int, *, fan_id: int | None = None) -> list[FanSatri]:
     semestrlar = (
         FanSemestr.objects.akademik_yilda(akademik_yil)
         .filter(variant__fan__in=Fan.objects.tanlov_kutilmoqda())
         .select_related("variant__fan__reja")
+        .prefetch_related("variant__fan__variantlar")
         .order_by("variant_id", "semestr")
     )
+    if fan_id is not None:
+        semestrlar = semestrlar.filter(variant__fan_id=fan_id)
     guruhlar: dict[int, list[FanSemestr]] = defaultdict(list)
     for fs in semestrlar:
         guruhlar[fs.variant.fan_id].append(fs)
@@ -243,7 +267,9 @@ class SemestrovkaSatri:
 def reja_semestrovkasi(reja: OquvReja) -> list[SemestrovkaSatri]:
     """The semestrovka: per-fan per-semester split rows for one reja."""
     fanlar = reja.fanlar.select_related("tanlangan_variant__kafedra").prefetch_related(
-        "variantlar__semestrlar"
+        "tanlangan_variant__semestrlar",
+        "variantlar__semestrlar",
+        "variantlar__kafedra",
     )
     satrlar = []
     for fan in fanlar:
@@ -296,17 +322,23 @@ class SemestrKesimSatri:
         )
 
 
-def reja_semestr_kesimi(reja: OquvReja) -> dict[int, list[SemestrKesimSatri]]:
+def reja_semestr_kesimi(
+    reja: OquvReja,
+    *,
+    satrlar: list[SemestrovkaSatri] | None = None,
+    taqsimot: list[TalabSatri] | None = None,
+) -> dict[int, list[SemestrKesimSatri]]:
     """Per-semester course rows for one reja, keyed by semester number."""
     talablar: dict[int, list[TalabSatri]] = defaultdict(list)
-    for satr in taqsimot_hisoboti(reja):
+    for satr in taqsimot if taqsimot is not None else taqsimot_hisoboti(reja):
         talablar[satr.fan_semestr.pk].append(satr)
     yuklamalar = _fan_semestr_yuklamalari(reja)
 
-    satrlar: dict[int, list[SemestrKesimSatri]] = defaultdict(list)
-    for fan_satri in reja_semestrovkasi(reja):
+    kesim: dict[int, list[SemestrKesimSatri]] = defaultdict(list)
+    semestrovka = satrlar if satrlar is not None else reja_semestrovkasi(reja)
+    for fan_satri in semestrovka:
         for fs in fan_satri.semestr_soatlari.values():
-            satrlar[fs.semestr].append(
+            kesim[fs.semestr].append(
                 SemestrKesimSatri(
                     fan=fan_satri.fan,
                     variant=fan_satri.variant,
@@ -316,7 +348,7 @@ def reja_semestr_kesimi(reja: OquvReja) -> dict[int, list[SemestrKesimSatri]]:
                     yuklamalar=yuklamalar.get(fs.pk, []),
                 )
             )
-    return dict(satrlar)
+    return dict(kesim)
 
 
 def _fan_semestr_yuklamalari(
@@ -348,20 +380,8 @@ class KafedraQamrov:
     tasdiq: KafedraYuklamaTasdiq | None = None
 
 
-def kafedra_qamrovi(
-    akademik_yil: int, *, taqsimot: list[TalabSatri] | None = None
-) -> list[KafedraQamrov]:
-    biriktirilgan: dict[int, int] = defaultdict(int)
-    taqsimlangan: dict[int, int] = defaultdict(int)
-    satrlar = taqsimot if taqsimot is not None else ofis_taqsimoti(akademik_yil)
-    for satr in satrlar:
-        kafedra_id = satr.fan_semestr.variant.kafedra_id
-        if kafedra_id is None:
-            continue
-        if satr.talab_soat:
-            biriktirilgan[kafedra_id] += satr.talab_soat
-        taqsimlangan[kafedra_id] += satr.taqsimlangan_soat
-    kafedralar = (
+def _kafedralar_oqituvchilar_bilan():
+    return (
         Department.objects.select_related("mudir__foydalanuvchi")
         .prefetch_related(
             Prefetch(
@@ -379,6 +399,21 @@ def kafedra_qamrovi(
         )
         .order_by("nomi")
     )
+
+
+def kafedra_qamrovi(
+    akademik_yil: int, *, taqsimot: list[TalabSatri] | None = None
+) -> list[KafedraQamrov]:
+    biriktirilgan: dict[int, int] = defaultdict(int)
+    taqsimlangan: dict[int, int] = defaultdict(int)
+    satrlar = taqsimot if taqsimot is not None else ofis_taqsimoti(akademik_yil)
+    for satr in satrlar:
+        kafedra_id = satr.fan_semestr.variant.kafedra_id
+        if kafedra_id is None:
+            continue
+        if satr.talab_soat:
+            biriktirilgan[kafedra_id] += satr.talab_soat
+        taqsimlangan[kafedra_id] += satr.taqsimlangan_soat
     tasdiqlar = {
         t.kafedra_id: t
         for t in KafedraYuklamaTasdiq.objects.filter(akademik_yil=akademik_yil)
@@ -391,5 +426,5 @@ def kafedra_qamrovi(
             oqituvchilar_soni=kafedra.oqituvchilar_soni,
             tasdiq=tasdiqlar.get(kafedra.pk),
         )
-        for kafedra in kafedralar
+        for kafedra in _kafedralar_oqituvchilar_bilan()
     ]

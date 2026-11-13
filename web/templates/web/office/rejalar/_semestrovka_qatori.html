@@ -26,14 +26,14 @@
   </td>
   {% endwith %}
   {% endfor %}
-  <td class="assign-cell cell-relative" x-data="{ ochiq: false, q: '' }" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
+  <td class="assign-cell cell-relative" :class="ochiq && 'popover-ochiq'" x-data="{ ochiq: false, q: '' }" x-effect="if (ochiq) $nextTick(() => $refs.qidiruvInput?.focus())" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
     {% if satr.tanlanmagan %}
     <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">Variant tanlanmagan</button>
-    <div class="popover" x-show="ochiq" x-cloak>
+    <div class="popover" x-show="ochiq" x-transition.duration.180ms x-cloak>
       {% for v in satr.fan.variantlar.all %}
       <form method="post" action="{% url 'office:variant_tanlash' satr.fan.pk %}"
             hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}"
-            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-swap="outerHTML">
+            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish">
         {% csrf_token %}
         <input type="hidden" name="variant" value="{{ v.pk }}">
         <input type="hidden" name="redirect" value="{% url 'office:reja_detail' reja.pk %}">
@@ -52,12 +52,12 @@
       <span>Kafedra biriktirish</span>
     </button>
     {% endif %}
-    <div class="popover" x-show="ochiq" x-cloak>
-      <input type="text" placeholder="Kafedra qidirish" x-model="q">
+    <div class="popover" x-show="ochiq" x-transition.duration.180ms x-cloak>
+      <input type="text" placeholder="Kafedra qidirish" x-model="q" x-ref="qidiruvInput">
       {% for k in kafedralar %}
       <form method="post" action="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
             hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
-            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-swap="outerHTML"
+            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish"
             x-show="q === '' || $el.textContent.toLowerCase().includes(q.toLowerCase())">
         {% csrf_token %}
         <input type="hidden" name="kafedra" value="{{ k.pk }}">
@@ -68,7 +68,7 @@
       {% if satr.kafedra %}
       <form method="post" action="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
             hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
-            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-swap="outerHTML">
+            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish">
         {% csrf_token %}
         <input type="hidden" name="kafedra" value="">
         <input type="hidden" name="redirect" value="{% url 'office:reja_detail' reja.pk %}">

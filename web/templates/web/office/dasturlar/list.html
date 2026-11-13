@@ -8,7 +8,7 @@
   <div class="controls">
     <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;"
           hx-get="{% url 'office:dastur_topshirishlar' %}" hx-trigger="change from:select"
-          hx-target="#dasturlar-jonli" hx-select="#dasturlar-jonli"
+          hx-target="#dasturlar-jonli" hx-select="#dasturlar-jonli" hx-indicator="#htmx-yuklanish"
           hx-swap="outerHTML" hx-push-url="true">
       <select name="kafedra" aria-label="Kafedra" onchange="if(!window.htmx) this.form.submit()">
         <option value="">Barcha kafedralar</option>

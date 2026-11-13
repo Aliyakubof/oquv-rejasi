@@ -13,6 +13,12 @@ class Rol(models.TextChoices):
     TEACHER = "TEACHER", "O'qituvchi"
 
 
+class ShriftOlchami(models.TextChoices):
+    STANDART = "standart", "Standart"
+    YIRIK = "yirik", "Yirikroq"
+    JUDA_YIRIK = "juda_yirik", "Juda yirik"
+
+
 class FoydalanuvchiManager(BaseUserManager):
     def _create_user(
         self, telefon: str, password: str | None, **extra_fields: object
@@ -53,10 +59,26 @@ class Foydalanuvchi(AbstractBaseUser, PermissionsMixin):
     )
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
-    rol = models.CharField(max_length=20, choices=Rol.choices)
-    is_active = models.BooleanField(default=True)
+    rol = models.CharField(max_length=20, choices=Rol.choices, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
+    shrift_olchami = models.CharField(
+        max_length=16,
+        choices=ShriftOlchami.choices,
+        default=ShriftOlchami.STANDART,
+    )
+    yuqori_kontrast = models.BooleanField(default=False)
+    keng_rejim = models.BooleanField(default=False)
+    korinish_tanlangan = models.BooleanField(default=False)
+    parol_ozgartirish_kerak = models.BooleanField(default=False)
+    telegram_chat_id = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Telegram bildirishnomalar uchun Chat ID",
+    )
 
     objects = FoydalanuvchiManager()
 

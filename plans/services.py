@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Sum
@@ -24,6 +25,13 @@ from plans.models import (
     SoatTuri,
     Yuklama,
 )
+
+JONLI_KESH_KALITI = "jonli_holat_versiyasi"
+
+
+def keshni_tozala(**_kwargs: object) -> None:
+    """Clear the cached live-polling version hash after bulk DB writes."""
+    cache.delete(JONLI_KESH_KALITI)
 
 
 @dataclass(frozen=True)
@@ -80,6 +88,7 @@ def guruhlarni_sinxronlash(reja: OquvReja) -> list[Guruh]:
     if ozgargan_guruhlar:
         Guruh.objects.bulk_update(ozgargan_guruhlar, ["nomi"])
     reja.guruhlar.filter(raqam__gt=soni, yuklamalar__isnull=True).delete()
+    keshni_tozala()
     return list(reja.guruhlar.all())
 
 
@@ -215,9 +224,10 @@ def semestrovka_yangilash(reja: OquvReja, tahrirlar: list[SemestrTahrir]) -> Non
     idlar = [t.fan_semestr_id for t in tahrirlar]
     semestrlar = {
         fs.pk: fs
-        for fs in FanSemestr.objects.filter(
-            pk__in=idlar, variant__fan__reja=reja
-        ).select_related("variant__fan__reja", "variant__kafedra")
+        for fs in FanSemestr.objects.select_for_update()
+        .filter(pk__in=idlar, variant__fan__reja=reja)
+        .select_related("variant__fan__reja", "variant__kafedra")
+        .order_by("pk")
     }
     variantlar: dict[int, FanVariant] = {}
     for tahrir in tahrirlar:
@@ -228,6 +238,8 @@ def semestrovka_yangilash(reja: OquvReja, tahrirlar: list[SemestrTahrir]) -> Non
             variantlar[fs.variant_id] = fs.variant
     for variant in variantlar.values():
         _variant_soatlarini_yangilash(variant)
+    if variantlar:
+        keshni_tozala()
 
 
 def _variant_soatlarini_yangilash(variant: FanVariant) -> None:
@@ -314,8 +326,10 @@ def _band_soatni_himoyalash(
         raise ValidationError("Kurs ishi olib tashlanmaydi — yuklama taqsimlangan.")
 
 
+@transaction.atomic
 def variantni_tanlash(fan: Fan, variant: FanVariant) -> None:
     """Office head picks the taught alternative of a selective slot."""
+    fan = Fan.objects.select_for_update().get(pk=fan.pk)
     if fan.turi != FanTuri.TANLOV:
         raise ValidationError("Faqat tanlov fanlari uchun variant tanlanadi.")
     if variant.fan_id != fan.pk:
@@ -329,8 +343,14 @@ def variantni_tanlash(fan: Fan, variant: FanVariant) -> None:
     fan.save(update_fields=["tanlangan_variant"])
 
 
+@transaction.atomic
 def kafedraga_biriktirish(variant: FanVariant, kafedra: Department | None) -> None:
     """Office head delegates (or re-delegates) a course to a department."""
+    variant = (
+        FanVariant.objects.select_for_update()
+        .select_related("fan", "kafedra")
+        .get(pk=variant.pk)
+    )
     if variant.fan.tanlangan_variant_id != variant.pk:
         raise ValidationError("Avval fan variantini tanlang.")
     if variant.kafedra_id is not None and kafedra != variant.kafedra:
@@ -339,6 +359,76 @@ def kafedraga_biriktirish(variant: FanVariant, kafedra: Department | None) -> No
             raise ValidationError("Fanda yuklamalar bor — avval ularni bekor qiling.")
     variant.kafedra = kafedra
     variant.save(update_fields=["kafedra"])
+
+
+@transaction.atomic
+def kafedraga_ommaviy_biriktirish(
+    variant_idlar: list[int], kafedra: Department | None
+) -> int:
+    """Assign (or clear) one department across multiple selected FanVariant rows."""
+    noyob_idlar = sorted(set(variant_idlar))
+    if not noyob_idlar:
+        return 0
+    variantlar = list(
+        FanVariant.objects.select_for_update()
+        .select_related("fan")
+        .filter(pk__in=noyob_idlar)
+        .order_by("pk")
+    )
+    band_variantlar = set(
+        Yuklama.objects.filter(fan_semestr__variant_id__in=noyob_idlar).values_list(
+            "fan_semestr__variant_id", flat=True
+        )
+    )
+    yangilanadigan: list[FanVariant] = []
+    for variant in variantlar:
+        if variant.fan.tanlangan_variant_id != variant.pk:
+            raise ValidationError("Tanlangan fanlar orasida varianti tanlanmagani bor.")
+        if variant.kafedra_id is not None and kafedra != variant.kafedra:
+            if variant.pk in band_variantlar:
+                raise ValidationError(
+                    f"«{variant.nomi}» fanida yuklamalar bor — avval bekor qiling."
+                )
+        if variant.kafedra != kafedra:
+            variant.kafedra = kafedra
+            yangilanadigan.append(variant)
+    if yangilanadigan:
+        FanVariant.objects.bulk_update(yangilanadigan, ["kafedra"])
+        keshni_tozala()
+    return len(yangilanadigan)
+
+
+def eng_kop_kurs_ishi_talabasi(reja: OquvReja) -> int:
+    """Return the highest assigned KURS_ISHI student count in any semester of reja."""
+    return (
+        Yuklama.objects.filter(
+            fan_semestr__variant__fan__reja=reja,
+            tur=SoatTuri.KURS_ISHI,
+        )
+        .values("fan_semestr_id")
+        .annotate(jami=Sum("talabalar_soni"))
+        .order_by("-jami")
+        .values_list("jami", flat=True)
+        .first()
+        or 0
+    )
+
+
+def kafedra_tasdiq_oqish(
+    kafedra: Department, akademik_yil: int
+) -> KafedraYuklamaTasdiq | None:
+    """Return the existing approval record without writing to the database."""
+    return KafedraYuklamaTasdiq.objects.filter(
+        kafedra=kafedra, akademik_yil=akademik_yil
+    ).first()
+
+
+def tasdiq_qulflanganmi(tasdiq: KafedraYuklamaTasdiq | None) -> bool:
+    """Return True if an approval record locks teacher workload modifications."""
+    return tasdiq is not None and tasdiq.holat in (
+        KafedraTasdiqHolati.TASDIQDA,
+        KafedraTasdiqHolati.TASDIQLANGAN,
+    )
 
 
 def kafedra_tasdiq_holati(
@@ -355,31 +445,31 @@ def kafedra_tasdiq_holati(
 
 def kafedra_yuklama_qulflanganmi(kafedra: Department, akademik_yil: int) -> bool:
     """Check if the department's workload is locked against teacher modifications."""
-    tasdiq = KafedraYuklamaTasdiq.objects.filter(
-        kafedra=kafedra, akademik_yil=akademik_yil
-    ).first()
-    return tasdiq is not None and tasdiq.holat in (
-        KafedraTasdiqHolati.TASDIQDA,
-        KafedraTasdiqHolati.TASDIQLANGAN,
-    )
+    return tasdiq_qulflanganmi(kafedra_tasdiq_oqish(kafedra, akademik_yil))
 
 
+@transaction.atomic
 def yuklamani_tasdiqqa_yuborish(
     kafedra: Department, akademik_yil: int, izoh: str = ""
 ) -> KafedraYuklamaTasdiq:
     """Submit department workload to office administration for review."""
+    Department.objects.select_for_update().filter(pk=kafedra.pk).first()
     tasdiq = kafedra_tasdiq_holati(kafedra, akademik_yil)
+    tasdiq = KafedraYuklamaTasdiq.objects.select_for_update().get(pk=tasdiq.pk)
     if tasdiq.holat == KafedraTasdiqHolati.TASDIQLANGAN:
         raise ValidationError("Yuklama allaqachon tasdiqlangan.")
     if tasdiq.holat == KafedraTasdiqHolati.TASDIQDA:
         raise ValidationError("Yuklama allaqachon tasdiqqa yuborilgan.")
     tasdiq.holat = KafedraTasdiqHolati.TASDIQDA
     tasdiq.yuborilgan_vaqt = timezone.now()
+    tasdiq.tasdiqlagan = None
+    tasdiq.tasdiqlangan_vaqt = None
     tasdiq.izoh = izoh
     tasdiq.save()
     return tasdiq
 
 
+@transaction.atomic
 def yuklamani_tasdiqlash(
     kafedra: Department,
     akademik_yil: int,
@@ -387,7 +477,9 @@ def yuklamani_tasdiqlash(
     izoh: str = "",
 ) -> KafedraYuklamaTasdiq:
     """Office administrator approves and locks department workload."""
+    Department.objects.select_for_update().filter(pk=kafedra.pk).first()
     tasdiq = kafedra_tasdiq_holati(kafedra, akademik_yil)
+    tasdiq = KafedraYuklamaTasdiq.objects.select_for_update().get(pk=tasdiq.pk)
     tasdiq.holat = KafedraTasdiqHolati.TASDIQLANGAN
     tasdiq.tasdiqlangan_vaqt = timezone.now()
     tasdiq.tasdiqlagan = admin
@@ -396,6 +488,39 @@ def yuklamani_tasdiqlash(
     return tasdiq
 
 
+@transaction.atomic
+def guruhlarga_ommaviy_taqsimlash(
+    fs: FanSemestr, oqituvchi: OqituvchiProfil, tur: str
+) -> list[Yuklama]:
+    """Assign `oqituvchi` to all unassigned groups of `fs` for `tur`."""
+    if not tur or tur not in PER_GURUH_TURLAR:
+        raise ValidationError("O'qituvchi yoki mashg'ulot turi tanlanmadi.")
+    reja = fs.variant.fan.reja
+    band_guruh_idlar = set(
+        Yuklama.objects.filter(fan_semestr=fs, tur=tur).values_list(
+            "guruh_id", flat=True
+        )
+    )
+    bosh_guruhlar = [g for g in reja.guruhlar.all() if g.pk not in band_guruh_idlar]
+    if not bosh_guruhlar:
+        raise ValidationError("Barcha guruhlar allaqachon taqsimlangan.")
+    yangi_yuklamalar: list[Yuklama] = []
+    for guruh in bosh_guruhlar:
+        yuklama = Yuklama(
+            fan_semestr=fs,
+            tur=tur,
+            oqituvchi=oqituvchi,
+            guruh=guruh,
+        )
+        yuklama.full_clean()
+        yuklama.soat = yuklama.hisoblangan_soat()
+        yangi_yuklamalar.append(yuklama)
+    Yuklama.objects.bulk_create(yangi_yuklamalar)
+    keshni_tozala()
+    return yangi_yuklamalar
+
+
+@transaction.atomic
 def yuklamani_qaytarish(
     kafedra: Department,
     akademik_yil: int,
@@ -403,9 +528,12 @@ def yuklamani_qaytarish(
     izoh: str = "",
 ) -> KafedraYuklamaTasdiq:
     """Office administrator returns department workload for corrections."""
+    Department.objects.select_for_update().filter(pk=kafedra.pk).first()
     tasdiq = kafedra_tasdiq_holati(kafedra, akademik_yil)
+    tasdiq = KafedraYuklamaTasdiq.objects.select_for_update().get(pk=tasdiq.pk)
     tasdiq.holat = KafedraTasdiqHolati.QAYTARILGAN
     tasdiq.tasdiqlagan = admin
+    tasdiq.tasdiqlangan_vaqt = None
     tasdiq.izoh = izoh
     tasdiq.save()
     return tasdiq

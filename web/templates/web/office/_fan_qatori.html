@@ -1,9 +1,17 @@
 {% load ui %}
 <tr id="fan-{{ satr.fan.pk }}"
     class="{% if satr.biriktirilmagan %}qator-biriktirilmagan{% endif %}"
-    data-nomi="{{ satr.variant.nomi|lower }} {{ satr.variant.kodi|lower }}"
+    data-nomi="{{ satr.variant.nomi|lower }} {{ satr.variant.kodi|lower }} {{ satr.kafedra.nomi|default:''|lower }} {{ satr.fan.reja.yonalish_kodi|lower }}"
     data-biriktirilmagan="{% if satr.biriktirilmagan %}1{% else %}0{% endif %}"
     x-show="(!faqat || $el.dataset.biriktirilmagan === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))">
+  <td class="col-check">
+    {% if not satr.tanlanmagan %}
+    <input type="checkbox" class="row-check" data-variant-id="{{ satr.variant.pk }}"
+           aria-label="Fanni tanlash: {{ satr.variant.nomi }}"
+           :checked="tanlanganlar.includes('{{ satr.variant.pk }}')"
+           @change="belgilash($event, '{{ satr.variant.pk }}')">
+    {% endif %}
+  </td>
   <td class="col-idx">{{ satr.fan.raqam }}</td>
   <td class="col-code"><span class="code">{% if satr.tanlanmagan %}—{% else %}{{ satr.variant.kodi|default:"—" }}{% endif %}</span></td>
   <td class="col-name">
@@ -24,15 +32,17 @@
   {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.SEMINAR %}
   {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.KURS_ISHI %}
   <td class="num"><strong>{{ satr.jami_soat }}</strong></td>
-  <td class="num">{{ satr.taqsimlangan_soat }}</td>
-  <td class="assign-cell cell-relative" x-data="{ ochiq: false, q: '' }" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
+  <td class="num">
+    <span class="soat-holat {% if satr.jami_soat > 0 and satr.taqsimlangan_soat >= satr.jami_soat %}ok{% elif satr.taqsimlangan_soat > 0 %}warn{% else %}muted{% endif %}">{{ satr.taqsimlangan_soat }}</span>
+  </td>
+  <td class="assign-cell cell-relative" :class="ochiq && 'popover-ochiq'" x-data="{ ochiq: false, q: '' }" x-effect="if (ochiq) $nextTick(() => $refs.qidiruvInput?.focus())" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
     {% if xato %}<div class="hint" style="color:var(--unassigned);margin:0 0 4px;">{{ xato }}</div>{% endif %}
     {% if satr.tanlanmagan %}
     <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">Variant tanlanmagan</button>
-    <div class="popover" x-show="ochiq" x-cloak>
+    <div class="popover" x-show="ochiq" x-transition.duration.180ms x-cloak>
       {% for v in satr.fan.variantlar.all %}
       <button type="button" class="opt"
-              hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}"
+              hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}" hx-indicator="#htmx-yuklanish"
               hx-vals='{"variant": {{ v.pk }}, "yil": {{ yil }}}'
               hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">{{ v.nomi }}</button>
       {% endfor %}
@@ -48,12 +58,12 @@
       <span>Kafedra biriktirish</span>
     </button>
     {% endif %}
-    <div class="popover" x-show="ochiq" x-cloak>
-      <input type="text" placeholder="Kafedra qidirish" x-model="q">
+    <div class="popover" x-show="ochiq" x-transition.duration.180ms x-cloak>
+      <input type="text" placeholder="Kafedra qidirish" x-model="q" x-ref="qidiruvInput">
       {% for k in kafedralar %}
       <button type="button" class="opt"
               x-show="q === '' || $el.textContent.toLowerCase().includes(q.toLowerCase())"
-              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
+              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}" hx-indicator="#htmx-yuklanish"
               hx-vals='{"kafedra": {{ k.pk }}, "yil": {{ yil }}}'
               hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">
         <span class="avatar">{{ k.nomi|bosh_harflar }}</span>{{ k.nomi }}
@@ -61,7 +71,7 @@
       {% endfor %}
       {% if satr.kafedra %}
       <button type="button" class="opt clear"
-              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
+              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}" hx-indicator="#htmx-yuklanish"
               hx-vals='{"kafedra": "", "yil": {{ yil }}}'
               hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">Biriktirishni bekor qilish</button>
       {% endif %}

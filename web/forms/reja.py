@@ -1,10 +1,12 @@
 """Forms for creating (via Excel upload) and correcting an o'quv reja."""
 
-from django import forms
-from django.db.models import Sum
+from zipfile import is_zipfile
 
-from plans.models import OquvReja, SoatTuri, Yuklama
-from plans.uploads import YuklashParametrlari
+from django import forms
+
+from plans.models import OquvReja
+from plans.services import eng_kop_kurs_ishi_talabasi
+from plans.uploads import YuklashParametrlari, xavfsiz_fayl_nomi
 
 MAX_REJA_HAJMI = 10 * 1024 * 1024  # 10 MB
 
@@ -26,10 +28,20 @@ class RejaImportForm(forms.Form):
 
     def clean_fayl(self) -> object:
         fayl = self.cleaned_data["fayl"]
-        if not fayl.name.lower().endswith(".xlsx"):
+        toza_nom = xavfsiz_fayl_nomi(getattr(fayl, "name", ""))
+        if not toza_nom.lower().endswith(".xlsx"):
             raise forms.ValidationError("Fayl .xlsx formatida bo'lishi kerak.")
-        if fayl.size and fayl.size > MAX_REJA_HAJMI:
+        if not fayl.size:
+            raise forms.ValidationError("Bo'sh fayl yuklab bo'lmaydi.")
+        if fayl.size > MAX_REJA_HAJMI:
             raise forms.ValidationError("Fayl hajmi 10 MB dan oshmasligi kerak.")
+        try:
+            haqiqiy_zip = is_zipfile(fayl)
+        finally:
+            fayl.seek(0)
+        if not haqiqiy_zip:
+            raise forms.ValidationError("Fayl .xlsx formatida emas yoki buzilgan.")
+        fayl.name = toza_nom
         return fayl
 
     def parametrlar(self) -> YuklashParametrlari:
@@ -74,20 +86,18 @@ class RejaTahrirForm(forms.ModelForm):
 
     def clean_talabalar_soni(self) -> int | None:
         soni = self.cleaned_data.get("talabalar_soni")
-        if self.instance.pk and soni is not None:
-            eng_kop = (
-                Yuklama.objects.filter(
-                    fan_semestr__variant__fan__reja=self.instance,
-                    tur=SoatTuri.KURS_ISHI,
-                )
-                .values("fan_semestr_id")
-                .annotate(jami=Sum("talabalar_soni"))
-                .order_by("-jami")
-                .values_list("jami", flat=True)
-                .first()
-            )
-            if eng_kop and soni < eng_kop:
+        if soni is not None and soni < 1:
+            raise forms.ValidationError("Talabalar soni kamida 1 bo'lishi kerak.")
+        if self.instance.pk:
+            eng_kop = eng_kop_kurs_ishi_talabasi(self.instance)
+            if eng_kop and (soni is None or soni < eng_kop):
                 raise forms.ValidationError(
                     f"Kurs ishiga allaqachon {eng_kop} ta talaba taqsimlangan."
                 )
+        return soni
+
+    def clean_guruhlar_soni(self) -> int | None:
+        soni = self.cleaned_data.get("guruhlar_soni")
+        if soni is not None and soni < 1:
+            raise forms.ValidationError("Guruhlar soni kamida 1 bo'lishi kerak.")
         return soni

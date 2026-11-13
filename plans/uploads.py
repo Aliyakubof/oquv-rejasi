@@ -2,17 +2,27 @@
 
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from xml.etree import ElementTree as ET
 from zipfile import BadZipFile
 
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
+from openpyxl.utils.exceptions import InvalidFileException
 
 from plans.importer import ImportNatija, ImportXato, import_reja, parse_xlsx
 from plans.services import guruhlarni_sinxronlash
 
 YUKLASH_KATALOGI = "rejalar"
+MAX_FAYL_STEM = 80
+
+
+def xavfsiz_fayl_nomi(xom_nom: str | None) -> str:
+    """Return a clean cross-OS basename or empty string if invalid."""
+    if not xom_nom or "\x00" in xom_nom:
+        return ""
+    return PureWindowsPath(PurePosixPath(xom_nom).name).name
 
 
 @dataclass(frozen=True)
@@ -27,11 +37,7 @@ class YuklashParametrlari:
 def fayldan_import_qilish(
     fayl: UploadedFile, parametrlar: YuklashParametrlari
 ) -> ImportNatija:
-    """Save the upload, parse it and persist reja + counts atomically.
-
-    If parsing or importing fails, the invalid file is removed from disk so
-    orphaned uploads do not accumulate.
-    """
+    """Save the upload temporarily, parse and persist reja + counts atomically."""
     yol = _faylni_saqlash(fayl)
     try:
         parsed = parse_xlsx(yol, parametrlar.boshlanish_yili)
@@ -45,19 +51,27 @@ def fayldan_import_qilish(
                 update_fields=["talabalar_soni", "guruhlar_soni", "guruh_prefiksi"]
             )
             guruhlarni_sinxronlash(reja)
-    except BadZipFile as xato:
-        yol.unlink(missing_ok=True)
+    except (
+        BadZipFile,
+        InvalidFileException,
+        ET.ParseError,
+        KeyError,
+        ValueError,
+        EOFError,
+    ) as xato:
         raise ImportXato("fayl .xlsx formatida emas yoki buzilgan") from xato
-    except Exception:
+    finally:
         yol.unlink(missing_ok=True)
-        raise
     return natija
 
 
 def _faylni_saqlash(fayl: UploadedFile) -> Path:
     katalog = Path(settings.MEDIA_ROOT) / YUKLASH_KATALOGI
     katalog.mkdir(parents=True, exist_ok=True)
-    yol = katalog / f"{uuid.uuid4().hex[:8]}_{Path(fayl.name).name}"
+    toza_nom = xavfsiz_fayl_nomi(fayl.name) or "reja.xlsx"
+    stem = Path(toza_nom).stem[:MAX_FAYL_STEM] or "reja"
+    kengaytma = Path(toza_nom).suffix.lower() or ".xlsx"
+    yol = katalog / f"{uuid.uuid4().hex[:8]}_{stem}{kengaytma}"
     with open(yol, "wb") as nishon:
         for parcha in fayl.chunks():
             nishon.write(parcha)

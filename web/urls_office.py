@@ -4,6 +4,9 @@ from web.views.office.audit import AuditListView
 from web.views.office.dashboard import (
     DashboardView,
     kafedra_biriktirish,
+    ommaviy_kafedra_biriktirish,
+    svod_excel_view,
+    taqsimot_nusxalash_view,
     variant_tanlash,
 )
 from web.views.office.dastur import (
@@ -19,15 +22,21 @@ from web.views.office.kafedralar import (
     KafedraYangiView,
     kafedra_mudir,
     kafedra_ochirish,
+    kafedra_shakl1_zip_view,
     kafedra_yuklama_qaytarish,
     kafedra_yuklama_tasdiqlash,
 )
 from web.views.office.oqituvchilar import (
+    OqituvchiImportView,
     OqituvchiListView,
     OqituvchiTahrirView,
     OqituvchiYangiView,
     OqituvchiYuklamaView,
+    oqituvchi_import_parollar_view,
+    oqituvchi_namuna_excel_view,
     oqituvchi_ochirish,
+    oqituvchi_shakl1_docx_view,
+    oqituvchi_vaqtinchalik_parol,
     oqituvchilar_excel_view,
 )
 from web.views.office.rejalar import (
@@ -46,6 +55,8 @@ from web.views.office.sozlamalar import (
     YonalishYangiView,
     lavozim_ochirish,
     universitet_saqlash,
+    yonalish_import_view,
+    yonalish_namuna_excel_view,
     yonalish_ochirish,
 )
 
@@ -53,6 +64,13 @@ urlpatterns = [
     path("", DashboardView.as_view(), name="dashboard"),
     path("fan/<int:pk>/variant/", variant_tanlash, name="variant_tanlash"),
     path("variant/<int:pk>/kafedra/", kafedra_biriktirish, name="kafedra_biriktirish"),
+    path(
+        "variantlar/ommaviy-kafedra/",
+        ommaviy_kafedra_biriktirish,
+        name="ommaviy_kafedra_biriktirish",
+    ),
+    path("nusxalash/", taqsimot_nusxalash_view, name="taqsimot_nusxalash"),
+    path("svod/excel/", svod_excel_view, name="svod_excel"),
     path("rejalar/", RejaListView.as_view(), name="reja_list"),
     path("rejalar/yangi/", RejaImportView.as_view(), name="reja_yangi"),
     path("rejalar/<int:pk>/", RejaDetailView.as_view(), name="reja_detail"),
@@ -88,13 +106,43 @@ urlpatterns = [
         kafedra_yuklama_qaytarish,
         name="kafedra_qaytarish",
     ),
+    path(
+        "kafedralar/shakl1-zip/",
+        kafedra_shakl1_zip_view,
+        name="oqituvchi_shakl1_zip",
+    ),
+    path(
+        "kafedralar/<int:pk>/shakl1-zip/",
+        kafedra_shakl1_zip_view,
+        name="kafedra_shakl1_zip",
+    ),
     path("oqituvchilar/", OqituvchiListView.as_view(), name="oqituvchi_list"),
     path("oqituvchilar/excel/", oqituvchilar_excel_view, name="oqituvchi_excel"),
+    path(
+        "oqituvchilar/import/",
+        OqituvchiImportView.as_view(),
+        name="oqituvchi_import",
+    ),
+    path(
+        "oqituvchilar/namuna/",
+        oqituvchi_namuna_excel_view,
+        name="oqituvchi_namuna_excel",
+    ),
+    path(
+        "oqituvchilar/import/parollar/",
+        oqituvchi_import_parollar_view,
+        name="oqituvchi_import_parollar",
+    ),
     path("oqituvchilar/yangi/", OqituvchiYangiView.as_view(), name="oqituvchi_yangi"),
     path(
         "oqituvchilar/<int:pk>/yuklama/",
         OqituvchiYuklamaView.as_view(),
         name="oqituvchi_yuklama",
+    ),
+    path(
+        "oqituvchilar/<int:pk>/shakl1-docx/",
+        oqituvchi_shakl1_docx_view,
+        name="oqituvchi_shakl1_docx",
     ),
     path(
         "oqituvchilar/<int:pk>/tahrir/",
@@ -103,6 +151,11 @@ urlpatterns = [
     ),
     path(
         "oqituvchilar/<int:pk>/ochirish/", oqituvchi_ochirish, name="oqituvchi_ochirish"
+    ),
+    path(
+        "oqituvchilar/<int:pk>/vaqtinchalik-parol/",
+        oqituvchi_vaqtinchalik_parol,
+        name="oqituvchi_vaqtinchalik_parol",
     ),
     path("sozlamalar/", SozlamalarView.as_view(), name="sozlamalar"),
     path(
@@ -129,6 +182,16 @@ urlpatterns = [
         "sozlamalar/yonalishlar/yangi/",
         YonalishYangiView.as_view(),
         name="yonalish_yangi",
+    ),
+    path(
+        "sozlamalar/yonalishlar/import/",
+        yonalish_import_view,
+        name="yonalish_import",
+    ),
+    path(
+        "sozlamalar/yonalishlar/namuna/",
+        yonalish_namuna_excel_view,
+        name="yonalish_namuna_excel",
     ),
     path(
         "sozlamalar/yonalishlar/<int:pk>/tahrir/",

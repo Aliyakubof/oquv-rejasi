@@ -48,6 +48,20 @@ class MaruzaYuklamaForm(YuklamaAsosForm):
         super().__init__(*args, **kwargs)
         self.instance.tur = SoatTuri.MARUZA
 
+    def clean(self) -> dict[str, object]:
+        cleaned = super().clean()
+        if (
+            Yuklama.objects.filter(
+                fan_semestr=self.instance.fan_semestr, tur=SoatTuri.MARUZA
+            )
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError(
+                "Bu fan semestriga ma'ruza allaqachon biriktirilgan."
+            )
+        return cleaned
+
 
 class GuruhYuklamaForm(YuklamaAsosForm):
     tur = forms.ChoiceField(
@@ -66,19 +80,38 @@ class GuruhYuklamaForm(YuklamaAsosForm):
 
     def clean(self) -> dict[str, object]:
         cleaned = super().clean()
-        if cleaned.get("tur"):
-            self.instance.tur = cleaned["tur"]
+        tur = cleaned.get("tur")
+        guruh = cleaned.get("guruh")
+        if tur:
+            self.instance.tur = tur
+        if (
+            tur
+            and guruh
+            and Yuklama.objects.filter(
+                fan_semestr=self.instance.fan_semestr, tur=tur, guruh=guruh
+            )
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError(
+                "Bu guruhga tanlangan mashg'ulot turi allaqachon biriktirilgan."
+            )
         return cleaned
 
 
 class KursIshiYuklamaForm(YuklamaAsosForm):
+    talabalar_soni = forms.IntegerField(
+        label="Talabalar soni",
+        min_value=1,
+        widget=forms.NumberInput(attrs={"min": 1}),
+    )
+
     class Meta(YuklamaAsosForm.Meta):
         fields = ["oqituvchi", "talabalar_soni"]
 
     def __init__(self, *args: object, **kwargs: object):
         super().__init__(*args, **kwargs)
         self.instance.tur = SoatTuri.KURS_ISHI
-        self.fields["talabalar_soni"].required = True
 
     def clean_oqituvchi(self) -> OqituvchiProfil:
         oqituvchi = self.cleaned_data["oqituvchi"]

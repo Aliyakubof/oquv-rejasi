@@ -1,13 +1,77 @@
-<div x-data="{ qidiruv: '', faqat: false, semestrovka: false }">
+<div x-data="{
+  qidiruv: '',
+  faqat: false,
+  semestrovka: false,
+  tanlanganlar: [],
+  tanlanganKafedra: '',
+  belgilash(e, id) {
+    if (e.target.checked) {
+      if (!this.tanlanganlar.includes(id)) this.tanlanganlar.push(id);
+    } else {
+      this.tanlanganlar = this.tanlanganlar.filter((x) => x !== id);
+    }
+  },
+  korinadiganIdlar() {
+    const idlar = [];
+    this.$root.querySelectorAll('tbody[data-jonli=office-fan-tbody] tr').forEach((tr) => {
+      if (tr.style.display === 'none') return;
+      const cb = tr.querySelector('.row-check[data-variant-id]');
+      if (cb) idlar.push(cb.dataset.variantId);
+    });
+    return idlar;
+  },
+  hammasiTanlangan() {
+    const idlar = this.korinadiganIdlar();
+    return idlar.length > 0 && idlar.every((id) => this.tanlanganlar.includes(id));
+  },
+  hammasiniBelgilash(e) {
+    const idlar = this.korinadiganIdlar();
+    if (e.target.checked) {
+      this.tanlanganlar = Array.from(new Set([...this.tanlanganlar, ...idlar]));
+    } else {
+      const ochirish = new Set(idlar);
+      this.tanlanganlar = this.tanlanganlar.filter((id) => !ochirish.has(id));
+    }
+  }
+}">
   <div class="controls" style="margin-bottom:10px;">
-    {% include "web/parts/_qidiruv.html" with placeholder="Fan nomi yoki kodi" aria_label="Fan nomi yoki kodi" %}
+    {% include "web/parts/_qidiruv.html" with placeholder="Fan, kod, kafedra yoki yo'nalish" aria_label="Fan, kod, kafedra yoki yo'nalish" %}
     <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
     <button type="button" class="chip-btn" :class="semestrovka && 'active'" @click="semestrovka = !semestrovka">Semestrovka</button>
+  </div>
+  <div class="bulk-bar" x-show="tanlanganlar.length > 0 && !semestrovka" x-transition.duration.220ms x-cloak @keydown.escape.window="tanlanganlar = []; tanlanganKafedra = ''">
+    <form method="post" action="{% url 'office:ommaviy_kafedra_biriktirish' %}"
+          hx-post="{% url 'office:ommaviy_kafedra_biriktirish' %}"
+          hx-target="#kontent" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
+          class="bulk-bar-form">
+      {% csrf_token %}
+      <input type="hidden" name="yil" value="{{ yil }}">
+      <input type="hidden" name="kafedra" :value="tanlanganKafedra === '__bekor__' ? '' : tanlanganKafedra">
+      <template x-for="id in tanlanganlar" :key="id">
+        <input type="hidden" name="variantlar" :value="id">
+      </template>
+      <span class="bulk-count">
+        <strong x-text="tanlanganlar.length"></strong> ta fan tanlandi
+      </span>
+      <select class="bulk-select" aria-label="Kafedra tanlang" x-model="tanlanganKafedra">
+        <option value="" disabled>Kafedrani tanlang...</option>
+        {% for k in kafedralar %}
+        <option value="{{ k.pk }}">{{ k.nomi }}</option>
+        {% endfor %}
+        <option value="__bekor__">— Biriktirishni bekor qilish —</option>
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm" :disabled="tanlanganKafedra === ''">Qo'llash</button>
+      <button type="button" class="btn btn-sm" @click="tanlanganlar = []; tanlanganKafedra = ''">Bekor qilish</button>
+    </form>
   </div>
   <div class="table-wrap" x-show="!semestrovka">
     <table>
       <thead>
         <tr>
+          <th class="col-check">
+            <input type="checkbox" class="row-check" aria-label="Ko'rinadigan barcha fanlarni tanlash"
+                   :checked="hammasiTanlangan()" @change="hammasiniBelgilash($event)">
+          </th>
           <th class="col-idx">№</th>
           <th class="col-code">Kod</th>
           <th class="col-name">Fan</th>
@@ -26,7 +90,7 @@
         {% for satr in fan_satrlari %}
         {% include "web/office/_fan_qatori.html" %}
         {% empty %}
-        <tr><td colspan="12"><div class="empty-state">Bu o'quv yilida fanlar topilmadi.</div></td></tr>
+        <tr><td colspan="13"><div class="empty-state">Bu o'quv yilida fanlar topilmadi.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

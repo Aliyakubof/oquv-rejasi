@@ -2,26 +2,16 @@
 
 from django import template
 
-from accounts.models import OqituvchiProfil
-from accounts.services import universitet_nomi
-
 register = template.Library()
 
 
-@register.filter
-def rasmiy_matn(profil: OqituvchiProfil) -> str:
-    """Official doc line, e.g. 'Husainov I. – Universitet, "Kafedra" o'qituvchisi.'"""
-    nomi = universitet_nomi(bosh="—")
-    return (
-        f"{profil.foydalanuvchi.rasmiy_qisqa_ism} – {nomi}, "
-        f"“{profil.kafedra.nomi}” kafedrasi {profil.turi.nomi}."
-    )
+_APOSTROFLAR = str.maketrans("", "", "'ʼ’‘`ʻ")
 
 
 @register.filter
 def bosh_harflar(nomi: str) -> str:
     """Avatar initials: first letters of up to two words, apostrophes stripped."""
-    sozlar = str(nomi).replace("'", "").replace("ʼ", "").split()
+    sozlar = str(nomi).translate(_APOSTROFLAR).split()
     return "".join(soz[0].upper() for soz in sozlar[:2])
 
 
@@ -33,10 +23,10 @@ def kalit(lugat: dict, k: object) -> object:
 
 @register.filter
 def foiz(qism: int | None, jami: int | None) -> int:
-    """Integer percentage of qism/jami, clamped to 0..100; 0 when unknown."""
-    if not qism or not jami:
+    """Integer percentage of qism/jami (uncapped above 100); 0 when unknown."""
+    if not qism or not jami or qism <= 0 or jami <= 0:
         return 0
-    return min(100, round(100 * qism / jami))
+    return round(100 * qism / jami)
 
 
 @register.filter

@@ -2,8 +2,9 @@
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import ProtectedError
-from django.http import HttpRequest, HttpResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
@@ -13,12 +14,15 @@ from accounts.models import Department, OqituvchiProfil
 from accounts.services import mudir_tayinlash
 from plans import dashboard, services
 from plans.audit import audit_yoz
+from plans.bildirishnoma import kafedra_javobi_xabari
 from plans.dashboard import yilni_tanlash
 from plans.models import AuditAmali
+from plans.shakl1_doc import shakl1_zip_yarat
 from web.forms.kafedra import KafedraForm
 from web.mixins import (
     OfficeAdminTalabMixin,
     YilTanlovMixin,
+    musbat_int_yoki_none,
     office_admin_talab,
     xato_matni,
 )
@@ -73,16 +77,18 @@ class KafedraTahrirView(OfficeAdminTalabMixin, UpdateView):
 def kafedra_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     kafedra = get_object_or_404(Department, pk=pk)
     try:
-        nomi = kafedra.nomi
-        kafedra_id = kafedra.pk
-        kafedra.delete()
-        audit_yoz(
-            AuditAmali.OCHIRILDI,
-            f"Kafedra o'chirildi: {nomi}.",
-            model_nomi="Department",
-            obyekt_id=kafedra_id,
-            request=request,
-        )
+        with transaction.atomic():
+            kafedra = get_object_or_404(Department.objects.select_for_update(), pk=pk)
+            nomi = kafedra.nomi
+            kafedra_id = kafedra.pk
+            kafedra.delete()
+            audit_yoz(
+                AuditAmali.OCHIRILDI,
+                f"Kafedra o'chirildi: {nomi}.",
+                model_nomi="Department",
+                obyekt_id=kafedra_id,
+                request=request,
+            )
         messages.success(request, f"{nomi} o'chirildi.")
     except ProtectedError:
         messages.error(
@@ -97,25 +103,34 @@ def kafedra_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
 @office_admin_talab
 def kafedra_mudir(request: HttpRequest, pk: int) -> HttpResponse:
     kafedra = get_object_or_404(Department, pk=pk)
-    profil_id = request.POST.get("profil") or None
-    profil = get_object_or_404(OqituvchiProfil, pk=profil_id) if profil_id else None
+    xom_profil = request.POST.get("profil")
+    if xom_profil:
+        profil_pk = musbat_int_yoki_none(xom_profil)
+        if profil_pk is None:
+            raise Http404
+        profil = get_object_or_404(OqituvchiProfil, pk=profil_pk)
+    else:
+        profil = None
     try:
-        mudir_tayinlash(kafedra, profil)
+        with transaction.atomic():
+            mudir_tayinlash(kafedra, profil)
+            if profil is None:
+                audit_yoz(
+                    AuditAmali.TAHRIRLANDI,
+                    f"{kafedra.nomi}: kafedra mudiri bekor qilindi.",
+                    obyekt=kafedra,
+                    request=request,
+                )
+            else:
+                audit_yoz(
+                    AuditAmali.TAHRIRLANDI,
+                    f"{kafedra.nomi}: {profil} kafedra mudiri etib tayinlandi.",
+                    obyekt=kafedra,
+                    request=request,
+                )
         if profil is None:
-            audit_yoz(
-                AuditAmali.TAHRIRLANDI,
-                f"{kafedra.nomi}: kafedra mudiri bekor qilindi.",
-                obyekt=kafedra,
-                request=request,
-            )
             messages.success(request, f"{kafedra.nomi}: mudir bekor qilindi.")
         else:
-            audit_yoz(
-                AuditAmali.TAHRIRLANDI,
-                f"{kafedra.nomi}: {profil} kafedra mudiri etib tayinlandi.",
-                obyekt=kafedra,
-                request=request,
-            )
             messages.success(
                 request, f"{kafedra.nomi}: {profil} mudir etib tayinlandi."
             )
@@ -134,14 +149,16 @@ def kafedra_yuklama_tasdiqlash(request: HttpRequest, pk: int) -> HttpResponse:
     _, yil = yilni_tanlash(request.POST.get("yil"))
     yil = yil or dashboard.joriy_akademik_yil()
     izoh = request.POST.get("izoh", "").strip()
-    tasdiq = services.yuklamani_tasdiqlash(kafedra, yil, request.user, izoh)
-    audit_yoz(
-        AuditAmali.TASDIQLANDI,
-        f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi tasdiqlandi va qulflandi.",
-        model_nomi="KafedraYuklamaTasdiq",
-        obyekt_id=tasdiq.pk,
-        request=request,
-    )
+    with transaction.atomic():
+        tasdiq = services.yuklamani_tasdiqlash(kafedra, yil, request.user, izoh)
+        audit_yoz(
+            AuditAmali.TASDIQLANDI,
+            f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi tasdiqlandi va qulflandi.",
+            model_nomi="KafedraYuklamaTasdiq",
+            obyekt_id=tasdiq.pk,
+            request=request,
+        )
+        kafedra_javobi_xabari(kafedra, yil, tasdiq)
     messages.success(request, f"{kafedra.nomi} yuklamasi tasdiqlandi.")
     return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
 
@@ -153,14 +170,31 @@ def kafedra_yuklama_qaytarish(request: HttpRequest, pk: int) -> HttpResponse:
     _, yil = yilni_tanlash(request.POST.get("yil"))
     yil = yil or dashboard.joriy_akademik_yil()
     izoh = request.POST.get("izoh", "").strip()
-    tasdiq = services.yuklamani_qaytarish(kafedra, yil, request.user, izoh)
-    sabab = izoh or "Izohsiz"
-    audit_yoz(
-        AuditAmali.QAYTARILDI,
-        f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi qaytarildi. Sabab: {sabab}",
-        model_nomi="KafedraYuklamaTasdiq",
-        obyekt_id=tasdiq.pk,
-        request=request,
-    )
+    with transaction.atomic():
+        tasdiq = services.yuklamani_qaytarish(kafedra, yil, request.user, izoh)
+        sabab = izoh or "Izohsiz"
+        audit_yoz(
+            AuditAmali.QAYTARILDI,
+            f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi qaytarildi. Sabab: {sabab}",
+            model_nomi="KafedraYuklamaTasdiq",
+            obyekt_id=tasdiq.pk,
+            request=request,
+        )
+        kafedra_javobi_xabari(kafedra, yil, tasdiq)
     messages.warning(request, f"{kafedra.nomi} yuklamasi qaytarildi.")
     return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
+
+
+@office_admin_talab
+def kafedra_shakl1_zip_view(
+    request: HttpRequest, pk: int | None = None
+) -> HttpResponse:
+    _, yil = yilni_tanlash(request.GET.get("yil"))
+    yil = yil or dashboard.joriy_akademik_yil()
+    kafedra = get_object_or_404(Department, pk=pk) if pk is not None else None
+    prefiks = f"kafedra_{pk}_shakl1" if pk is not None else "universitet_1shakl"
+    return FileResponse(
+        shakl1_zip_yarat(yil, kafedra=kafedra),
+        as_attachment=True,
+        filename=f"{prefiks}_{yil}_{yil + 1}.zip",
+    )

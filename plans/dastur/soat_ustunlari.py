@@ -50,6 +50,8 @@ def _ustunlarni_ochir(table: Table, bosh_turlar: list[str]) -> None:
     """Deletes the section-1 grid columns for `bosh_turlar`, then spreads the
     freed width over the surviving hour columns."""
     ochiriladigan = [ustun for ustun, maydon in SOAT_USTUNLARI if maydon in bosh_turlar]
+    if sorted(ochiriladigan) == [4, 5, 6]:
+        _semestr_kataklarini_surish(table)
 
     bosh_kenglik = 0
     for ustun in sorted(ochiriladigan, reverse=True):
@@ -62,6 +64,32 @@ def _ustunlarni_ochir(table: Table, bosh_turlar: list[str]) -> None:
     ]
     _ustunlarni_kengaytir(table, omon_qolganlar, bosh_kenglik)
     _kengliklarni_qayta_hisobla(table)
+
+
+def _semestr_kataklarini_surish(table: Table) -> None:
+    """When only Seminar (col 7) remains, rows 1-2 have Semestr/Tartib raqami
+    ending at col 6 while ECTS/Haftadagi starts at col 7. Shift col 7's span
+    unit left so deleting cols 4-6 keeps those header cells intact."""
+    for tr in table._tbl.findall(qn("w:tr")):
+        tclar = tr.findall(qn("w:tc"))
+        joriy = 0
+        for idx, tc in enumerate(tclar[:-1]):
+            span = _span(tc)
+            keyingi = tclar[idx + 1]
+            keyingi_span = _span(keyingi)
+            if joriy == 4 and span == 3 and keyingi_span >= 2:
+                _span_ornat(tc, span + 1)
+                _span_ornat(keyingi, keyingi_span - 1)
+                break
+            joriy += span
+
+
+def _span_ornat(tc: CT_Tc, yangi_span: int) -> None:
+    if tc.tcPr is None:
+        return
+    gridspan = tc.tcPr.find(qn("w:gridSpan"))
+    if gridspan is not None:
+        gridspan.set(qn("w:val"), str(yangi_span))
 
 
 def _bosh_sarlavhalarni_ochir(table: Table, variant: FanVariant) -> None:
@@ -148,7 +176,7 @@ def _kengliklarni_qayta_hisobla(table: Table) -> None:
         joriy = 0
         for tc in tr.findall(qn("w:tc")):
             span = _span(tc)
-            tcW = tc.tcPr.find(qn("w:tcW"))
+            tcW = tc.tcPr.find(qn("w:tcW")) if tc.tcPr is not None else None
             if tcW is not None:
                 tcW.set(qn("w:w"), str(sum(kengliklar[joriy : joriy + span])))
             joriy += span

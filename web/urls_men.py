@@ -5,11 +5,13 @@ from web.views.men import (
     MenDasturTarixiView,
     MenDasturTopshirishView,
     MenOquvDasturView,
+    MenShakl1DocxView,
     MenYuklamalarimView,
 )
 
 urlpatterns = [
     path("", MenYuklamalarimView.as_view(), name="yuklamalar"),
+    path("shakl1-docx/", MenShakl1DocxView.as_view(), name="shakl1_docx"),
     path(
         "kurs/<int:variant_id>/dastur/",
         MenOquvDasturView.as_view(),

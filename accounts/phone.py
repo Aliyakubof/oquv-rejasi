@@ -16,6 +16,7 @@ def validate_uzbek_phone(value: str) -> None:
     """Reject anything not in canonical +998XXXXXXXXX form (9 digits after code)."""
     if not UZBEK_PHONE_RE.match(value):
         raise ValidationError(
-            "%(value)s is not a valid Uzbek phone number (expected +998XXXXXXXXX)",
+            "%(value)s — O'zbekiston telefon raqami formati noto'g'ri "
+            "(+998XXXXXXXXX ko'rinishida bo'lishi kerak).",
             params={"value": value},
         )

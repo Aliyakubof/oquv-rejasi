@@ -1,7 +1,7 @@
 {% extends "web/base.html" %}
 {% block title %}{{ reja }}{% endblock %}
 {% block content %}
-<div x-data="{ tab: '{{ request.GET.tab|default:'jadval' }}', qidiruv: '', faqat: false }">
+<div x-data="{ tab: '{{ tab|default:'jadval'|escapejs }}', qidiruv: '', faqat: false }">
 <nav class="breadcrumb" aria-label="Breadcrumb">
   <a href="{% url 'office:reja_list' %}">O'quv rejalar</a>
   <span class="sep">/</span>
@@ -52,23 +52,23 @@
       </tr>
     </thead>
     <tbody x-data="{ majburiy: true, tanlov: true }" data-jonli="reja-jadval-tbody">
-      <tr class="group-row" :class="!majburiy && 'collapsed'" @click="majburiy = !majburiy">
+      <tr class="group-row" :class="!majburiy && 'collapsed'">
         <td colspan="{{ semestr_raqamlari|length|add:5 }}">
-          <span class="toggle">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-            Majburiy fanlar <span class="group-count">({{ majburiy_satrlar|length }} ta fan)</span>
-          </span>
+          <button type="button" class="group-toggle-btn" @click="majburiy = !majburiy" :aria-expanded="majburiy.toString()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            <span>Majburiy fanlar <span class="group-count">({{ majburiy_satrlar|length }} ta fan)</span></span>
+          </button>
         </td>
       </tr>
       {% for satr in majburiy_satrlar %}
       {% include "web/office/rejalar/_semestrovka_qatori.html" with guruh_flag="majburiy" %}
       {% endfor %}
-      <tr class="group-row" :class="!tanlov && 'collapsed'" @click="tanlov = !tanlov">
+      <tr class="group-row" :class="!tanlov && 'collapsed'">
         <td colspan="{{ semestr_raqamlari|length|add:5 }}">
-          <span class="toggle">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-            Tanlov fanlari <span class="group-count">({{ tanlov_satrlar|length }} ta fan)</span>
-          </span>
+          <button type="button" class="group-toggle-btn" @click="tanlov = !tanlov" :aria-expanded="tanlov.toString()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            <span>Tanlov fanlari <span class="group-count">({{ tanlov_satrlar|length }} ta fan)</span></span>
+          </button>
         </td>
       </tr>
       {% for satr in tanlov_satrlar %}

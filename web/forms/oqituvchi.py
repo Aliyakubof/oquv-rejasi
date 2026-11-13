@@ -40,7 +40,12 @@ class OqituvchiYaratishForm(OqituvchiAsosForm):
 
     def clean_parol(self) -> str:
         parol = self.cleaned_data["parol"]
-        password_validation.validate_password(parol)
+        vaqtincha = Foydalanuvchi(
+            telefon=self.cleaned_data.get("telefon", ""),
+            first_name=self.cleaned_data.get("first_name", ""),
+            last_name=self.cleaned_data.get("last_name", ""),
+        )
+        password_validation.validate_password(parol, user=vaqtincha)
         return parol
 
     def saqlash(self) -> OqituvchiProfil:
@@ -103,7 +108,7 @@ class OqituvchiTahrirForm(OqituvchiAsosForm):
     def clean_yangi_parol(self) -> str:
         parol = self.cleaned_data["yangi_parol"]
         if parol:
-            password_validation.validate_password(parol)
+            password_validation.validate_password(parol, user=self.profil.foydalanuvchi)
         return parol
 
     def saqlash(self) -> None:

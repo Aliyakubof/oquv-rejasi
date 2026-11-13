@@ -95,13 +95,36 @@
   <div>
     <h2>Ta'lim yo'nalishlari klassifikatori</h2>
   </div>
-  <div class="controls">
+  <div class="controls" style="flex-wrap:wrap;gap:8px;">
+    <a class="btn" href="{% url 'office:yonalish_namuna_excel' %}" hx-boost="false">Namuna (.xlsx)</a>
+    <form method="post" action="{% url 'office:yonalish_import' %}" enctype="multipart/form-data" hx-boost="false" class="controls" style="gap:6px;">
+      {% csrf_token %}
+      <input type="file" name="fayl" accept=".xlsx" required aria-label="Klassifikator Excel fayli" style="max-width:210px;">
+      <button type="submit" class="btn">Excel import</button>
+    </form>
     <a class="btn btn-primary" href="{% url 'office:yonalish_yangi' %}">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       <span>Yangi yo'nalish</span>
     </a>
   </div>
 </div>
+<form method="get" action="{% url 'office:sozlamalar' %}" class="controls" style="margin-bottom:10px;"
+      hx-get="{% url 'office:sozlamalar' %}"
+      hx-trigger="input changed delay:300ms from:input[name='q'], submit"
+      hx-target="#yonalishlar-bolim"
+      hx-select="#yonalishlar-bolim"
+      hx-swap="outerHTML"
+      hx-push-url="true"
+      hx-indicator="#htmx-yuklanish">
+  <div class="search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="text" name="q" value="{{ yonalish_q }}" placeholder="Kod, yo'nalish yoki soha nomi" aria-label="Yo'nalish qidirish">
+  </div>
+  {% if yonalish_q %}
+  <a class="btn" href="{% url 'office:sozlamalar' %}">Tozalash</a>
+  {% endif %}
+</form>
+<div id="yonalishlar-bolim">
 <div class="table-wrap narrow cards">
   <table>
     <thead>
@@ -151,5 +174,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+{% include "web/parts/_sahifalash.html" with page_obj=page_obj query_prefix=yonalish_query hx_target="#yonalishlar-bolim" %}
 </div>
 {% endblock %}

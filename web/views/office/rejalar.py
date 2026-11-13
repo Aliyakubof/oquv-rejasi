@@ -4,6 +4,7 @@ import re
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -19,6 +20,8 @@ from plans.services import SemestrTahrir, semestrovka_yangilash
 from plans.uploads import fayldan_import_qilish
 from web.forms.reja import RejaImportForm, RejaTahrirForm
 from web.mixins import OfficeAdminTalabMixin, office_admin_talab, xato_matni
+
+RUXSAT_ETILGAN_TABLAR = frozenset({"jadval", "semestr", "semestrovka"})
 
 
 class RejaListView(OfficeAdminTalabMixin, ListView):
@@ -69,23 +72,32 @@ class RejaDetailView(OfficeAdminTalabMixin, DetailView):
         context = super().get_context_data(**kwargs)
         reja = self.object
         satrlar = dashboard.reja_semestrovkasi(reja)
-        semestr_kesimi = dashboard.reja_semestr_kesimi(reja)
+        taqsimot = services.taqsimot_hisoboti(reja)
+        semestr_kesimi = dashboard.reja_semestr_kesimi(
+            reja, satrlar=satrlar, taqsimot=taqsimot
+        )
         birinchi_semestr = min(semestr_kesimi, default=None)
+        sorov_tab = self.request.GET.get("tab")
+        tab = sorov_tab if sorov_tab in RUXSAT_ETILGAN_TABLAR else "jadval"
         sorov_sem = self.request.GET.get("sem")
         tanlangan_semestr = (
             int(sorov_sem)
-            if sorov_sem and sorov_sem.isdigit() and int(sorov_sem) in semestr_kesimi
+            if sorov_sem
+            and sorov_sem.isascii()
+            and sorov_sem.isdigit()
+            and int(sorov_sem) in semestr_kesimi
             else birinchi_semestr
         )
         context.update(
             {
+                "tab": tab,
                 "satrlar": satrlar,
                 "majburiy_satrlar": [
                     s for s in satrlar if s.fan.turi == FanTuri.MAJBURIY
                 ],
                 "tanlov_satrlar": [s for s in satrlar if s.fan.turi == FanTuri.TANLOV],
                 "semestr_raqamlari": range(1, reja.semestrlar_soni + 1),
-                "stat": dashboard.statlarni_hisoblash(services.taqsimot_hisoboti(reja)),
+                "stat": dashboard.statlarni_hisoblash(taqsimot),
                 "kafedralar": Department.objects.order_by("nomi"),
                 "semestr_kesimi": semestr_kesimi,
                 "birinchi_semestr": birinchi_semestr,
@@ -120,56 +132,61 @@ class RejaTahrirView(OfficeAdminTalabMixin, UpdateView):
 @require_POST
 @office_admin_talab
 def reja_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
-    reja = get_object_or_404(OquvReja, pk=pk)
-    if Yuklama.objects.filter(fan_semestr__variant__fan__reja=reja).exists():
-        messages.error(
-            request,
-            f"{reja} rejasida taqsimlangan yuklamalar bor — avval ularni bekor qiling.",
+    with transaction.atomic():
+        reja = get_object_or_404(OquvReja.objects.select_for_update(), pk=pk)
+        if Yuklama.objects.filter(fan_semestr__variant__fan__reja=reja).exists():
+            messages.error(
+                request,
+                f"{reja} rejasida taqsimlangan yuklamalar bor — "
+                "avval ularni bekor qiling.",
+            )
+            return redirect("office:reja_list")
+        nom = str(reja)
+        reja_id = reja.pk
+        reja.delete()
+        audit_yoz(
+            AuditAmali.OCHIRILDI,
+            f"O'quv reja o'chirildi: {nom}.",
+            model_nomi="OquvReja",
+            obyekt_id=reja_id,
+            request=request,
         )
-        return redirect("office:reja_list")
-    nom = str(reja)
-    reja_id = reja.pk
-    reja.delete()
-    audit_yoz(
-        AuditAmali.OCHIRILDI,
-        f"O'quv reja o'chirildi: {nom}.",
-        model_nomi="OquvReja",
-        obyekt_id=reja_id,
-        request=request,
-    )
     messages.success(request, f"{nom} o'chirildi.")
     return redirect("office:reja_list")
 
 
-_FS_MARUZA = re.compile(r"^fs-(\d+)-maruza$")
+_FS_MAYDON = re.compile(r"^fs-(\d+)-(?:maruza|amaliyot|lab|seminar|kursishi)$")
 
 
 def _musbat_int(qiymat: str | None) -> int:
-    try:
-        return max(0, int(qiymat))
-    except (TypeError, ValueError):
-        return 0
+    if qiymat is None or qiymat.strip() == "":
+        raise ValidationError("Soat qiymati bo'sh bo'lishi mumkin emas.")
+    toza = qiymat.strip()
+    if not (toza.isascii() and toza.isdigit()):
+        raise ValidationError(
+            f"Noto'g'ri soat qiymati: '{qiymat}'. Manfiy bo'lmagan butun son kiriting."
+        )
+    return int(toza)
 
 
 def _tahrirlarni_oqish(post: object) -> list[SemestrTahrir]:
     """Collect one SemestrTahrir per fs-<pk>-* input group in the POST body."""
-    tahrirlar = []
+    pklar: dict[int, None] = {}
     for kalit in post:
-        mos = _FS_MARUZA.match(kalit)
-        if mos is None:
-            continue
-        pk = int(mos.group(1))
-        tahrirlar.append(
-            SemestrTahrir(
-                fan_semestr_id=pk,
-                maruza_soat=_musbat_int(post.get(f"fs-{pk}-maruza")),
-                amaliyot_soat=_musbat_int(post.get(f"fs-{pk}-amaliyot")),
-                laboratoriya_soat=_musbat_int(post.get(f"fs-{pk}-lab")),
-                seminar_soat=_musbat_int(post.get(f"fs-{pk}-seminar")),
-                kurs_ishi_bor=post.get(f"fs-{pk}-kursishi") == "on",
-            )
+        mos = _FS_MAYDON.match(kalit)
+        if mos is not None:
+            pklar.setdefault(int(mos.group(1)), None)
+    return [
+        SemestrTahrir(
+            fan_semestr_id=pk,
+            maruza_soat=_musbat_int(post.get(f"fs-{pk}-maruza")),
+            amaliyot_soat=_musbat_int(post.get(f"fs-{pk}-amaliyot")),
+            laboratoriya_soat=_musbat_int(post.get(f"fs-{pk}-lab")),
+            seminar_soat=_musbat_int(post.get(f"fs-{pk}-seminar")),
+            kurs_ishi_bor=post.get(f"fs-{pk}-kursishi") == "on",
         )
-    return tahrirlar
+        for pk in pklar
+    ]
 
 
 @require_POST
@@ -177,16 +194,19 @@ def _tahrirlarni_oqish(post: object) -> list[SemestrTahrir]:
 def semestrovka_saqlash(request: HttpRequest, pk: int) -> HttpResponse:
     reja = get_object_or_404(OquvReja, pk=pk)
     try:
-        semestrovka_yangilash(reja, _tahrirlarni_oqish(request.POST))
+        tahrirlar = _tahrirlarni_oqish(request.POST)
+        with transaction.atomic():
+            reja = get_object_or_404(OquvReja.objects.select_for_update(), pk=pk)
+            semestrovka_yangilash(reja, tahrirlar)
+            audit_yoz(
+                AuditAmali.TAHRIRLANDI,
+                f"Semestrovka soatlari tahrirlandi: {reja}.",
+                obyekt=reja,
+                request=request,
+            )
     except ValidationError as xato:
         messages.error(request, xato_matni(xato))
     else:
-        audit_yoz(
-            AuditAmali.TAHRIRLANDI,
-            f"Semestrovka soatlari tahrirlandi: {reja}.",
-            obyekt=reja,
-            request=request,
-        )
         messages.success(request, "Semestrovka saqlandi.")
     manzil = reverse("office:reja_detail", kwargs={"pk": reja.pk})
     return redirect(f"{manzil}?tab=semestrovka")

@@ -1,8 +1,11 @@
 import math
 import re
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 
 import openpyxl
+from openpyxl.cell.cell import Cell
+from openpyxl.worksheet.worksheet import Worksheet
 
 from parser.models import (
     Alternative,
@@ -69,13 +72,13 @@ BREAKDOWN_FIELDS = ("classroom", "lecture", "practice", "lab", "seminar", "cours
 _UNPARSEABLE = object()
 
 
-def is_course_number(value) -> bool:
+def is_course_number(value: object) -> bool:
     if value is None:
         return False
     return bool(COURSE_NUM_RE.match(str(value).strip()))
 
 
-def section_prefix(course_num) -> str:
+def section_prefix(course_num: object) -> str:
     return str(course_num).strip().split(".")[0]
 
 
@@ -98,7 +101,7 @@ def _normalize_edu_type(raw: str) -> str | None:
     return None
 
 
-def _normalize_section_marker(value) -> str | None:
+def _normalize_section_marker(value: object) -> str | None:
     """Normalize a section-marker cell ('1.00', '1,0', '1.00.', ...) to its
     bare section digit string, or None if the cell isn't a marker at all."""
     if value is None:
@@ -108,7 +111,7 @@ def _normalize_section_marker(value) -> str | None:
     return match.group(1) if match else None
 
 
-def find_cell_containing(ws, substring: str):
+def find_cell_containing(ws: Worksheet, substring: str) -> Cell | None:
     needle = _normalize_text(substring)
     for row in ws.iter_rows(max_row=15):
         for cell in row:
@@ -132,7 +135,7 @@ def _extract_code_name(raw: str) -> tuple[str, str] | None:
     return code, name
 
 
-def resolve_direction(ws, warnings: list[str]) -> tuple[str, str] | None:
+def resolve_direction(ws: Worksheet, warnings: list[str]) -> tuple[str, str] | None:
     """Find and parse the program-direction cell into (code, name).
 
     Returns None when no direction cell is present at all (caller falls back
@@ -167,7 +170,7 @@ def extract_start_year(raw: str) -> str:
     return match.group(1) if match else ""
 
 
-def read_metadata(ws, warnings: list[str]) -> tuple[str, str, str]:
+def read_metadata(ws: Worksheet, warnings: list[str]) -> tuple[str, str, str]:
     """Return (degree, duration, edu_type) from the metadata region, each the
     text after the label's separator or '' when its cell is absent."""
     degree_cell = find_cell_containing(ws, "Akademik daraja")
@@ -188,7 +191,9 @@ def read_metadata(ws, warnings: list[str]) -> tuple[str, str, str]:
     return degree, duration, edu_type
 
 
-def find_header_col(ws, keyword: str, max_row: int, min_row: int = 1) -> int | None:
+def find_header_col(
+    ws: Worksheet, keyword: str, max_row: int, min_row: int = 1
+) -> int | None:
     """Return 0-based column index of first header cell containing keyword, or None."""
     needle = _normalize_text(keyword)
     for row in ws.iter_rows(min_row=min_row, max_row=max_row):
@@ -198,7 +203,7 @@ def find_header_col(ws, keyword: str, max_row: int, min_row: int = 1) -> int | N
     return None
 
 
-def extract_program_years(ws) -> float:
+def extract_program_years(ws: Worksheet) -> float:
     """Return program duration in years (e.g. 3, or 4.5 for a 9-semester
     program). Structural: the credit-column window is derived from it."""
     cell = find_cell_containing(ws, "muddati")
@@ -208,10 +213,13 @@ def extract_program_years(ws) -> float:
     match = DURATION_RE.search(text)
     if match is None:
         raise ParseError(f"o'qish muddati aniqlanmadi: {cell.value!r}")
-    return float(match.group(1))
+    years = float(match.group(1))
+    if not math.isfinite(years) or years <= 0:
+        raise ParseError(f"o'qish muddati noto'g'ri: {cell.value!r}")
+    return years
 
 
-def _find_anchor(ws, warnings: list[str]) -> tuple[int, int]:
+def _find_anchor(ws: Worksheet, warnings: list[str]) -> tuple[int, int]:
     """Locate the '1.00' section-marker cell. Returns (0-based num_col,
     1-based row). Raises ParseError when no candidate is found; when several
     numeric '1'-like cells exist (e.g. inside the academic-calendar zone),
@@ -226,7 +234,8 @@ def _find_anchor(ws, warnings: list[str]) -> tuple[int, int]:
 
     for col, row_num in matches:
         row_values = next(
-            ws.iter_rows(min_row=row_num, max_row=row_num, values_only=True)
+            ws.iter_rows(min_row=row_num, max_row=row_num, values_only=True),
+            (),
         )
         if any(
             isinstance(v, str) and "majburiy" in _normalize_text(v) for v in row_values
@@ -239,27 +248,30 @@ def _find_anchor(ws, warnings: list[str]) -> tuple[int, int]:
     return matches[0]
 
 
-def _to_float(value) -> float | None:
-    """Coerce an Excel cell value to float, or None if absent/non-numeric.
+def _to_float(value: object) -> float | None:
+    """Coerce an Excel cell value to finite float, or None if absent/invalid.
     Normalizes comma decimals and stray spaces/NBSP before parsing."""
-    if value is None:
+    if value is None or isinstance(value, bool):
         return None
     if isinstance(value, str):
         value = value.replace("\xa0", "").replace(" ", "").replace(",", ".")
         if value == "":
             return None
+    elif not isinstance(value, (int, float)):
+        return None
     try:
-        return float(value)
+        parsed = float(value)
     except (ValueError, TypeError):
         return None
+    return parsed if math.isfinite(parsed) else None
 
 
-def _to_int(value) -> int | None:
+def _to_int(value: object) -> int | None:
     val = _to_float(value)
     return None if val is None else int(val)
 
 
-def _coerce_int_cell(raw):
+def _coerce_int_cell(raw: object) -> int | object | None:
     """Return int, None (truly blank/merged), or _UNPARSEABLE (present but
     not numeric) — the three-way distinction breakdown_inheriting needs."""
     if raw is None:
@@ -268,14 +280,16 @@ def _coerce_int_cell(raw):
     return val if val is not None else _UNPARSEABLE
 
 
-def _cell_int(row, col, default: int | None = None) -> int | None:
+def _cell_int(
+    row: Sequence[object], col: int, default: int | None = None
+) -> int | None:
     """Read row[col] as int, falling back to default when absent/non-numeric."""
     val = _to_int(row[col]) if len(row) > col else None
     return val if val is not None else default
 
 
 def _find_consecutive_run(
-    ws, scan_start: int, scan_end: int, col_lo: int, col_hi: int, n: int
+    ws: Worksheet, scan_start: int, scan_end: int, col_lo: int, col_hi: int, n: int
 ) -> dict[int, int]:
     """Return {col_idx: value} for the last row in [scan_start, scan_end]
     whose columns in [col_lo, col_hi) hold exactly the integers 1..n,
@@ -298,7 +312,9 @@ def _find_consecutive_run(
     return last_match
 
 
-def _find_group_header_col(ws, start_row: int, labels: tuple[str, ...]) -> int | None:
+def _find_group_header_col(
+    ws: Worksheet, start_row: int, labels: tuple[str, ...]
+) -> int | None:
     scan_start = max(1, start_row - 10)
     for row in ws.iter_rows(min_row=scan_start, max_row=start_row):
         for cell in row:
@@ -310,7 +326,7 @@ def _find_group_header_col(ws, start_row: int, labels: tuple[str, ...]) -> int |
 
 
 def _label_semester_maps(
-    ws, start_row: int, n: int
+    ws: Worksheet, start_row: int, n: int
 ) -> tuple[dict[int, int], dict[int, int]]:
     """Primary strategy (map §4.3): find the weekly-hours and credit group
     headers, then read the local 1..N sub-number row beneath each.
@@ -339,7 +355,7 @@ def _label_semester_maps(
 
 
 def _detect_col_range(
-    ws, start_row: int, lo: int, hi: int, offset: int
+    ws: Worksheet, start_row: int, lo: int, hi: int, offset: int
 ) -> dict[int, int]:
     """Fallback strategy (map §4.4): scan header rows near the anchor for the
     logical column-number row (1, 2, …, 29), not present in every file."""
@@ -371,7 +387,7 @@ def _detect_col_range(
 
 
 def _fallback_semester_maps(
-    ws, start_row: int, n: int
+    ws: Worksheet, start_row: int, n: int
 ) -> tuple[dict[int, int], dict[int, int]]:
     weekly = _detect_col_range(ws, start_row, 12, 11 + n, 11)
     credit = _detect_col_range(ws, start_row, 12 + n, 11 + 2 * n, 11 + n)
@@ -397,7 +413,7 @@ def _validate_semester_maps(
 
 
 def detect_semester_column_maps(
-    ws, start_row: int, n: int
+    ws: Worksheet, start_row: int, n: int
 ) -> tuple[dict[int, int], dict[int, int]]:
     """Return (weekly-hours map, credit map): {0-based col: semester number}.
 
@@ -417,7 +433,9 @@ def detect_semester_column_maps(
     return weekly_map, credit_map
 
 
-def _find_code_name_cols(ws, num_col: int, start_row: int) -> tuple[int, int]:
+def _find_code_name_cols(
+    ws: Worksheet, num_col: int, start_row: int
+) -> tuple[int, int]:
     """Find code/name columns from the first course row below the anchor;
     fall back to num_col+1 / num_col+2 when the row can't be located."""
     code_col, name_col = None, None
@@ -445,7 +463,7 @@ def _find_code_name_cols(ws, num_col: int, start_row: int) -> tuple[int, int]:
     return code_col, name_col
 
 
-def find_total_hours_col(ws, auditoriya_row: int, start_row: int) -> int:
+def find_total_hours_col(ws: Worksheet, auditoriya_row: int, start_row: int) -> int:
     """Locate the total-hours column, searching only the header band right
     around the 'auditoriya' label so an earlier, unrelated 'soat' cell in the
     metadata or calendar zones can't hijack the column."""
@@ -458,7 +476,7 @@ def find_total_hours_col(ws, auditoriya_row: int, start_row: int) -> int:
     return col
 
 
-def _find_classroom_col(ws, start_row: int) -> tuple[int, int]:
+def _find_classroom_col(ws: Worksheet, start_row: int) -> tuple[int, int]:
     """Find the classroom ('auditoriya') column and the header row it sits
     on, as (classroom_col, auditoriya_row)."""
     for hrow in ws.iter_rows(max_row=start_row):
@@ -470,50 +488,61 @@ def _find_classroom_col(ws, start_row: int) -> tuple[int, int]:
     raise ParseError("'Auditoriya' ustuni topilmadi")
 
 
-def _find_subcategory_cols(
-    ws, auditoriya_row: int, classroom_col: int, warnings: list[str]
-) -> tuple[int, int, int | None, int | None, int | None]:
-    """Map the label row below 'auditoriya' to the five subcategory columns.
+_SUBCOL_KALITLARI: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("lecture", ("maruza",)),
+    ("practice", ("amaliy",)),
+    ("lab", ("laborator", "labarator")),
+    ("seminar", ("seminar",)),
+    ("course", ("kurs",)),
+)
 
-    'Ma'ruza' and 'Amaliy' are always present (map §4.3) — their absence is
-    structural. 'Laboratoriya', 'Seminar', and 'Kurs ishi' are legitimately
-    absent on some sheets; an absent one means 0 hours, not a guessed offset.
-    """
-    lecture_col = practice_col = lab_col = seminar_col = course_proj_col = None
+
+def _subcol_kaliti(norm: str) -> str | None:
+    return next(
+        (key for key, needles in _SUBCOL_KALITLARI if any(n in norm for n in needles)),
+        None,
+    )
+
+
+def _find_subcategory_cols(
+    ws: Worksheet, auditoriya_row: int, classroom_col: int, warnings: list[str]
+) -> tuple[int, int, int | None, int | None, int | None]:
+    """Map the label row below 'auditoriya' to the five subcategory columns."""
     label_row = next(
         ws.iter_rows(
             min_row=auditoriya_row + 1, max_row=auditoriya_row + 1, values_only=True
-        )
+        ),
+        None,
     )
+    if label_row is None:
+        raise ParseError("'Ma'ruza'/'Amaliy' ustunlari topilmadi")
+    cols: dict[str, int | None] = {k: None for k, _ in _SUBCOL_KALITLARI}
     for i, v in enumerate(label_row):
         if i <= classroom_col or not isinstance(v, str):
             continue
-        norm = re.sub(r"[^a-z]", "", _normalize_text(v))
-        if "maruza" in norm and lecture_col is None:
-            lecture_col = i
-        elif "amaliy" in norm and practice_col is None:
-            practice_col = i
-        elif ("laborator" in norm or "labarator" in norm) and lab_col is None:
-            lab_col = i
-        elif "seminar" in norm and seminar_col is None:
-            seminar_col = i
-        elif "kurs" in norm and course_proj_col is None:
-            course_proj_col = i
-
-    if lecture_col is None or practice_col is None:
+        key = _subcol_kaliti(re.sub(r"[^a-z]", "", _normalize_text(v)))
+        if key is not None and cols[key] is None:
+            cols[key] = i
+    if cols["lecture"] is None or cols["practice"] is None:
         raise ParseError("'Ma'ruza'/'Amaliy' ustunlari topilmadi")
-    for label, col in (
-        ("Laboratoriya", lab_col),
-        ("Seminar", seminar_col),
-        ("Kurs ishi", course_proj_col),
+    for key, label in (
+        ("lab", "Laboratoriya"),
+        ("seminar", "Seminar"),
+        ("course", "Kurs ishi"),
     ):
-        if col is None:
+        if cols[key] is None:
             warnings.append(f"'{label}' ustuni topilmadi; 0 soat deb hisoblandi")
-    return lecture_col, practice_col, lab_col, seminar_col, course_proj_col
+    return (
+        cols["lecture"],
+        cols["practice"],
+        cols["lab"],
+        cols["seminar"],
+        cols["course"],
+    )
 
 
 def detect_course_columns(
-    ws, num_col: int, start_row: int, warnings: list[str]
+    ws: Worksheet, num_col: int, start_row: int, warnings: list[str]
 ) -> ColumnLayout:
     """Return the course ColumnLayout by orchestrating the focused detectors."""
     code_col, name_col = _find_code_name_cols(ws, num_col, start_row)
@@ -542,7 +571,10 @@ def _round_half_up(value: float) -> int:
 
 
 def map_semester_values(
-    row: tuple, semester_col_map: dict[int, int], label: str, warnings: list[str]
+    row: Sequence[object],
+    semester_col_map: dict[int, int],
+    label: str,
+    warnings: list[str],
 ) -> dict[int, int]:
     """Return {semester_number: value} for non-zero semester cells.
 
@@ -565,7 +597,7 @@ def map_semester_values(
     return result
 
 
-def _clean_name(value) -> str:
+def _clean_name(value: object) -> str:
     """Normalize a course/alternative name read from a cell.
 
     Ministry templates use hard line breaks (Alt+Enter) in cells; a stray
@@ -578,7 +610,7 @@ def _clean_name(value) -> str:
     return re.sub(r"\s+", " ", str(value).replace("|", " ")).strip()
 
 
-def _is_recognized_skip_row(row) -> bool:
+def _is_recognized_skip_row(row: Sequence[object]) -> bool:
     return any(
         isinstance(cell, str)
         and any(label in _normalize_text(cell) for label in SKIP_ROW_LABELS)
@@ -586,7 +618,9 @@ def _is_recognized_skip_row(row) -> bool:
     )
 
 
-def _iter_section_rows(ws, num_col: int, section: int, start_row: int):
+def _iter_section_rows(
+    ws: Worksheet, num_col: int, section: int, start_row: int
+) -> Iterator[tuple[str | None, tuple[object, ...]]]:
     """Yield (num_str, row) for each row in the given top-level section (1 or 2).
 
     Enters when the section's marker is seen and stops at the first 'Jami'
@@ -619,18 +653,28 @@ def _iter_section_rows(ws, num_col: int, section: int, start_row: int):
         yield num_str, row
 
 
-def breakdown_from(row, cols: tuple, fill: int) -> dict:
+def breakdown_from(
+    row: Sequence[object], cols: tuple[int | None, ...], fill: int
+) -> dict[str, int]:
     """Read the six hour-breakdown fields, defaulting every missing cell to
     `fill`. A None column (no header for that hour type) always reads as 0."""
-    return {
-        f: (0 if c is None else _cell_int(row, c, fill))
-        for f, c in zip(BREAKDOWN_FIELDS, cols)
-    }
+    natija: dict[str, int] = {}
+    for f, c in zip(BREAKDOWN_FIELDS, cols):
+        if c is None:
+            natija[f] = 0
+        else:
+            val = _cell_int(row, c, fill)
+            natija[f] = fill if val is None else val
+    return natija
 
 
 def breakdown_inheriting(
-    row, cols: tuple, fallbacks: dict, label: str, warnings: list[str]
-) -> dict:
+    row: Sequence[object],
+    cols: tuple[int | None, ...],
+    fallbacks: dict[str, int],
+    label: str,
+    warnings: list[str],
+) -> dict[str, int]:
     """Read the six hour-breakdown fields, inheriting per-field fallbacks.
 
     Used for a selective continuation row, whose numeric cells are vertically
@@ -639,7 +683,7 @@ def breakdown_inheriting(
     would silently pass off a bad cell as the slot's real value — it reads as
     0 and is warned about instead.
     """
-    result = {}
+    result: dict[str, int] = {}
     for f, c in zip(BREAKDOWN_FIELDS, cols):
         if c is None:
             result[f] = 0
@@ -654,36 +698,49 @@ def breakdown_inheriting(
             )
             result[f] = 0
         else:
-            result[f] = coerced
+            result[f] = int(coerced)
     return result
 
 
 def _append_alternative(
-    slot: SelectiveSlot, code_str: str, name_str: str, breakdown: dict
+    slot: SelectiveSlot, code_str: str, name_str: str, breakdown: dict[str, int]
 ) -> None:
     """Append an Alternative to the slot, skipping fully blank continuation rows."""
     if code_str or name_str:
         slot.alternatives.append(Alternative(code=code_str, name=name_str, **breakdown))
 
 
+def _tanlov_sloti_yarat(
+    row: Sequence[object],
+    num_str: str,
+    layout: ColumnLayout,
+    semester_map: dict[int, int],
+    weekly_map: dict[int, int],
+    warnings: list[str],
+) -> tuple[SelectiveSlot, dict[str, int]]:
+    hours_raw = row[layout.hours] if len(row) > layout.hours else None
+    slot = SelectiveSlot(
+        num=num_str,
+        hours=_to_int(hours_raw),
+        semester_credits=map_semester_values(row, semester_map, num_str, warnings),
+        semester_weekly_hours=map_semester_values(row, weekly_map, num_str, warnings),
+    )
+    slot_breakdown = breakdown_from(row, layout.breakdown, 0)
+    return slot, slot_breakdown
+
+
 def parse_selective_courses(
-    ws,
+    ws: Worksheet,
     layout: ColumnLayout,
     semester_map: dict[int, int],
     weekly_map: dict[int, int],
     start_row: int,
     warnings: list[str],
 ) -> list[SelectiveSlot]:
-    """Parse section 2 (tanlov fanlar / selective courses) into SelectiveSlots.
-
-    Each slot carries the shared hours/credits plus an `alternatives` list.
-    Numeric columns are vertically merged in the spreadsheet, so their values
-    appear only on the slot's first row; continuation rows carry only code and
-    name and inherit the slot's breakdown for any merged (None) cell.
-    """
+    """Parse section 2 (tanlov fanlar / selective courses) into SelectiveSlots."""
     slots: list[SelectiveSlot] = []
     current: SelectiveSlot | None = None
-    slot_breakdown: dict = {}
+    slot_breakdown: dict[str, int] = {}
 
     for num_str, row in _iter_section_rows(ws, layout.num, 2, start_row):
         code = row[layout.code] if len(row) > layout.code else None
@@ -692,44 +749,27 @@ def parse_selective_courses(
         name_str = _clean_name(name)
 
         if is_course_number(num_str) and section_prefix(num_str) == "2":
-            hours_raw = row[layout.hours] if len(row) > layout.hours else None
-            current = SelectiveSlot(
-                num=num_str,
-                hours=_to_int(hours_raw),
-                semester_credits=map_semester_values(
-                    row, semester_map, num_str, warnings
-                ),
-                semester_weekly_hours=map_semester_values(
-                    row, weekly_map, num_str, warnings
-                ),
+            assert num_str is not None
+            current, slot_breakdown = _tanlov_sloti_yarat(
+                row, num_str, layout, semester_map, weekly_map, warnings
             )
             slots.append(current)
-            # The slot row's breakdown is the default every continuation row
-            # inherits where its cells are merged (None).
-            slot_breakdown = breakdown_from(row, layout.breakdown, 0)
             _append_alternative(current, code_str, name_str, slot_breakdown)
-
         elif current is not None and num_str is None:
-            _append_alternative(
-                current,
-                code_str,
-                name_str,
-                breakdown_inheriting(
-                    row, layout.breakdown, slot_breakdown, current.num, warnings
-                ),
+            merited = breakdown_inheriting(
+                row, layout.breakdown, slot_breakdown, current.num, warnings
             )
-
+            _append_alternative(current, code_str, name_str, merited)
         elif not _is_recognized_skip_row(row):
             warnings.append(f"tanilmagan qator o'tkazib yuborildi: {row[:3]!r}")
 
     if not slots:
         warnings.append("tanlov fanlar topilmadi")
-
     return slots
 
 
 def parse_core_courses(
-    ws,
+    ws: Worksheet,
     layout: ColumnLayout,
     semester_map: dict[int, int],
     weekly_map: dict[int, int],
@@ -764,7 +804,7 @@ def parse_core_courses(
 
 
 def _section_marker_hours(
-    ws, num_col: int, hours_col: int, section: int, start_row: int
+    ws: Worksheet, num_col: int, hours_col: int, section: int, start_row: int
 ) -> int | None:
     for row in ws.iter_rows(min_row=start_row, values_only=True):
         num = row[num_col] if len(row) > num_col else None
@@ -774,7 +814,7 @@ def _section_marker_hours(
 
 
 def _validate_section_totals(
-    ws,
+    ws: Worksheet,
     layout: ColumnLayout,
     start_row: int,
     core: list[Course],
@@ -883,7 +923,9 @@ def _validate_credit_hours(
         )
 
 
-def _hours_column_all_blank(ws, layout: ColumnLayout, start_row: int) -> bool:
+def _hours_column_all_blank(
+    ws: Worksheet, layout: ColumnLayout, start_row: int
+) -> bool:
     for row in ws.iter_rows(min_row=start_row, values_only=True):
         num = row[layout.num] if len(row) > layout.num else None
         if is_course_number(str(num).strip().rstrip(".") if num is not None else None):
@@ -917,62 +959,61 @@ def _check_uncalculated_formulas(
     warnings.append("soat ustuni bo'sh: birorta kurs uchun ham soat topilmadi")
 
 
+def _varaqni_tahlil_qil(ws: Worksheet, path: Path, warnings: list[str]) -> ParseResult:
+    direction = resolve_direction(ws, warnings)
+    direction_code, direction_name = direction if direction is not None else ("", "")
+
+    year_cell = find_cell_containing(ws, "quv yili")
+    start_year = extract_start_year(str(year_cell.value)) if year_cell else ""
+    if not start_year:
+        warnings.append("o'quv yili topilmadi")
+
+    degree, _duration_text, edu_type = read_metadata(ws, warnings)
+    years = extract_program_years(ws)
+    n = round(years * 2)
+
+    num_col, start_row = _find_anchor(ws, warnings)
+    layout = detect_course_columns(ws, num_col, start_row, warnings)
+    weekly_map, credit_map = detect_semester_column_maps(ws, start_row, n)
+
+    if _hours_column_all_blank(ws, layout, start_row):
+        _check_uncalculated_formulas(path, layout, start_row, warnings)
+
+    core = parse_core_courses(ws, layout, credit_map, weekly_map, start_row, warnings)
+    slots = parse_selective_courses(
+        ws, layout, credit_map, weekly_map, start_row, warnings
+    )
+    _validate_section_totals(ws, layout, start_row, core, slots, warnings)
+    _validate_classroom_breakdown(core, slots, warnings)
+    _validate_credit_hours(core, slots, warnings)
+
+    return ParseResult(
+        direction_code=direction_code,
+        direction_name=direction_name,
+        start_year=start_year,
+        degree=degree,
+        duration_years=years,
+        edu_type=edu_type,
+        core=core,
+        slots=slots,
+        warnings=warnings,
+    )
+
+
 def parse_workbook(path: Path) -> ParseResult:
     """Parse one o'quv reja .xlsx into a ParseResult. The single entry point
     both `parser.main` and `plans.importer` build on."""
     warnings: list[str] = []
     wb = openpyxl.load_workbook(path, data_only=True)
     try:
+        if not wb.worksheets:
+            raise ParseError("Excel faylida varaqlar topilmadi")
         if len(wb.sheetnames) > 1:
             warnings.append(
                 "varaqda bir nechta varaq bor; birinchisi "
                 f"{wb.sheetnames[0]!r} o'qildi, qolganlari e'tiborsiz qoldirildi: "
                 f"{wb.sheetnames[1:]}"
             )
-        ws = wb.worksheets[0]
-
-        direction = resolve_direction(ws, warnings)
-        direction_code, direction_name = (
-            direction if direction is not None else ("", "")
-        )
-
-        year_cell = find_cell_containing(ws, "quv yili")
-        start_year = extract_start_year(str(year_cell.value)) if year_cell else ""
-        if not start_year:
-            warnings.append("o'quv yili topilmadi")
-
-        degree, _duration_text, edu_type = read_metadata(ws, warnings)
-        years = extract_program_years(ws)
-        n = round(years * 2)
-
-        num_col, start_row = _find_anchor(ws, warnings)
-        layout = detect_course_columns(ws, num_col, start_row, warnings)
-        weekly_map, credit_map = detect_semester_column_maps(ws, start_row, n)
-
-        if _hours_column_all_blank(ws, layout, start_row):
-            _check_uncalculated_formulas(path, layout, start_row, warnings)
-
-        core = parse_core_courses(
-            ws, layout, credit_map, weekly_map, start_row, warnings
-        )
-        slots = parse_selective_courses(
-            ws, layout, credit_map, weekly_map, start_row, warnings
-        )
-
-        _validate_section_totals(ws, layout, start_row, core, slots, warnings)
-        _validate_classroom_breakdown(core, slots, warnings)
-        _validate_credit_hours(core, slots, warnings)
-
-        return ParseResult(
-            direction_code=direction_code,
-            direction_name=direction_name,
-            start_year=start_year,
-            degree=degree,
-            duration_years=years,
-            edu_type=edu_type,
-            core=core,
-            slots=slots,
-            warnings=warnings,
-        )
+        return _varaqni_tahlil_qil(wb.worksheets[0], path, warnings)
     finally:
         wb.close()

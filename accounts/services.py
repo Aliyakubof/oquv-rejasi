@@ -1,5 +1,7 @@
 """Staff management actions: teacher accounts and department heads."""
 
+import secrets
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
@@ -12,6 +14,23 @@ from accounts.models import (
     Universitet,
 )
 from accounts.phone import normalize_phone
+
+_VAQTINCHALIK_ALIFBO = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def vaqtinchalik_parol_tasodifiy(uzunlik: int = 10) -> str:
+    """Generate a readable cryptographic temporary password."""
+    return "".join(secrets.choice(_VAQTINCHALIK_ALIFBO) for _ in range(uzunlik))
+
+
+@transaction.atomic
+def vaqtinchalik_parol_yarat(foydalanuvchi: Foydalanuvchi) -> str:
+    """Assign a one-time temporary password requiring immediate change on login."""
+    parol = vaqtinchalik_parol_tasodifiy()
+    foydalanuvchi.set_password(parol)
+    foydalanuvchi.parol_ozgartirish_kerak = True
+    foydalanuvchi.save(update_fields=["password", "parol_ozgartirish_kerak"])
+    return parol
 
 
 def universitet_olish() -> Universitet | None:
@@ -61,14 +80,17 @@ def oqituvchi_yangilash(
     boshqa_kafedra = getattr(profil, "boshqarayotgan_kafedra", None)
     if boshqa_kafedra is not None and boshqa_kafedra.pk != kafedra.pk:
         mudir_tayinlash(boshqa_kafedra, None)
+        profil.foydalanuvchi.refresh_from_db(fields=["rol"])
     foydalanuvchi = profil.foydalanuvchi
     foydalanuvchi.telefon = normalize_phone(telefon)
     foydalanuvchi.first_name = first_name
     foydalanuvchi.last_name = last_name
+    yangilanadigan = ["telefon", "first_name", "last_name"]
     if yangi_parol:
         foydalanuvchi.set_password(yangi_parol)
+        yangilanadigan.append("password")
     foydalanuvchi.full_clean(exclude=["password"])
-    foydalanuvchi.save()
+    foydalanuvchi.save(update_fields=yangilanadigan)
     profil.kafedra = kafedra
     profil.turi = turi
     profil.save(update_fields=["kafedra", "turi"])
@@ -77,17 +99,23 @@ def oqituvchi_yangilash(
 @transaction.atomic
 def mudir_tayinlash(kafedra: Department, profil: OqituvchiProfil | None) -> None:
     """Set (or clear, with profil=None) the department head, syncing roles."""
+    kafedra_qulf = (
+        Department.objects.select_for_update()
+        .select_related("mudir__foydalanuvchi")
+        .get(pk=kafedra.pk)
+    )
     if profil is not None:
         if not profil.foydalanuvchi.is_active:
             raise ValidationError("Faolsizlantirilgan o'qituvchi mudir bo'la olmaydi.")
-        if profil.kafedra_id != kafedra.pk:
+        if profil.kafedra_id != kafedra_qulf.pk:
             raise ValidationError("O'qituvchi boshqa kafedraga tegishli.")
         boshqa = getattr(profil, "boshqarayotgan_kafedra", None)
-        if boshqa is not None and boshqa.pk != kafedra.pk:
+        if boshqa is not None and boshqa.pk != kafedra_qulf.pk:
             raise ValidationError(f"{profil} allaqachon {boshqa} mudiri.")
-    _mudirlikdan_tushirish(kafedra, profil)
+    _mudirlikdan_tushirish(kafedra_qulf, profil)
+    kafedra_qulf.mudir = profil
+    kafedra_qulf.save(update_fields=["mudir"])
     kafedra.mudir = profil
-    kafedra.save(update_fields=["mudir"])
     if profil is not None:
         _rolni_ornatish(profil.foydalanuvchi, Rol.DEPARTMENT_ADMIN)
 

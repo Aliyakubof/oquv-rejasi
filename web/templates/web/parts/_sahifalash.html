@@ -1,0 +1,24 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="sahifalash" aria-label="Sahifalar">
+  <span class="sahifalash-info">
+    Sahifa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+    (jami {{ page_obj.paginator.count }} ta yozuv)
+  </span>
+  <div class="sahifalash-btns">
+    {% if page_obj.has_previous %}
+    <a class="btn btn-sm"
+       href="?{% if query_prefix %}{{ query_prefix }}&{% endif %}page={{ page_obj.previous_page_number }}"
+       {% if hx_target %}hx-get="?{% if query_prefix %}{{ query_prefix }}&{% endif %}page={{ page_obj.previous_page_number }}" hx-target="{{ hx_target }}" hx-select="{{ hx_target }}" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#htmx-yuklanish"{% endif %}>
+      &larr; Oldingi
+    </a>
+    {% endif %}
+    {% if page_obj.has_next %}
+    <a class="btn btn-sm"
+       href="?{% if query_prefix %}{{ query_prefix }}&{% endif %}page={{ page_obj.next_page_number }}"
+       {% if hx_target %}hx-get="?{% if query_prefix %}{{ query_prefix }}&{% endif %}page={{ page_obj.next_page_number }}" hx-target="{{ hx_target }}" hx-select="{{ hx_target }}" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#htmx-yuklanish"{% endif %}>
+      Keyingi &rarr;
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

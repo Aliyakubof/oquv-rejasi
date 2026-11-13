@@ -14,6 +14,7 @@
       {% include "web/parts/_yil_tanlov.html" with hx_url=kaf_url hx_target="#office-kafedralar-jonli" %}
     </form>
     {% endif %}
+    <a class="btn" href="{% url 'office:oqituvchi_shakl1_zip' %}?yil={{ yil }}" hx-boost="false">1-shakl ZIP (.zip)</a>
     <a class="btn btn-primary" href="{% url 'office:kafedra_yangi' %}">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       <span>Yangi kafedra</span>
@@ -62,7 +63,7 @@
               <span>Mudir tayinlash</span>
             </button>
             {% endif %}
-            <div class="popover" x-show="ochiq" x-cloak>
+            <div class="popover" x-show="ochiq" x-transition.duration.180ms x-cloak>
               {% if q.kafedra.oqituvchilar.all %}
               <input type="text" placeholder="O'qituvchi qidirish" aria-label="O'qituvchi qidirish" x-model="q_m">
               {% endif %}
@@ -152,7 +153,7 @@
 
               <div class="action-menu action-menu-fixed"
                    x-show="ochiq"
-                   x-transition
+                   x-transition.duration.200ms
                    x-cloak
                    :style="'top:' + pos.top + '; left:' + pos.left + ';'">
                 <button type="button" class="action-item" @click="ochiq = false"

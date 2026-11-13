@@ -59,31 +59,56 @@ def dastur_topshirish(
     )
 
 
+def _tekshir_va_qulfla(
+    topshirish: DasturTopshirish, amal_nomi: str
+) -> DasturTopshirish:
+    FanVariant.objects.select_for_update().filter(pk=topshirish.variant_id).first()
+    qulflangan = DasturTopshirish.objects.select_for_update().get(pk=topshirish.pk)
+    eng_songi = eng_songi_urinish(qulflangan.variant)
+    if eng_songi is not None and eng_songi.pk != qulflangan.pk:
+        raise ValidationError(f"Faqat eng so'nggi urinishni {amal_nomi} mumkin.")
+    if qulflangan.holat != TopshirishHolati.KUTILMOQDA:
+        raise ValidationError("Bu topshiriq allaqachon ko'rib chiqilgan.")
+    return qulflangan
+
+
+@transaction.atomic
 def dastur_qabul_qilish(topshirish: DasturTopshirish, admin: Foydalanuvchi) -> None:
-    eng_songi = eng_songi_urinish(topshirish.variant)
-    if eng_songi is not None and eng_songi.pk != topshirish.pk:
-        raise ValidationError("Faqat eng so'nggi urinishni qabul qilish mumkin.")
-    topshirish.holat = TopshirishHolati.QABUL_QILINDI
-    topshirish.korib_chiqilgan_vaqt = timezone.now()
+    qulflangan = _tekshir_va_qulfla(topshirish, "qabul qilish")
+    vaqt = timezone.now()
+    qulflangan.holat = TopshirishHolati.QABUL_QILINDI
+    qulflangan.izoh = ""
+    qulflangan.korib_chiqilgan_vaqt = vaqt
+    qulflangan.korib_chiqqan = admin
+    qulflangan.save(
+        update_fields=["holat", "izoh", "korib_chiqilgan_vaqt", "korib_chiqqan"]
+    )
+    topshirish.holat = qulflangan.holat
+    topshirish.izoh = qulflangan.izoh
+    topshirish.korib_chiqilgan_vaqt = vaqt
     topshirish.korib_chiqqan = admin
-    topshirish.save(update_fields=["holat", "korib_chiqilgan_vaqt", "korib_chiqqan"])
 
 
+@transaction.atomic
 def dastur_rad_etish(
     topshirish: DasturTopshirish, admin: Foydalanuvchi, izoh: str
 ) -> None:
-    if not izoh.strip():
+    toza_izoh = izoh.strip()
+    if not toza_izoh:
         raise ValidationError("Rad etish sababi ko'rsatilishi shart.")
-    eng_songi = eng_songi_urinish(topshirish.variant)
-    if eng_songi is not None and eng_songi.pk != topshirish.pk:
-        raise ValidationError("Faqat eng so'nggi urinishni rad etish mumkin.")
-    topshirish.holat = TopshirishHolati.RAD_ETILDI
-    topshirish.izoh = izoh
-    topshirish.korib_chiqilgan_vaqt = timezone.now()
-    topshirish.korib_chiqqan = admin
-    topshirish.save(
+    qulflangan = _tekshir_va_qulfla(topshirish, "rad etish")
+    vaqt = timezone.now()
+    qulflangan.holat = TopshirishHolati.RAD_ETILDI
+    qulflangan.izoh = toza_izoh
+    qulflangan.korib_chiqilgan_vaqt = vaqt
+    qulflangan.korib_chiqqan = admin
+    qulflangan.save(
         update_fields=["holat", "izoh", "korib_chiqilgan_vaqt", "korib_chiqqan"]
     )
+    topshirish.holat = qulflangan.holat
+    topshirish.izoh = qulflangan.izoh
+    topshirish.korib_chiqilgan_vaqt = vaqt
+    topshirish.korib_chiqqan = admin
 
 
 def eng_songi_urinish(variant: FanVariant) -> DasturTopshirish | None:
@@ -109,15 +134,34 @@ def joriy_topshirishlar(
     return list(qs.filter(pk=Subquery(oxirgi_id)).order_by("-yuborilgan_vaqt", "-pk"))
 
 
+def _topshirilmagan_yuklamalar_qs(
+    kafedra_id: int | None = None,
+) -> "QuerySet[Yuklama]":
+    qs = Yuklama.objects.filter(
+        tur=SoatTuri.MARUZA,
+        fan_semestr__variant__dastur_topshirishlari__isnull=True,
+    )
+    if kafedra_id is not None:
+        qs = qs.filter(fan_semestr__variant__kafedra_id=kafedra_id)
+    return qs
+
+
+def topshirilmagan_dasturlar_soni(*, kafedra_id: int | None = None) -> int:
+    """Count course variants with a lecture owner assigned that have no submission."""
+    return (
+        _topshirilmagan_yuklamalar_qs(kafedra_id)
+        .values("fan_semestr__variant_id")
+        .distinct()
+        .count()
+    )
+
+
 def topshirilmagan_dasturlar(
     *, kafedra_id: int | None = None
 ) -> list[TopshirilmaganDastur]:
     """Courses with an assigned lecture (MARUZA) owner that have no submission yet."""
     qs = (
-        Yuklama.objects.filter(
-            tur=SoatTuri.MARUZA,
-            fan_semestr__variant__dastur_topshirishlari__isnull=True,
-        )
+        _topshirilmagan_yuklamalar_qs(kafedra_id)
         .select_related(
             "fan_semestr__variant__fan__reja",
             "fan_semestr__variant__kafedra",
@@ -125,8 +169,6 @@ def topshirilmagan_dasturlar(
         )
         .order_by("fan_semestr__variant__nomi", "fan_semestr__semestr")
     )
-    if kafedra_id is not None:
-        qs = qs.filter(fan_semestr__variant__kafedra_id=kafedra_id)
     korilgan: set[int] = set()
     natija: list[TopshirilmaganDastur] = []
     for y in qs:

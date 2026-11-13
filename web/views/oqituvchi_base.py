@@ -1,69 +1,23 @@
 """Shared base views and helpers for teacher CRUD across office and kafedra."""
 
-from collections import defaultdict
-
 from django.contrib import messages
 from django.forms import Form
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.views.generic import FormView, TemplateView
 
 from accounts.models import OqituvchiProfil
 from plans import dashboard
 from plans.audit import audit_yoz
 from plans.dashboard import yilni_tanlash
-from plans.models import AuditAmali, SoatTuri, Yuklama
-
-
-def _shakl1_guruh_matni(qator: dict[str, object]) -> str:
-    guruh_nomi = qator.get("_guruh_nomi")
-    if guruh_nomi:
-        return str(guruh_nomi)
-    talabalar = int(qator.get("_talabalar_soni", 0))
-    maruza_bor = int(qator.get("maruza", 0)) > 0
-    if maruza_bor and talabalar > 0:
-        return f"Oqim ({talabalar} talaba)"
-    if talabalar > 0:
-        return f"{talabalar} talaba"
-    return "Oqim"
-
-
-def _shakl1_satrlarini_yigish(
-    yuklamalar: list[Yuklama],
-) -> tuple[list[dict[str, object]], dict[str, int]]:
-    tur_jami: dict[str, int] = defaultdict(int)
-    shakl1_qatorlar: dict[tuple[int, int | None], dict[str, object]] = {}
-    for y in yuklamalar:
-        tur_jami[y.tur] += y.soat
-        fs = y.fan_semestr
-        kalit = (fs.pk, y.guruh_id)
-        if kalit not in shakl1_qatorlar:
-            reja = fs.variant.fan.reja
-            shakl1_qatorlar[kalit] = {
-                "fan": fs.variant.nomi,
-                "kodi": fs.variant.kodi,
-                "yonalish": f"{reja.yonalish_kodi} {reja.yonalish_nomi}",
-                "kurs": (fs.semestr + 1) // 2,
-                "semestr": fs.semestr,
-                "guruh": "Oqim",
-                "_guruh_nomi": y.guruh.nomi if y.guruh else "",
-                "_talabalar_soni": 0,
-                "maruza": 0,
-                "amaliyot": 0,
-                "laboratoriya": 0,
-                "seminar": 0,
-                "kurs_ishi": 0,
-                "jami": 0,
-            }
-        qator = shakl1_qatorlar[kalit]
-        if y.talabalar_soni:
-            qator["_talabalar_soni"] = int(qator["_talabalar_soni"]) + y.talabalar_soni
-        tur_kalit = y.tur.lower()
-        if tur_kalit in qator:
-            qator[tur_kalit] = int(qator[tur_kalit]) + y.soat
-        qator["jami"] = int(qator["jami"]) + y.soat
-        qator["guruh"] = _shakl1_guruh_matni(qator)
-    return list(shakl1_qatorlar.values()), tur_jami
+from plans.models import AuditAmali, SoatTuri
+from plans.shakl1 import (
+    oqituvchi_yuklamalari,
+)
+from plans.shakl1 import (
+    shakl1_satrlarini_yigish as _shakl1_satrlarini_yigish,
+)
 
 
 def oqituvchi_yuklama_konteksti(
@@ -72,12 +26,7 @@ def oqituvchi_yuklama_konteksti(
     """Shared workload sheet context for a single teacher."""
     yillar, yil = yilni_tanlash(sorov_yil)
     yil = yil or dashboard.joriy_akademik_yil()
-    yuklamalar = list(
-        Yuklama.objects.filter(oqituvchi=profil)
-        .akademik_yilda(yil)
-        .select_related("fan_semestr__variant__fan__reja", "guruh")
-        .order_by("fan_semestr__semestr", "fan_semestr__variant__nomi", "tur")
-    )
+    yuklamalar = oqituvchi_yuklamalari(profil, yil)
     shakl1_satrlar, tur_jami = _shakl1_satrlarini_yigish(yuklamalar)
     jami_soat = sum(y.soat for y in yuklamalar)
     return {
@@ -96,6 +45,7 @@ def oqituvchi_yuklama_konteksti(
 class OqituvchiYuklamaAsosView(TemplateView):
     template_name = "web/parts/oqituvchi_yuklama.html"
     orqaga_url: str = ""
+    docx_url_name: str = ""
 
     def profil_olish(self) -> OqituvchiProfil:
         raise NotImplementedError
@@ -103,13 +53,15 @@ class OqituvchiYuklamaAsosView(TemplateView):
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)
         profil = self.profil_olish()
-        context.update(
-            oqituvchi_yuklama_konteksti(
-                profil,
-                self.request.GET.get("yil"),
-                orqaga_url=self.orqaga_url,
-            )
+        malumot = oqituvchi_yuklama_konteksti(
+            profil,
+            self.request.GET.get("yil"),
+            orqaga_url=self.orqaga_url,
         )
+        context.update(malumot)
+        if self.docx_url_name:
+            base_url = reverse(self.docx_url_name, args=[profil.pk])
+            context["docx_url"] = f"{base_url}?yil={malumot['yil']}"
         return context
 
 

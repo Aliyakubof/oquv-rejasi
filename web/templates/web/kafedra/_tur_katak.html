@@ -8,14 +8,14 @@
           hx-get="{% url 'kafedra:taqsimot_panel' satr.fan_semestr.pk %}"
           hx-target="#panel-{{ satr.fan_semestr.pk }}" hx-swap="innerHTML"
           hx-indicator="#panel-yuk-{{ satr.fan_semestr.pk }}"
-          hx-on::before-request="const p = document.getElementById('panel-{{ satr.fan_semestr.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">?</button>
+          hx-on::before-request="const p = document.getElementById('panel-{{ satr.fan_semestr.pk }}'); if (p && p.innerHTML.trim() !== '') { yopishTableModal(p); event.preventDefault(); }">?</button>
   {% else %}
   <button type="button" class="sem-fill {% if t.qoldiq_soat > 0 %}warn{% else %}ok{% endif %} sem-fill-btn"
           title="Taqsimlangan {{ t.taqsimlangan_soat }} / talab {{ t.talab_soat }} soat"
           hx-get="{% url 'kafedra:taqsimot_panel' satr.fan_semestr.pk %}"
           hx-target="#panel-{{ satr.fan_semestr.pk }}" hx-swap="innerHTML"
           hx-indicator="#panel-yuk-{{ satr.fan_semestr.pk }}"
-          hx-on::before-request="const p = document.getElementById('panel-{{ satr.fan_semestr.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">{{ t.taqsimlangan_soat }}/{{ t.talab_soat }}</button>
+          hx-on::before-request="const p = document.getElementById('panel-{{ satr.fan_semestr.pk }}'); if (p && p.innerHTML.trim() !== '') { yopishTableModal(p); event.preventDefault(); }">{{ t.taqsimlangan_soat }}/{{ t.talab_soat }}</button>
   {% endif %}
   {% else %}
   <span class="sem-dash">—</span>
