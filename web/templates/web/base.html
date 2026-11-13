@@ -9,10 +9,11 @@
   <title>{% block title %}O'quv yuklamasi{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
   <meta name="login-url" content="{% url 'kirish' %}">
-  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=40">
-  <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=5">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=52">
+  <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=6">
   <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
   <script>
     document.addEventListener('htmx:configRequest', (e) => {
@@ -34,25 +35,136 @@
           return matn.includes(this.qidiruv.toLowerCase());
         }
       }));
+      Alpine.data('korinishModal', (boshlangich) => ({
+        ochiq: false,
+        saqlanmoqda: false,
+        xato: '',
+        majburiy: Boolean(boshlangich.majburiy),
+        shrift: boshlangich.shrift || 'standart',
+        yuqoriKontrast: Boolean(boshlangich.yuqoriKontrast),
+        kengRejim: Boolean(boshlangich.kengRejim),
+        saqlashUrl: boshlangich.saqlashUrl,
+        asl: {
+          shrift: boshlangich.shrift || 'standart',
+          yuqoriKontrast: Boolean(boshlangich.yuqoriKontrast),
+          kengRejim: Boolean(boshlangich.kengRejim),
+        },
+        init() {
+          this.qollash();
+          if (this.majburiy) {
+            if (window.__pageLoaderYopilgan) {
+              setTimeout(() => { this.ochish(); }, 80);
+            } else {
+              window.addEventListener('pageloader:hidden', () => {
+                if (this.majburiy && !this.ochiq) {
+                  setTimeout(() => { this.ochish(); }, 120);
+                }
+              }, { once: true });
+            }
+          }
+          window.addEventListener('korinish:ochish', () => this.ochish());
+        },
+        ochish() {
+          this.xato = '';
+          this.ochiq = true;
+        },
+        qollash() {
+          const b = document.body;
+          b.classList.remove('ui-font-standart', 'ui-font-yirik', 'ui-font-juda_yirik');
+          b.classList.add('ui-font-' + this.shrift);
+          b.classList.toggle('ui-kontrast', Boolean(this.yuqoriKontrast));
+          b.classList.toggle('ui-keng', Boolean(this.kengRejim));
+        },
+        yopish() {
+          if (this.majburiy) return;
+          this.shrift = this.asl.shrift;
+          this.yuqoriKontrast = this.asl.yuqoriKontrast;
+          this.kengRejim = this.asl.kengRejim;
+          this.qollash();
+          this.ochiq = false;
+        },
+        _toastKorsat(matn) {
+          const joy = document.getElementById('app-messages');
+          if (!joy) return;
+          let box = joy.querySelector('.messages');
+          if (!box) {
+            box = document.createElement('div');
+            box.className = 'messages';
+            joy.appendChild(box);
+          }
+          const el = document.createElement('div');
+          el.className = 'msg msg-success';
+          el.textContent = matn;
+          box.appendChild(el);
+          setTimeout(() => el.remove(), 3500);
+        },
+        async saqlash() {
+          this.saqlanmoqda = true;
+          this.xato = '';
+          try {
+            const fd = new FormData();
+            fd.append('shrift_olchami', this.shrift);
+            fd.append('yuqori_kontrast', this.yuqoriKontrast ? 'true' : 'false');
+            fd.append('keng_rejim', this.kengRejim ? 'true' : 'false');
+            const csrf = document.getElementById('csrf-meta')?.dataset?.csrf || '';
+            const res = await fetch(this.saqlashUrl, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': csrf,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: fd,
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+              this.xato = "Sozlamalarni saqlashda xatolik yuz berdi.";
+              return;
+            }
+            this.asl = {
+              shrift: this.shrift,
+              yuqoriKontrast: this.yuqoriKontrast,
+              kengRejim: this.kengRejim,
+            };
+            this.majburiy = false;
+            this.ochiq = false;
+            this._toastKorsat("Ko'rinish sozlamalari saqlandi.");
+          } catch (_e) {
+            this.xato = "Server bilan aloqa uzildi. Qayta urinib ko'ring.";
+          } finally {
+            this.saqlanmoqda = false;
+          }
+        },
+      }));
     });
 
-    // ================= 1. Markaziy Yuklanish (Page Loader — sun'iy kechikishsiz) =================
+    // ================= 1. Markaziy Yuklanish (Breandli 3-sekundlik Page Loader) =================
     const PageLoader = {
       el: null,
       safetyTimer: null,
       delayTimer: null,
+      lockedUntil: 0,
       init() {
         this.el = document.getElementById('main-page-loader');
+      },
+      _progressQayta() {
+        const fill = this.el?.querySelector('.loader-progress-fill');
+        if (!fill) return;
+        fill.style.animation = 'none';
+        void fill.offsetWidth;
+        fill.style.animation = '';
       },
       show(maxMs = 4000, delayMs = 0) {
         if (!this.el) this.init();
         if (!this.el) return;
         clearTimeout(this.delayTimer);
         clearTimeout(this.safetyTimer);
+        this.lockedUntil = 0;
+        this.el.classList.remove('is-timed');
         const reveal = () => {
           if (!this.el) return;
           this.el.classList.remove('is-hidden');
-          this.safetyTimer = setTimeout(() => this.hide(), maxMs);
+          this.safetyTimer = setTimeout(() => this.hide(true), maxMs);
         };
         if (delayMs > 0) {
           this.delayTimer = setTimeout(reveal, delayMs);
@@ -60,13 +172,60 @@
           reveal();
         }
       },
-      hide() {
+      playFor(ms = 3000) {
         if (!this.el) this.init();
+        if (!this.el) return;
+        window.__pageLoaderYopilgan = false;
         clearTimeout(this.delayTimer);
         clearTimeout(this.safetyTimer);
-        if (this.el) this.el.classList.add('is-hidden');
+        this.lockedUntil = Date.now() + ms;
+        this.el.classList.add('is-timed');
+        this.el.classList.remove('is-hidden');
+        this._progressQayta();
+        this.safetyTimer = setTimeout(() => {
+          this.lockedUntil = 0;
+          this.hide(true);
+        }, ms);
+      },
+      hide(force = false) {
+        if (!this.el) this.init();
+        if (!force && Date.now() < this.lockedUntil) return;
+        clearTimeout(this.delayTimer);
+        clearTimeout(this.safetyTimer);
+        this.lockedUntil = 0;
+        if (this.el) {
+          this.el.classList.add('is-hidden');
+          this.el.classList.remove('is-timed');
+        }
+        window.__pageLoaderYopilgan = true;
+        window.dispatchEvent(new CustomEvent('pageloader:hidden'));
       }
     };
+    window.PageLoader = PageLoader;
+
+    function boshlangichYuklanish() {
+      const yol = window.location.pathname || '';
+      if (yol.includes('/kirish')) {
+        PageLoader.hide(true);
+        return;
+      }
+      let yangiKirish = document.referrer && document.referrer.includes('/kirish');
+      try {
+        if (!sessionStorage.getItem('site_visited') || sessionStorage.getItem('just_logged_in') === '1') {
+          yangiKirish = true;
+        }
+        if (yangiKirish) {
+          sessionStorage.setItem('site_visited', '1');
+          sessionStorage.removeItem('just_logged_in');
+        }
+      } catch (_e) {}
+      if (yangiKirish) {
+        const muddat = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 400 : 3000;
+        PageLoader.playFor(muddat);
+      } else {
+        PageLoader.hide(true);
+      }
+    }
 
     function applyDynamicStyles(root) {
       const scope = root && root.querySelectorAll ? root : document;
@@ -150,6 +309,10 @@
       }
 
       e.preventDefault();
+      const yuklabOlish = a.hasAttribute('download') || /(_excel|_zip|\.xlsx|\.docx|\.pdf|\.zip|shakl1-docx)(\?|$)/i.test(href);
+      if (!yuklabOlish) {
+        PageLoader.show(3500, 150);
+      }
       window.location.assign(href);
     }, true);
 
@@ -174,8 +337,8 @@
       applyDynamicStyles(document);
     }
 
-    window.addEventListener('pageshow', () => {
-      PageLoader.hide();
+    window.addEventListener('pageshow', (e) => {
+      PageLoader.hide(Boolean(e && e.persisted));
       resetLoadingButtons();
       applyDynamicStyles(document);
     });
@@ -204,14 +367,25 @@
     const AppModal = {
       activeForm: null,
       lastTrigger: null,
+      closeTimer: null,
       isOpen() {
         const overlay = document.getElementById('app-global-modal');
-        return Boolean(overlay && !overlay.classList.contains('is-hidden'));
+        return Boolean(
+          overlay &&
+          !overlay.classList.contains('is-hidden') &&
+          !overlay.classList.contains('is-closing')
+        );
       },
       open(opts) {
         const overlay = document.getElementById('app-global-modal');
         if (!overlay) return;
-        this.lastTrigger = document.activeElement;
+        if (this.closeTimer) {
+          clearTimeout(this.closeTimer);
+          this.closeTimer = null;
+        }
+        if (overlay.classList.contains('is-hidden') || overlay.classList.contains('is-closing')) {
+          this.lastTrigger = document.activeElement;
+        }
         const card = overlay.querySelector('.app-modal-card');
         const iconEl = document.getElementById('app-modal-icon');
         const titleEl = document.getElementById('app-modal-title');
@@ -363,7 +537,10 @@
           footerEl.appendChild(confirmBtn);
         }
 
-        overlay.classList.remove('is-hidden');
+        overlay.classList.remove('is-closing', 'is-hidden');
+        card.style.animation = 'none';
+        void card.offsetWidth;
+        card.style.animation = '';
         document.body.style.overflow = 'hidden';
 
         setTimeout(() => {
@@ -373,18 +550,52 @@
           else cancelBtn.focus();
         }, 30);
       },
-      close() {
+      _yakunlash() {
         const overlay = document.getElementById('app-global-modal');
-        if (overlay) overlay.classList.add('is-hidden');
+        if (overlay) {
+          overlay.classList.add('is-hidden');
+          overlay.classList.remove('is-closing');
+        }
         document.body.style.overflow = '';
         this.activeForm = null;
         if (this.lastTrigger && typeof this.lastTrigger.focus === 'function' && document.contains(this.lastTrigger)) {
           this.lastTrigger.focus();
         }
         this.lastTrigger = null;
+        this.closeTimer = null;
+      },
+      close() {
+        const overlay = document.getElementById('app-global-modal');
+        if (!overlay || overlay.classList.contains('is-hidden') || overlay.classList.contains('is-closing')) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          this._yakunlash();
+          return;
+        }
+        overlay.classList.add('is-closing');
+        this.closeTimer = setTimeout(() => this._yakunlash(), 160);
       }
     };
     window.AppModal = AppModal;
+
+    window.yopishTableModal = (target) => {
+      const el = typeof target === 'string' ? document.getElementById(target) : target;
+      if (!el) return;
+      const bd = el.classList.contains('table-modal-backdrop') ? el : el.querySelector('.table-modal-backdrop');
+      const box = bd ? bd.parentElement : el;
+      if (!bd || !box) {
+        if (el) el.innerHTML = '';
+        return;
+      }
+      if (bd.classList.contains('is-closing')) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        box.innerHTML = '';
+        return;
+      }
+      bd.classList.add('is-closing');
+      setTimeout(() => {
+        if (box.contains(bd)) box.innerHTML = '';
+      }, 160);
+    };
 
     // Escape va Focus Trap boshqaruvi (ustma-ust modallarni navbat bilan yopish)
     document.addEventListener('keydown', (e) => {
@@ -394,11 +605,15 @@
           AppModal.close();
           return;
         }
+        // Agar ochiq popover mavjud bo'lsa, avval faqat shu popover yopilsin
+        if (document.querySelector('.popover-ochiq')) {
+          return;
+        }
         const backdrops = document.querySelectorAll('.table-modal-backdrop');
         if (backdrops.length) {
           e.preventDefault();
           const topBd = backdrops[backdrops.length - 1];
-          if (topBd.parentElement) topBd.parentElement.innerHTML = '';
+          window.yopishTableModal(topBd);
         }
         return;
       }
@@ -513,22 +728,53 @@
         submitter.setAttribute('aria-busy', 'true');
       }
     });
+
+    // ================= 3. Tugma bosilganda mayin click-ripple animatsiyasi =================
+    document.addEventListener('pointerdown', (e) => {
+      if (e.button > 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const btn = e.target.closest('.btn, .chip-btn, .logout-btn, .btn-modal-view, .btn-dots, .teacher-chip, .app-modal-close');
+      if (!btn || btn.disabled || btn.classList.contains('is-loading')) return;
+      btn.querySelectorAll('.btn-ripple').forEach((old) => old.remove());
+      const rect = btn.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const size = Math.max(rect.width, rect.height) * 2;
+      const wave = document.createElement('span');
+      wave.className = 'btn-ripple';
+      wave.style.width = size + 'px';
+      wave.style.height = size + 'px';
+      wave.style.left = (e.clientX - rect.left - size / 2) + 'px';
+      wave.style.top = (e.clientY - rect.top - size / 2) + 'px';
+      btn.appendChild(wave);
+      const tozalash = () => wave.remove();
+      wave.addEventListener('animationend', tozalash, { once: true });
+      setTimeout(tozalash, 480);
+    });
   </script>
   <script src="{% static 'web/js/alpine.min.js' %}" defer></script>
-  <script src="{% static 'web/js/jonli.js' %}?v=2" defer></script>
+  <script src="{% static 'web/js/jonli.js' %}?v=3" defer></script>
 </head>
 
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-  <!-- Asosiy markaziy aylanuvchi yuklanish indikatori (Center Page Loader) -->
+<body class="{% block body_class %}{% endblock %}{% if user.is_authenticated %} ui-font-{{ user.shrift_olchami }}{% if user.yuqori_kontrast %} ui-kontrast{% endif %}{% if user.keng_rejim %} ui-keng{% endif %}{% endif %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <!-- Asosiy markaziy minimalistik yuklanish indikatori (Center Page Loader) -->
   <div id="htmx-yuklanish" class="htmx-top-bar htmx-indicator" aria-hidden="true"></div>
-<div id="main-page-loader" class="page-loader-overlay is-hidden">
+  <div id="main-page-loader" class="page-loader-overlay is-hidden" role="status" aria-live="polite" aria-label="Yuklanmoqda">
     <div class="page-loader-spinner-wrap">
-      <div class="page-loader-spinner"></div>
-      <div class="page-loader-text">Yuklanmoqda...</div>
+      <div class="loader-emblem" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </div>
+      <div class="loader-title">O'quv yuklamasi</div>
+      <div class="loader-progress-track" aria-hidden="true">
+        <div class="loader-progress-fill"></div>
+      </div>
     </div>
   </div>
+  <script>boshlangichYuklanish();</script>
   <div id="csrf-meta" data-csrf="{{ csrf_token }}" hidden></div>
   {% if user.is_authenticated %}{% include "web/parts/_navbar.html" %}{% endif %}
+  {% if user.is_authenticated %}{% include "web/parts/_korinish_modal.html" %}{% endif %}
   {% if debug_rejim and request.session.dev_asl_foydalanuvchi %}{% include "web/parts/_test_rejimi.html" %}{% endif %}
   <div class="app">
     <div id="app-messages" aria-live="polite">{% include "web/parts/_messages.html" %}</div>

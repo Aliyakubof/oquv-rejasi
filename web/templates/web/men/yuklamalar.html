@@ -16,6 +16,7 @@
       {% include "web/parts/_yil_tanlov.html" with hx_url=yuk_url hx_target="#men-yuklama-jonli" %}
     </form>
     {% endif %}
+    <a class="btn" href="{% url 'men:shakl1_docx' %}?yil={{ yil }}" hx-boost="false">1-shakl (.docx)</a>
   </div>
 </div>
 

@@ -1,2 +1,5 @@
 {% include "web/office/_fan_qatori.html" %}
 {% include "web/office/_statlar.html" with oob=True %}
+{% if yil %}
+  {% include "web/office/_analitika.html" with oob=True %}
+{% endif %}

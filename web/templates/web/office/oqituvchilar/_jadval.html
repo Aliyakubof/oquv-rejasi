@@ -1,8 +1,5 @@
 {% load ui %}
-<div x-data="{ qidiruv: '' }">
-  <div class="controls" style="margin-bottom:10px;">
-    {% include "web/parts/_qidiruv.html" with placeholder="Ism yoki telefon" aria_label="Ism yoki telefon" %}
-  </div>
+<div>
   <div class="table-wrap narrow cards">
     <table>
       <thead>
@@ -19,8 +16,7 @@
       </thead>
       <tbody data-jonli="office-oqituvchilar-tbody">
         {% for holat in holatlar %}
-        <tr data-nomi="{{ holat.oqituvchi|stringformat:'s'|lower }} {{ holat.oqituvchi.foydalanuvchi.telefon }}"
-            x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
+        <tr>
           <td data-label="F.I.Sh">
             <a href="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}" class="teacher-chip" style="text-decoration:none;color:inherit;" title="Yuklama varaqasini ko'rish">
               <span class="avatar">{{ holat.oqituvchi|stringformat:"s"|bosh_harflar }}</span>
@@ -55,6 +51,15 @@
             </button>
             <a class="btn" href="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}">Yuklama</a>
             <a class="btn" href="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}">Tahrirlash</a>
+            <form method="post" action="{% url 'office:oqituvchi_vaqtinchalik_parol' holat.oqituvchi.pk %}" style="display:inline"
+                  data-modal-title="Vaqtinchalik parol yaratish"
+                  data-modal-subtitle="{{ holat.oqituvchi }} ({{ holat.oqituvchi.foydalanuvchi.telefon }})"
+                  data-modal-confirm="O'qituvchi uchun yangi bir martalik parol yaratilsinmi? Eski parol o'z kuchini yo'qotadi va kirganda yangi parol o'rnatish so'raladi."
+                  data-modal-type="warning"
+                  data-modal-btn="Parol yaratish">
+              {% csrf_token %}
+              <button type="submit" class="btn">Parolni tiklash</button>
+            </form>
             <form method="post" action="{% url 'office:oqituvchi_ochirish' holat.oqituvchi.pk %}" style="display:inline"
                   data-modal-title="O'qituvchini o'chirish"
                   data-modal-subtitle="{{ holat.oqituvchi }} ({{ holat.oqituvchi.kafedra.nomi }})"
@@ -72,4 +77,5 @@
       </tbody>
     </table>
   </div>
+  {% include "web/parts/_sahifalash.html" with page_obj=page_obj query_prefix=query_prefix hx_target="#oqituvchilar-jonli" %}
 </div>

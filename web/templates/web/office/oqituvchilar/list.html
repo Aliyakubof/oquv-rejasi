@@ -7,8 +7,9 @@
     <div class="title">O'qituvchilar</div>
   </div>
   <div class="controls">
-    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;"
-          hx-get="{% url 'office:oqituvchi_list' %}" hx-trigger="change from:select"
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"
+          hx-get="{% url 'office:oqituvchi_list' %}"
+          hx-trigger="change from:select, input changed delay:350ms from:input[name='q'], submit"
           hx-target="#oqituvchilar-jonli" hx-select="#oqituvchilar-jonli" hx-select-oob="#oqituvchi-excel-btn" hx-indicator="#htmx-yuklanish"
           hx-swap="outerHTML" hx-push-url="true">
       {% include "web/parts/_yil_tanlov.html" %}
@@ -18,10 +19,17 @@
         <option value="{{ k.pk }}" {% if k == kafedra %}selected{% endif %}>{{ k.nomi }}</option>
         {% endfor %}
       </select>
+      <div class="search" style="min-width:200px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" name="q" value="{{ qidiruv_q }}" placeholder="Ism, telefon yoki lavozim" aria-label="O'qituvchi qidirish">
+      </div>
     </form>
     <a id="oqituvchi-excel-btn" class="btn" href="{% url 'office:oqituvchi_excel' %}?yil={{ yil }}{% if kafedra %}&kafedra={{ kafedra.pk }}{% endif %}" hx-boost="false">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       <span>Excel (.xlsx)</span>
+    </a>
+    <a class="btn" href="{% url 'office:oqituvchi_import' %}">
+      <span>Excel import</span>
     </a>
     <a class="btn btn-primary" href="{% url 'office:oqituvchi_yangi' %}">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -30,6 +38,22 @@
   </div>
 </div>
 <div id="oqituvchilar-jonli">
+{% if vaqtinchalik_parol %}
+<div class="card" style="margin-bottom:14px;border-color:var(--accent);background:var(--accent-soft, #f8fafc);" role="status">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <div style="font-weight:700;font-size:13.5px;color:var(--ink);">
+        Bir martalik vaqtinchalik parol yaratildi — {{ vaqtinchalik_parol.ism }}
+      </div>
+      <div style="font-size:12.5px;color:var(--text-secondary);margin-top:4px;">
+        Telefon: <span class="code">{{ vaqtinchalik_parol.telefon }}</span> ·
+        Vaqtinchalik parol: <span class="code" style="font-weight:700;user-select:all;">{{ vaqtinchalik_parol.parol }}</span>
+        <span style="color:var(--text-muted);"> (ushbu oyna yopilgach parol qayta ko'rsatilmaydi; foydalanuvchi birinchi kirishda almashtiradi)</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% if kafedra %}
 <div class="controls" style="margin-bottom:10px;">
   <a class="chip-removable" href="?yil={{ yil }}" title="Filtrni olib tashlash">Kafedra: {{ kafedra.nomi }} <span class="x">×</span></a>

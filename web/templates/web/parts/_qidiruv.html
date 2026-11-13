@@ -1,5 +1,6 @@
 <div class="search">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
   <input type="text" placeholder="{{ placeholder|default:'Qidirish...' }}" aria-label="{{ aria_label|default:placeholder|default:'Qidirish' }}" x-model="{{ model|default:'qidiruv' }}">
+  <button type="button" class="search-clear" x-show="({{ model|default:'qidiruv' }} || '').length > 0" x-cloak @click="{{ model|default:'qidiruv' }} = ''" aria-label="Qidiruvni tozalash" title="Tozalash">&times;</button>
 </div>
 

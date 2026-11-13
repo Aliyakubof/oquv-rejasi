@@ -1,0 +1,85 @@
+{% extends "web/base.html" %}
+{% block title %}O'qituvchilarni Excel dan import qilish{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <div class="title">O'qituvchilarni Excel dan import qilish</div>
+    <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">
+      Bir nechta o'qituvchini .xlsx jadvali orqali avtomatik ro'yxatdan o'tkazish
+    </div>
+  </div>
+  <div class="controls">
+    <a class="btn" href="{% url 'office:oqituvchi_namuna_excel' %}" hx-boost="false">Namuna (.xlsx) yuklab olish</a>
+    <a class="btn" href="{% url 'office:oqituvchi_list' %}">&larr; O'qituvchilar ro'yxati</a>
+  </div>
+</div>
+
+<div class="card" style="max-width:760px;">
+  <form method="post" enctype="multipart/form-data" hx-boost="false">
+    {% csrf_token %}
+    <div class="form-field">
+      <label for="id_fayl">Excel fayl (.xlsx)</label>
+      <input id="id_fayl" type="file" name="fayl" accept=".xlsx" required>
+      <div class="hint" style="margin-top:6px;">
+        Ustunlar tartibi: <strong>Familiya | Ism | Telefon (+998...) | Kafedra nomi | Lavozim</strong>.
+        Namuna fayl ichidagi &laquo;Ma'lumotnoma&raquo; varag'ida tizimdagi aniq kafedra va lavozim nomlari keltirilgan.
+      </div>
+    </div>
+    {% if xatolar %}
+    <div class="alert alert-error" style="margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:4px;">Faylda xatoliklar topildi:</div>
+      <ul style="margin:0;padding-left:18px;">
+        {% for x in xatolar %}<li>{{ x }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">Import qilish</button>
+  </form>
+</div>
+
+{% if natija %}
+<div class="card" style="margin-top:16px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+    <div>
+      <h2 style="margin:0;">Import natijasi</h2>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">
+        Yaratildi: <strong>{{ natija.yaratilganlar|length }}</strong> ta ·
+        Allaqachon mavjud (o'tkazildi): <strong>{{ natija.otkazildi_mavjud|length }}</strong> ta.
+        Yangi foydalanuvchilar birinchi kirishda parolini almashtirishi talab qilinadi.
+      </div>
+    </div>
+    {% if parollar_mavjud %}
+    <a class="btn btn-primary" href="{% url 'office:oqituvchi_import_parollar' %}" hx-boost="false">
+      Parollar ro'yxatini yuklab olish (.xlsx)
+    </a>
+    {% endif %}
+  </div>
+  {% if natija.yaratilganlar %}
+  <div class="table-wrap narrow cards">
+    <table>
+      <thead>
+        <tr>
+          <th>F.I.Sh.</th>
+          <th>Telefon</th>
+          <th>Kafedra</th>
+          <th>Lavozim</th>
+          <th>Vaqtinchalik parol</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in natija.yaratilganlar %}
+        <tr>
+          <td data-label="F.I.Sh."><strong>{{ q.ism }}</strong></td>
+          <td data-label="Telefon"><span class="code">{{ q.telefon }}</span></td>
+          <td data-label="Kafedra">{{ q.kafedra }}</td>
+          <td data-label="Lavozim">{{ q.lavozim }}</td>
+          <td data-label="Vaqtinchalik parol"><span class="code" style="font-weight:700;user-select:all;">{{ q.parol }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

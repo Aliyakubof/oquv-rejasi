@@ -5,7 +5,9 @@
  * search inputs, open panels, or Alpine state.
  */
 (() => {
-  const INTERVAL_MS = 8000;
+  const BOSH_INTERVAL_MS = 8000;
+  const MAX_INTERVAL_MS = 60000;
+  let joriyIntervalMs = BOSH_INTERVAL_MS;
   let joriyVersiya = null;
   let sorovKetmoqda = false;
   let timerId = null;
@@ -15,6 +17,29 @@
       document.querySelector('meta[name="login-url"]')?.getAttribute("content") ||
       "/kirish/"
     );
+  }
+
+  function qaytaRejalashtir(kechikishMs = joriyIntervalMs) {
+    if (timerId) clearTimeout(timerId);
+    timerId = setTimeout(tekshir, kechikishMs);
+  }
+
+  function skrollniSaqlash(el) {
+    const konteynerlar = el.classList.contains("table-wrap")
+      ? [el]
+      : Array.from(el.querySelectorAll(".table-wrap"));
+    return konteynerlar.map((k) => [k.scrollTop, k.scrollLeft]);
+  }
+
+  function skrollniTiklash(el, holatlar) {
+    const konteynerlar = el.classList.contains("table-wrap")
+      ? [el]
+      : Array.from(el.querySelectorAll(".table-wrap"));
+    konteynerlar.forEach((k, idx) => {
+      if (!holatlar[idx]) return;
+      k.scrollTop = holatlar[idx][0];
+      k.scrollLeft = holatlar[idx][1];
+    });
   }
 
   function blokBandmi(el) {
@@ -67,11 +92,14 @@
       cache: "no-store",
     });
     if (javob.status === 401) {
-      if (timerId) clearInterval(timerId);
+      if (timerId) clearTimeout(timerId);
       window.location.assign(kirishManzili());
       return true;
     }
-    if (!javob.ok) return true;
+    if (!javob.ok) {
+      joriyIntervalMs = Math.min(joriyIntervalMs * 2, MAX_INTERVAL_MS);
+      return false;
+    }
 
     const matn = await javob.text();
     const doc = new DOMParser().parseFromString(matn, "text/html");
@@ -92,7 +120,9 @@
         hammasiYangilandi = false;
         continue;
       }
+      const skroll = skrollniSaqlash(el);
       el.innerHTML = yangiEl.innerHTML;
+      skrollniTiklash(el, skroll);
       if (window.htmx) window.htmx.process(el);
       if (window.applyDynamicStyles) window.applyDynamicStyles(el);
       ozgarishBor = true;
@@ -103,8 +133,14 @@
   }
 
   async function tekshir() {
-    if (sorovKetmoqda || document.visibilityState !== "visible") return;
-    if (!document.querySelector("[data-jonli]")) return;
+    if (sorovKetmoqda || document.visibilityState !== "visible") {
+      qaytaRejalashtir();
+      return;
+    }
+    if (!document.querySelector("[data-jonli]")) {
+      qaytaRejalashtir();
+      return;
+    }
     sorovKetmoqda = true;
     try {
       const javob = await fetch("/jonli-holat/", {
@@ -112,11 +148,15 @@
         cache: "no-store",
       });
       if (javob.status === 401) {
-        if (timerId) clearInterval(timerId);
+        if (timerId) clearTimeout(timerId);
         window.location.assign(kirishManzili());
         return;
       }
-      if (!javob.ok) return;
+      if (!javob.ok) {
+        joriyIntervalMs = Math.min(joriyIntervalMs * 2, MAX_INTERVAL_MS);
+        return;
+      }
+      joriyIntervalMs = BOSH_INTERVAL_MS;
       const data = await javob.json();
       if (!joriyVersiya) {
         joriyVersiya = data.versiya;
@@ -125,9 +165,10 @@
         if (tugadi) joriyVersiya = data.versiya;
       }
     } catch (_) {
-      // Tarmoq uzilishi bo'lsa keyingi siklda davom etadi.
+      joriyIntervalMs = Math.min(joriyIntervalMs * 2, MAX_INTERVAL_MS);
     } finally {
       sorovKetmoqda = false;
+      qaytaRejalashtir();
     }
   }
 
@@ -147,13 +188,15 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     tekshir();
-    timerId = setInterval(tekshir, INTERVAL_MS);
     document.body.addEventListener("input", ozgarishniBelgilash);
     document.body.addEventListener("change", ozgarishniBelgilash);
     document.body.addEventListener("submit", (e) => belgilarniTozalash(e.target));
     document.body.addEventListener("htmx:afterSwap", (e) => belgilarniTozalash(e.target));
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") tekshir();
+      if (document.visibilityState === "visible") {
+        joriyIntervalMs = BOSH_INTERVAL_MS;
+        tekshir();
+      }
     });
     window.addEventListener("focus", tekshir);
     document.body.addEventListener("htmx:afterSettle", () => {

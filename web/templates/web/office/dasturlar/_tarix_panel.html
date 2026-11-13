@@ -1,4 +1,4 @@
-<div class="table-modal-backdrop" onclick="if(event.target===this) document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">
+<div class="table-modal-backdrop" onclick="if(event.target===this) yopishTableModal('dastur-panel-{{ variant.pk }}')">
 <div class="table-modal-dialog taqsimot-panel" role="dialog" aria-modal="true">
   <div class="taqsimot-panel-head">
     <div>
@@ -8,7 +8,7 @@
       </div>
       <div class="credits" style="margin-top:3px;">Kafedra: {{ variant.kafedra.nomi|default:"—" }} · Yo'nalish: {{ variant.fan.reja.yonalish_kodi }}</div>
     </div>
-    <button type="button" class="btn" onclick="document.getElementById('dastur-panel-{{ variant.pk }}').innerHTML = ''">
+    <button type="button" class="btn" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       <span>Yopish</span>
     </button>

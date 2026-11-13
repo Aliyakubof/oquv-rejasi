@@ -67,7 +67,7 @@
 
     <div class="action-menu action-menu-fixed"
          x-show="ochiq"
-         x-transition
+         x-transition.duration.200ms
          x-cloak
          :style="'top:' + pos.top + '; left:' + pos.left + ';'">
       <a class="action-item" href="{% url 'men:dastur' variant.pk %}" hx-boost="false" @click="ochiq = false">

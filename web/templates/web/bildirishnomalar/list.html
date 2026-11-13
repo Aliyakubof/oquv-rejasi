@@ -1,0 +1,83 @@
+{% extends "web/base.html" %}
+{% block title %}Bildirishnomalar{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <div class="title">Bildirishnomalar</div>
+    <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">
+      Tizim hodisalari, dastur va kafedra yuklamalari bo'yicha xabarnomalar
+    </div>
+  </div>
+  {% if oqilmagan_xabarlar_soni %}
+  <div class="controls">
+    <form method="post" action="{% url 'bildirishnoma_barchasi_oqildi' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn">Barchasini o'qilgan deb belgilash</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="table-wrap narrow cards">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:150px;">Vaqt</th>
+        <th style="width:120px;">Holat</th>
+        <th>Xabar</th>
+        <th class="col-center" style="width:140px;">Amal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for x in bildirishnomalar %}
+      <tr class="{% if not x.oqilgan %}notif-row-unread{% endif %}">
+        <td data-label="Vaqt" style="white-space:nowrap;color:var(--text-secondary);font-size:12.5px;">
+          {{ x.yaratilgan_vaqt|date:"d.m.Y H:i" }}
+        </td>
+        <td data-label="Holat">
+          {% if x.turi == "MUVAFFAQIYAT" %}<span class="tag tag-mand">Tasdiqlandi</span>
+          {% elif x.turi == "XATO" %}<span class="tag tag-rad">Rad / Qaytarildi</span>
+          {% elif x.turi == "OGOHLANTIRISH" %}<span class="tag tag-elec">Ogohlantirish</span>
+          {% else %}<span class="tag">Ma'lumot</span>{% endif %}
+        </td>
+        <td data-label="Xabar">
+          <div style="font-weight:{% if not x.oqilgan %}700{% else %}500{% endif %};color:var(--ink);">
+            {{ x.sarlavha }}
+            {% if not x.oqilgan %}<span class="notif-dot-inline" aria-label="O'qilmagan"></span>{% endif %}
+          </div>
+          {% if x.matn %}
+          <div style="font-size:12.5px;color:var(--text-muted);margin-top:3px;">{{ x.matn }}</div>
+          {% endif %}
+        </td>
+        <td class="col-center" data-label="Amal">
+          {% if not x.oqilgan or x.havola %}
+          <form method="post" action="{% url 'bildirishnoma_oqish' x.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm">{% if x.havola %}Ochish{% else %}O'qildi{% endif %}</button>
+          </form>
+          {% else %}
+          <span class="credits">O'qilgan</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4"><div class="empty-state">Hozircha bildirishnomalar yo'q.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+<div class="controls" style="justify-content:space-between;margin-top:14px;">
+  <span class="credits">Sahifa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+  <div class="controls">
+    {% if page_obj.has_previous %}
+    <a class="btn" href="?page={{ page_obj.previous_page_number }}">Oldingi</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+    <a class="btn" href="?page={{ page_obj.next_page_number }}">Keyingi</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

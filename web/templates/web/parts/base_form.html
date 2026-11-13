@@ -10,15 +10,17 @@
     {% block subtitle %}{% endblock %}
   </div>
 </div>
-<div class="card">
+<div class="card form-card">
   <form method="post" {% block form_attrs %}{% endblock %}>
     {% csrf_token %}
     {% block form_maydonlari %}
     {% include "web/parts/_form_maydonlari.html" %}
     {% endblock %}
     {% block form_tugmalar %}
-    <button type="submit" class="btn btn-primary">Saqlash</button>
-    <a class="btn" href="{% block bekor_url %}#{% endblock %}">Bekor qilish</a>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Saqlash</button>
+      <a class="btn" href="{% block bekor_url %}#{% endblock %}">Bekor qilish</a>
+    </div>
     {% endblock %}
   </form>
 </div>

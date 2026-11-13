@@ -1,8 +1,25 @@
 {% include "web/office/_statlar.html" %}
 {% include "web/office/_analitika.html" %}
-<div class="legend">
-  <span><span class="dot" style="background:var(--mand);"></span>Majburiy fan</span>
-  <span><span class="dot" style="background:var(--elec);"></span>Tanlov fani</span>
-  <span><span class="dot" style="background:var(--unassigned);"></span>Kafedraga biriktirilmagan</span>
+<div class="controls" style="justify-content:space-between;margin-bottom:10px;gap:12px;">
+  <div class="legend" style="margin:0;">
+    <span><span class="dot" style="background:var(--mand);"></span>Majburiy fan</span>
+    <span><span class="dot" style="background:var(--elec);"></span>Tanlov fani</span>
+    <span><span class="dot" style="background:var(--unassigned);"></span>Kafedraga biriktirilmagan</span>
+  </div>
+  <div class="controls" style="gap:8px;flex-wrap:wrap;">
+    <a class="btn btn-sm" href="{% url 'office:svod_excel' %}?yil={{ yil }}" hx-boost="false">Svod hisobot (.xlsx)</a>
+    {% if manba_yillar %}
+    <form method="post" action="{% url 'office:taqsimot_nusxalash' %}" class="controls" style="gap:8px;">
+      {% csrf_token %}
+      <input type="hidden" name="yil" value="{{ yil }}">
+      <select name="manba_yil" aria-label="Manba o'quv yili">
+        {% for my in manba_yillar %}
+        <option value="{{ my }}">{{ my }}/{{ my|add:1 }} dan ko'chirish</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm">O'tgan yildan ko'chirish</button>
+    </form>
+    {% endif %}
+  </div>
 </div>
 {% include "web/office/_fan_jadvali.html" %}

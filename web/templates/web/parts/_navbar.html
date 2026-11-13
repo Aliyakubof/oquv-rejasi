@@ -32,8 +32,49 @@
       {% else %}
         <span class="user">{{ user.get_full_name }}</span>
       {% endif %}
+      <div class="nav-notif-wrap" x-data="{ xabarOchiq: false }" @keydown.escape.window="xabarOchiq = false" @click.outside="xabarOchiq = false">
+        <button type="button" class="nav-link nav-notif-btn" @click="xabarOchiq = !xabarOchiq" :aria-expanded="xabarOchiq.toString()" aria-label="Bildirishnomalar" title="Bildirishnomalar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span data-jonli="navbar-bildirishnoma-son">
+            {% if oqilmagan_xabarlar_soni %}<span class="nav-notif-badge">{{ oqilmagan_xabarlar_soni }}</span>{% endif %}
+          </span>
+        </button>
+        <div class="nav-notif-menu" x-show="xabarOchiq" x-cloak x-transition.opacity.duration.150ms>
+          <div class="nav-notif-head">
+            <span>Bildirishnomalar</span>
+            {% if oqilmagan_xabarlar_soni %}
+            <form method="post" action="{% url 'bildirishnoma_barchasi_oqildi' %}" hx-boost="false">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="nav-notif-markall">Hammasini o'qish</button>
+            </form>
+            {% endif %}
+          </div>
+          <div class="nav-notif-list" data-jonli="navbar-bildirishnoma-royxat">
+            {% for x in songgi_xabarlar %}
+            <form method="post" action="{% url 'bildirishnoma_oqish' x.pk %}" hx-boost="false">
+              {% csrf_token %}
+              <button type="submit" class="nav-notif-item {% if not x.oqilgan %}unread{% endif %}">
+                <div class="nav-notif-title">{{ x.sarlavha }}</div>
+                {% if x.matn %}<div class="nav-notif-body">{{ x.matn|truncatechars:85 }}</div>{% endif %}
+                <div class="nav-notif-time">{{ x.yaratilgan_vaqt|date:"d.m H:i" }}</div>
+              </button>
+            </form>
+            {% empty %}
+            <div class="nav-notif-empty">Yangi bildirishnomalar yo'q.</div>
+            {% endfor %}
+          </div>
+          <div class="nav-notif-foot">
+            <a href="{% url 'bildirishnoma_list' %}" @click="xabarOchiq = false">Barchasini ko'rish &rarr;</a>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="nav-link nav-pref-btn" onclick="window.dispatchEvent(new CustomEvent('korinish:ochish'))" title="Shrift va ko'rinish sozlamalari">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Ko'rinish</span>
+      </button>
       <a class="nav-link {% if request.resolver_match.view_name == 'parol_ozgartirish' %}active{% endif %}" href="{% url 'parol_ozgartirish' %}">Parol</a>
-      <form method="post" action="{% url 'chiqish' %}" hx-boost="false">
+      <form method="post" action="{% url 'chiqish' %}" hx-boost="false" onsubmit="try{sessionStorage.removeItem('site_visited')}catch(_e){}">
         {% csrf_token %}
         <button type="submit" class="logout-btn">Chiqish</button>
       </form>

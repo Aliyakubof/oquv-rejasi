@@ -1,115 +1,202 @@
 {% load ui %}
-<div class="analitika-card">
+{% with jami_taqsim_f=stat.oqituvchiga_taqsimlangan_soat|foiz:stat.jami_soat %}
+<div
+  id="analitika-kartochka"
+  class="analitika-card"
+  data-jonli="office-analitika"
+  {% if oob %}hx-swap-oob="true"{% endif %}
+>
   <div class="analitika-card-head">
     <div class="analitika-title">
-      <div class="analitika-title-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="analitika-title-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="20" x2="18" y2="10"></line>
           <line x1="12" y1="20" x2="12" y2="4"></line>
           <line x1="6" y1="20" x2="6" y2="14"></line>
         </svg>
       </div>
-      <div>
-        <span>Yuklama taqsimoti va analitika</span>
-        <div style="font-size:12px;font-weight:400;color:var(--text-muted);margin-top:2px;">O'quv yili kesimida soatlar nisbati va kafedralar qamrovi</div>
+      <div class="analitika-title-copy">
+        <h2 class="analitika-heading">Yuklama taqsimoti va analitika</h2>
+        <p class="analitika-subheading">O'quv yili kesimida soatlar nisbati va kafedralar qamrovi</p>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span class="hour-tag accent" style="padding:6px 14px;font-size:13px;">
-        Jami: <strong style="margin-left:4px;">{{ stat.jami_soat }}</strong> soat
-      </span>
+
+    <div class="analitika-summary-metrics">
+      <div class="analitika-metric">
+        <span class="analitika-metric-lbl">Jami yuklama</span>
+        <div class="analitika-metric-row">
+          <strong class="analitika-metric-val">{{ stat.jami_soat }}</strong>
+          <span class="at-unit">soat</span>
+        </div>
+      </div>
+      <span class="analitika-metric-sep" aria-hidden="true"></span>
+      <div class="analitika-metric">
+        <span class="analitika-metric-lbl">Taqsimlandi</span>
+        <div class="analitika-metric-row">
+          <strong class="analitika-metric-val {% if stat.jami_soat > 0 and jami_taqsim_f >= 100 %}is-ok{% endif %}">{{ stat.oqituvchiga_taqsimlangan_soat }}</strong>
+          <span class="at-unit">soat</span>
+          <span class="analitika-metric-pct {% if stat.jami_soat > 0 and jami_taqsim_f >= 100 %}is-ok{% endif %}">{{ jami_taqsim_f }}%</span>
+        </div>
+      </div>
     </div>
   </div>
-  
+
   <div class="analitika-grid">
-    {# 1. Soat turlari kesimi #}
-    <div class="analitika-subcard">
-      <div class="analitika-subhead">
-        <span>Mashg'ulot turlari bo'yicha soatlar nisbati</span>
-        <span style="font-size:11px;font-weight:500;color:var(--text-muted);">Taqsimot ulushi</span>
+    {# 1. Mashg'ulot turlari kesimidagi analitika jadvali #}
+    <section class="analitika-panel" aria-label="Mashg'ulot turlari bo'yicha soatlar nisbati">
+      <div class="analitika-panel-head">
+        <h3 class="analitika-panel-title">Mashg'ulot turlari bo'yicha soatlar nisbati</h3>
+        <span class="analitika-panel-meta">Taqsimot ulushi</span>
       </div>
 
-      {# Multi-segment stacked progress bar #}
-      <div class="composite-bar">
-        {% for tur, nomi, rang in turlar_metrikasi %}
-          {% with soat=stat.tur_soatlari|kalit:tur|default:0 %}
-          {% with f=soat|foiz:stat.jami_soat %}
-            {% if f > 0 %}
-            <div class="composite-segment" data-width="{{ f }}" data-bg="{{ rang }}" title="{{ nomi }}: {{ soat }} soat ({{ f }}%)"></div>
-            {% endif %}
-          {% endwith %}
-          {% endwith %}
-        {% endfor %}
-      </div>
-
-      <div class="tur-list">
-        {% for tur, nomi, rang in turlar_metrikasi %}
-        {% with soat=stat.tur_soatlari|kalit:tur|default:0 %}
-        {% with f=soat|foiz:stat.jami_soat %}
-        <div class="tur-item">
-          <div class="tur-item-top">
-            <span class="tur-badge-wrap">
-              <span class="tur-color-dot" data-bg="{{ rang }}"></span>
-              {{ nomi }}
-            </span>
-            <div class="tur-hours-wrap">
-              <span class="tur-hours-text"><strong>{{ soat }}</strong> soat</span>
-              <span class="percent-pill">{{ f }}%</span>
-            </div>
-          </div>
-          <div class="tur-progress-track">
-            <div class="tur-progress-fill" data-width="{{ f }}" data-bg="{{ rang }}"></div>
-          </div>
-        </div>
-        {% endwith %}
-        {% endwith %}
-        {% endfor %}
-      </div>
-    </div>
-
-    {# 2. Kafedralar bo'yicha qamrov #}
-    <div class="analitika-subcard">
-      <div class="analitika-subhead">
-        <span>Kafedralar bo'yicha yuklama qamrovi</span>
-        <span style="font-size:11px;font-weight:500;color:var(--text-muted);">Biriktirilgan kafedralar</span>
-      </div>
-
-      <div class="kafedra-scroll-list">
-        {% for q in qamrovlar %}
-        {% with f=q.taqsimlangan_soat|foiz:q.biriktirilgan_soat %}
-        <div class="kafedra-coverage-item">
-          <div class="kafedra-item-top">
-            <span class="kafedra-name-wrap" title="{{ q.kafedra.nomi }}">
-              <span class="kafedra-avatar-mini">{{ q.kafedra.nomi|bosh_harflar }}</span>
-              {{ q.kafedra.nomi }}
-            </span>
-            {% if q.biriktirilgan_soat > 0 %}
-              {% if f >= 100 %}
-                <span class="kafedra-status-pill ok">100% to'liq</span>
-              {% elif f > 0 %}
-                <span class="kafedra-status-pill warn">{{ f }}% taqsimlandi</span>
-              {% else %}
-                <span class="kafedra-status-pill empty">Taqsimlanmagan</span>
+      <div class="composite-bar-wrap">
+        <div class="composite-bar" role="img" aria-label="Mashg'ulot turlari nisbati">
+          {% for tur, nomi, rang in turlar_metrikasi %}
+            {% with soat=stat.tur_soatlari|kalit:tur|default:0 %}
+            {% with f=soat|foiz:stat.jami_soat %}
+              {% if f > 0 %}
+              <div class="composite-segment" data-width="{{ f }}" data-bg="{{ rang }}" title="{{ nomi }}: {{ soat }} soat ({{ f }}%)"></div>
               {% endif %}
-            {% else %}
-              <span class="kafedra-status-pill empty">Biriktirilmagan</span>
-            {% endif %}
-          </div>
-          <div class="kafedra-hours-line">
-            <span>Taqsimlangan soat:</span>
-            <span><strong>{{ q.taqsimlangan_soat }}</strong> / {{ q.biriktirilgan_soat }} soat</span>
-          </div>
-          <div class="tur-progress-track">
-            <div class="tur-progress-fill"
-                 data-width="{{ f }}"
-                 data-bg="{% if f >= 100 %}var(--mand){% elif f > 0 %}#f59e0b{% else %}#cbd5e1{% endif %}"></div>
-          </div>
+            {% endwith %}
+            {% endwith %}
+          {% endfor %}
         </div>
-        {% endwith %}
-        {% empty %}
-        <div class="empty-state" style="padding:24px 0;">Kafedralar hali biriktirilmagan</div>
-        {% endfor %}
       </div>
-    </div>
+
+      <div class="analitika-table-scroll">
+        <table class="analitika-table analitika-turlar-table">
+          <thead>
+            <tr>
+              <th>Mashg'ulot turi</th>
+              <th class="at-col-bar">Nisbat</th>
+              <th class="at-col-hours">Soat</th>
+              <th class="at-col-pct">Ulush</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tur, nomi, rang in turlar_metrikasi %}
+            {% with soat=stat.tur_soatlari|kalit:tur|default:0 %}
+            {% with f=soat|foiz:stat.jami_soat %}
+            <tr>
+              <td class="at-col-name">
+                <span class="tur-badge-wrap">
+                  <span class="tur-color-dot" data-bg="{{ rang }}"></span>
+                  <span>{{ nomi }}</span>
+                </span>
+              </td>
+              <td class="at-col-bar">
+                <div class="tur-progress-track">
+                  <div class="tur-progress-fill" data-width="{{ f }}" data-bg="{{ rang }}"></div>
+                </div>
+              </td>
+              <td class="at-col-hours">
+                <strong>{{ soat }}</strong> <span class="at-unit">soat</span>
+              </td>
+              <td class="at-col-pct">
+                <span class="at-pct-val{% if f == 0 %} is-zero{% endif %}">{{ f }}%</span>
+              </td>
+            </tr>
+            {% endwith %}
+            {% endwith %}
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="analitika-table-foot">
+              <td>Jami</td>
+              <td class="at-foot-note">
+                {% if stat.kafedraga_biriktirilmagan_soat %}
+                  <span>Biriktirilmagan: {{ stat.kafedraga_biriktirilmagan_soat }} soat</span>
+                {% else %}
+                  <span>Barchasi kafedralarga biriktirilgan</span>
+                {% endif %}
+              </td>
+              <td class="at-col-hours">
+                <strong>{{ stat.jami_soat }}</strong> <span class="at-unit">soat</span>
+              </td>
+              <td class="at-col-pct">
+                <span class="at-pct-val is-total">{% if stat.jami_soat > 0 %}100%{% else %}0%{% endif %}</span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    {# 2. Kafedralar bo'yicha qamrov jadvali #}
+    <section class="analitika-panel" aria-label="Kafedralar bo'yicha yuklama qamrovi">
+      <div class="analitika-panel-head">
+        <h3 class="analitika-panel-title">Kafedralar bo'yicha yuklama qamrovi</h3>
+        <span class="analitika-panel-meta">{{ qamrovlar|length }} ta kafedra</span>
+      </div>
+
+      <div class="kafedra-table-scroll">
+        <table class="analitika-table analitika-kafedra-table">
+          <thead>
+            <tr>
+              <th>Kafedra</th>
+              <th class="ak-col-progress">Taqsimot</th>
+              <th class="ak-col-status">Holat</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for q in qamrovlar %}
+            {% with f=q.taqsimlangan_soat|foiz:q.biriktirilgan_soat %}
+            <tr>
+              <td class="ak-col-name">
+                <div class="ak-kaf-wrap">
+                  <span class="kafedra-avatar-mini">{{ q.kafedra.nomi|bosh_harflar }}</span>
+                  <div class="ak-kaf-info">
+                    <span class="ak-kaf-title" title="{{ q.kafedra.nomi }}">{{ q.kafedra.nomi }}</span>
+                    <span class="ak-kaf-meta">{{ q.oqituvchilar_soni }} nafar o'qituvchi</span>
+                  </div>
+                </div>
+              </td>
+              <td class="ak-col-progress">
+                <div class="ak-hours-top">
+                  <strong>{{ q.taqsimlangan_soat }}</strong>
+                  <span>/ {{ q.biriktirilgan_soat }} soat</span>
+                </div>
+                <div class="tur-progress-track">
+                  <div
+                    class="tur-progress-fill"
+                    data-width="{{ f }}"
+                    data-bg="{% if f >= 100 %}var(--mand){% elif f > 0 %}var(--ink){% else %}#cbd5e1{% endif %}"
+                  ></div>
+                </div>
+              </td>
+              <td class="ak-col-status">
+                {% if q.biriktirilgan_soat > 0 %}
+                  {% if f >= 100 %}
+                    <span class="ak-status-text ok">{{ f }}%</span>
+                  {% elif f > 0 %}
+                    <span class="ak-status-text warn">{{ f }}%</span>
+                  {% else %}
+                    <span class="ak-status-text empty">0%</span>
+                  {% endif %}
+                {% else %}
+                  <span class="ak-status-text empty">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr>
+              <td colspan="3" class="analitika-empty-cell">
+                <div class="empty-state analitika-empty">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 21h18"/>
+                    <path d="M5 21V7l8-4v18"/>
+                    <path d="M19 21V11l-6-4"/>
+                  </svg>
+                  <div>Kafedralar hali biriktirilmagan</div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 </div>
+{% endwith %}

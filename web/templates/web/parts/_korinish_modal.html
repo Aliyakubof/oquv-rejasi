@@ -1,0 +1,143 @@
+<div
+  id="korinish-sozlash-modal"
+  class="onb-overlay"
+  x-data="korinishModal({
+    majburiy: {{ user.korinish_tanlangan|yesno:'false,true' }},
+    shrift: '{{ user.shrift_olchami|escapejs }}',
+    yuqoriKontrast: {{ user.yuqori_kontrast|yesno:'true,false' }},
+    kengRejim: {{ user.keng_rejim|yesno:'true,false' }},
+    saqlashUrl: '{% url "korinish_saqlash" %}'
+  })"
+  x-show="ochiq"
+  x-cloak
+  x-transition.opacity.duration.180ms
+  @keydown.escape.window="if (ochiq && !majburiy) yopish()"
+  @click.self="if (!majburiy) yopish()"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="onb-sarlavha"
+>
+  <div class="onb-card" x-show="ochiq" x-transition:enter="onb-card-enter" x-transition:leave="onb-card-leave">
+    <div class="onb-top">
+      <div>
+        <h2 id="onb-sarlavha" class="onb-title">
+          <template x-if="majburiy">
+            <span>Xush kelibsiz{% if user.first_name %}, {{ user.first_name }}{% endif %}</span>
+          </template>
+          <template x-if="!majburiy">
+            <span>Ko'rinish</span>
+          </template>
+        </h2>
+        <p class="onb-subtitle">O'zingizga qulay ko'rinishni tanlang</p>
+      </div>
+      <button
+        type="button"
+        class="app-modal-close"
+        x-show="!majburiy"
+        @click="yopish()"
+        aria-label="Yopish"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="onb-groups">
+      <div class="onb-group">
+        <div class="onb-group-label">1. Matn o'lchami</div>
+        <div class="onb-segmented onb-segmented-3">
+          <button
+            type="button"
+            class="onb-seg-btn"
+            :class="shrift === 'standart' && 'active'"
+            @click="shrift = 'standart'; qollash()"
+          >
+            Oddiy
+          </button>
+          <button
+            type="button"
+            class="onb-seg-btn"
+            :class="shrift === 'yirik' && 'active'"
+            @click="shrift = 'yirik'; qollash()"
+          >
+            Kattaroq
+          </button>
+          <button
+            type="button"
+            class="onb-seg-btn"
+            :class="shrift === 'juda_yirik' && 'active'"
+            @click="shrift = 'juda_yirik'; qollash()"
+          >
+            Juda katta
+          </button>
+        </div>
+      </div>
+
+      <div class="onb-group">
+        <div class="onb-group-label">2. Yozuv va chiziqlar</div>
+        <div class="onb-segmented onb-segmented-2">
+          <button
+            type="button"
+            class="onb-seg-btn"
+            :class="!yuqoriKontrast && 'active'"
+            @click="yuqoriKontrast = false; qollash()"
+          >
+            Yumshoq
+          </button>
+          <button
+            type="button"
+            class="onb-seg-btn"
+            :class="yuqoriKontrast && 'active'"
+            @click="yuqoriKontrast = true; qollash()"
+          >
+            Aniq va to'q
+          </button>
+        </div>
+      </div>
+
+      <div class="onb-group">
+        <div class="onb-group-label">3. Tugmalar va oraliq</div>
+        <div class="onb-segmented onb-segmented-2">
+          <button
+            type="button"
+            class="onb-seg-btn"
+            :class="!kengRejim && 'active'"
+            @click="kengRejim = false; qollash()"
+          >
+            Ixcham
+          </button>
+          <button
+            type="button"
+            class="onb-seg-btn"
+            :class="kengRejim && 'active'"
+            @click="kengRejim = true; qollash()"
+          >
+            Keng va sokin
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="onb-error" x-show="xato" x-text="xato" role="alert"></div>
+
+    <div class="onb-footer">
+      <button
+        type="button"
+        class="btn"
+        x-show="!majburiy"
+        :disabled="saqlanmoqda"
+        @click="yopish()"
+      >
+        Bekor qilish
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary onb-save-btn"
+        :class="saqlanmoqda && 'is-loading'"
+        :disabled="saqlanmoqda"
+        @click="saqlash()"
+      >
+        Saqlash
+      </button>
+    </div>
+  </div>
+</div>
