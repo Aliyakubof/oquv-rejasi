@@ -9,6 +9,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from accounts.models import Department, Rol
 from plans import dashboard
@@ -155,6 +156,18 @@ def musbat_int_yoki_none(qiymat: str | None) -> int | None:
         return None
     toza = qiymat.strip()
     return int(toza) if toza.isascii() and toza.isdigit() else None
+
+
+def xavfsiz_qaytish(request: HttpRequest, standart_nom: str) -> HttpResponse:
+    """Redirect to POST/GET 'next' if on the same host, else standart_nom."""
+    qaytish_url = (request.POST.get("next") or request.GET.get("next") or "").strip()
+    if qaytish_url and url_has_allowed_host_and_scheme(
+        qaytish_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(qaytish_url)
+    return redirect(standart_nom)
 
 
 class YilTanlovMixin:

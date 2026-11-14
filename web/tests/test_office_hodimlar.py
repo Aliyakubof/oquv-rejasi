@@ -40,6 +40,24 @@ class KafedraCrudTests(TestCase):
         self.client.post(reverse("office:kafedra_ochirish", args=[kafedra.pk]))
         self.assertFalse(Department.objects.filter(pk=kafedra.pk).exists())
 
+    def test_kafedra_ochirish_next_parametri_saqlanadi(self) -> None:
+        k1 = Department.objects.create(nomi="Filtrlash")
+        qaytish = f"{reverse('office:kafedra_list')}?yil=2025"
+        r = self.client.post(
+            reverse("office:kafedra_ochirish", args=[k1.pk]),
+            {"next": qaytish},
+        )
+        self.assertRedirects(r, qaytish, fetch_redirect_response=False)
+
+        k2 = Department.objects.create(nomi="Xavfsiz")
+        r_yomon = self.client.post(
+            reverse("office:kafedra_ochirish", args=[k2.pk]),
+            {"next": "https://evil.example/phish"},
+        )
+        self.assertRedirects(
+            r_yomon, reverse("office:kafedra_list"), fetch_redirect_response=False
+        )
+
 
 class MudirTayinlashViewTests(TestCase):
     def setUp(self) -> None:
@@ -145,3 +163,27 @@ class OqituvchiCrudTests(TestCase):
         )
         self.assertContains(javob, str(bizniki))
         self.assertNotContains(javob, str(boshqa))
+
+    def test_oqituvchi_ochirish_va_parol_next_parametri_saqlanadi(self) -> None:
+        profil = make_oqituvchi(kafedra=self.kafedra)
+        qaytish = f"{reverse('office:oqituvchi_list')}?yil=2025&q=test&page=2"
+        r_parol = self.client.post(
+            reverse("office:oqituvchi_vaqtinchalik_parol", args=[profil.pk]),
+            {"next": qaytish},
+        )
+        self.assertRedirects(r_parol, qaytish, fetch_redirect_response=False)
+
+        r_ochir = self.client.post(
+            reverse("office:oqituvchi_ochirish", args=[profil.pk]),
+            {"next": qaytish},
+        )
+        self.assertRedirects(r_ochir, qaytish, fetch_redirect_response=False)
+
+        profil2 = make_oqituvchi(kafedra=self.kafedra)
+        r_yomon = self.client.post(
+            reverse("office:oqituvchi_ochirish", args=[profil2.pk]),
+            {"next": "//evil.example/redirect"},
+        )
+        self.assertRedirects(
+            r_yomon, reverse("office:oqituvchi_list"), fetch_redirect_response=False
+        )

@@ -8,7 +8,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import ProtectedError
 from django.http import FileResponse, Http404, HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
@@ -31,6 +31,7 @@ from web.mixins import (
     YilTanlovMixin,
     musbat_int_yoki_none,
     office_admin_talab,
+    xavfsiz_qaytish,
 )
 from web.views.oqituvchi_base import (
     OqituvchiTahrirAsosView,
@@ -169,7 +170,7 @@ def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
         )
         if profil.foydalanuvchi_id == request.user.pk:
             messages.error(request, "O'z hisobingizni o'chira olmaysiz.")
-            return redirect("office:oqituvchi_list")
+            return xavfsiz_qaytish(request, "office:oqituvchi_list")
         nom = str(profil)
         profil_id = profil.pk
         bogliq_bormi = (
@@ -177,13 +178,13 @@ def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
         )
         if bogliq_bormi:
             _oqituvchini_faolsizlantir(request, profil, nom)
-            return redirect("office:oqituvchi_list")
+            return xavfsiz_qaytish(request, "office:oqituvchi_list")
         try:
             with transaction.atomic():
                 profil.foydalanuvchi.delete()
         except ProtectedError:
             _oqituvchini_faolsizlantir(request, profil, nom)
-            return redirect("office:oqituvchi_list")
+            return xavfsiz_qaytish(request, "office:oqituvchi_list")
         audit_yoz(
             AuditAmali.OCHIRILDI,
             f"O'qituvchi o'chirildi: {nom}.",
@@ -192,7 +193,7 @@ def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
             request=request,
         )
         messages.success(request, f"{nom} o'chirildi.")
-    return redirect("office:oqituvchi_list")
+    return xavfsiz_qaytish(request, "office:oqituvchi_list")
 
 
 @require_POST
@@ -202,10 +203,10 @@ def oqituvchi_vaqtinchalik_parol(request: HttpRequest, pk: int) -> HttpResponse:
     target = profil.foydalanuvchi
     if target.pk == request.user.pk:
         messages.error(request, "O'z parolingizni Parol sahifasidan o'zgartiring.")
-        return redirect("office:oqituvchi_list")
+        return xavfsiz_qaytish(request, "office:oqituvchi_list")
     if target.rol == Rol.SUPERADMIN and request.user.rol != Rol.SUPERADMIN:
         messages.error(request, "Superadmin parolini tiklashga ruxsat yo'q.")
-        return redirect("office:oqituvchi_list")
+        return xavfsiz_qaytish(request, "office:oqituvchi_list")
     parol = vaqtinchalik_parol_yarat(target)
     audit_yoz(
         AuditAmali.TAHRIRLANDI,
@@ -219,7 +220,7 @@ def oqituvchi_vaqtinchalik_parol(request: HttpRequest, pk: int) -> HttpResponse:
         "parol": parol,
     }
     messages.success(request, f"{profil} uchun yangi vaqtinchalik parol yaratildi.")
-    return redirect("office:oqituvchi_list")
+    return xavfsiz_qaytish(request, "office:oqituvchi_list")
 
 
 class OqituvchiImportView(OfficeAdminTalabMixin, View):
