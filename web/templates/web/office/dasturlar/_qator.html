@@ -1,24 +1,28 @@
 <tr id="dastur-qator-{{ t.variant_id }}" {% if oob %}hx-swap-oob="true"{% endif %}
-    data-nomi="{{ t.variant.nomi|lower }} {{ t.oqituvchi|stringformat:'s'|lower }}"
+    data-nomi="{{ t.variant.nomi|lower }} {{ t.variant.kodi|lower }} {{ t.oqituvchi|stringformat:'s'|lower }}"
     x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
   <td data-label="Fan">
-    <span class="code">{{ t.variant.kodi|default:"" }}</span>
-    <strong>{{ t.variant.nomi }}</strong>
+    <div class="fan-meta-cell">
+      <div class="fan-meta-top">
+        {% if t.variant.kodi %}<span class="code">{{ t.variant.kodi }}</span>{% endif %}
+        <strong>{{ t.variant.nomi }}</strong>
+      </div>
+    </div>
   </td>
   <td data-label="Kafedra">{{ t.variant.kafedra.nomi|default:"—" }}</td>
   <td data-label="O'qituvchi">{{ t.oqituvchi }}</td>
-  <td data-label="Yuborilgan vaqt">{{ t.yuborilgan_vaqt|date:"d.m.Y H:i" }}</td>
+  <td data-label="Yuborilgan vaqt"><span class="audit-vaqt">{{ t.yuborilgan_vaqt|date:"d.m.Y H:i" }}</span></td>
   <td data-label="Holat">
     {% if t.holat == "QABUL_QILINDI" %}<span class="tag tag-mand">QABUL QILINDI</span>
     {% elif t.holat == "RAD_ETILDI" %}<span class="tag tag-rad">RAD ETILDI</span>
     {% else %}<span class="tag tag-elec">KO'RIB CHIQILMOQDA</span>{% endif %}
     <span class="credits">· {{ t.urinish_raqami }}-urinish</span>
   </td>
-  <td style="white-space:nowrap;">
-    <button type="button" class="btn"
+  <td class="col-center col-nowrap" data-label="Amallar">
+    <button type="button" class="btn btn-sm"
             hx-get="{% url 'office:dastur_tarixi' t.variant_id %}"
             hx-target="#dastur-panel-{{ t.variant_id }}" hx-swap="innerHTML"
             hx-indicator="#htmx-yuklanish"
-            hx-on::before-request="const p = document.getElementById('dastur-panel-{{ t.variant_id }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">Tarixni ko'rish</button>
+            hx-on::before-request="const p = document.getElementById('dastur-panel-{{ t.variant_id }}'); if (p && p.innerHTML.trim() !== '') { yopishTableModal(p); event.preventDefault(); }">Tarixni ko'rish</button>
   </td>
 </tr>

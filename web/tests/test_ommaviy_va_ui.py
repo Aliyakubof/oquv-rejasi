@@ -13,7 +13,7 @@ from plans.tests.factories import (
     make_oqituvchi,
     make_reja,
 )
-from web.tests.helpers import login, office_admin_yarat, oqituvchi_yarat
+from web.tests.helpers import login, mudir_yarat, office_admin_yarat, oqituvchi_yarat
 from web.views.jonli import _kesh_muddati
 
 
@@ -181,11 +181,13 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
         for belgi in (
             'media="print" onload="this.media=\'all\'"',
             "<noscript>",
-            "app.css?v=52",
+            "app.css?v=59",
             "jonli.js?v=3",
             "window.yopishTableModal",
             "btn-ripple",
             "is-closing",
+            "is-page-loading",
+            "animateCounters",
             'class="loader-emblem"',
             'class="loader-progress-fill"',
             "PageLoader.playFor(muddat)",
@@ -195,12 +197,16 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
             "sun&#x27;iy intellekt 60610200",
             ":class=\"ochiq && 'popover-ochiq'\"",
             'x-ref="qidiruvInput"',
+            "anim-pop-enter",
+            "anim-bulk-enter",
+            "anim-tab-enter",
         ):
             self.assertContains(dash, belgi)
 
         semestrovka = self.client.get(reverse("office:reja_detail", args=[reja.pk]))
         self.assertContains(semestrovka, ":class=\"ochiq && 'popover-ochiq'\"")
         self.assertContains(semestrovka, 'x-ref="qidiruvInput"')
+        self.assertContains(semestrovka, "anim-tab-enter")
 
         semestr = self.client.get(
             reverse("office:reja_detail", args=[reja.pk]),
@@ -208,3 +214,209 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
         )
         self.assertContains(semestr, ":class=\"ochiq_k && 'popover-ochiq'\"")
         self.assertContains(semestr, 'x-ref="qidiruvInput"')
+
+    def test_office_sahifalar_ui_yaxshilanishlari(self) -> None:
+        yil = dashboard.joriy_akademik_yil()
+        reja = make_reja(boshlanish_yili=yil, yonalish_kodi="60610300")
+        kaf = Department.objects.create(nomi="Kiberxavfsizlik")
+        make_oqituvchi(kaf)
+        fan = make_fan(reja, kafedra=kaf)
+        assert fan.tanlangan_variant is not None
+        make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        login(self.client, office_admin_yarat())
+
+        sahifa_tekshiruvlari = [
+            (
+                reverse("office:dashboard"),
+                (
+                    "office-dash-actions",
+                    "segmented-tabs",
+                    "filter-toolbar",
+                    "popover-up",
+                ),
+            ),
+            (
+                reverse("office:reja_list"),
+                ("filter-toolbar", "row-actions", "badge-count"),
+            ),
+            (
+                reverse("office:reja_detail", args=[reja.pk]),
+                ("segmented-tabs", "filter-toolbar", "table-action-bar"),
+            ),
+            (
+                reverse("office:reja_yangi"),
+                ("card form-card", "form-actions"),
+            ),
+            (
+                reverse("office:reja_tahrir", args=[reja.pk]),
+                ("card form-card", "form-actions"),
+            ),
+            (
+                reverse("office:kafedra_list"),
+                ("table-wrap cards", "filter-toolbar", "popover-ochiq", "popover-up"),
+            ),
+            (
+                reverse("office:oqituvchi_list"),
+                ("filter-toolbar", "action-menu-fixed", "qamrov-cell"),
+            ),
+            (
+                reverse("office:oqituvchi_import"),
+                ("breadcrumb", "card form-card", "form-actions"),
+            ),
+            (
+                reverse("office:dastur_topshirishlar"),
+                ("filter-toolbar", "empty-state-rich"),
+            ),
+            (
+                reverse("office:audit_list"),
+                ("filter-toolbar", "audit-filter-form", "empty-state-rich"),
+            ),
+            (
+                reverse("office:sozlamalar"),
+                (
+                    "settings-card",
+                    "sozlamalar-tools-bar",
+                    "file-picker-compact",
+                    "Fayl tanlash",
+                ),
+            ),
+            (
+                reverse("office:lavozim_yangi"),
+                ("card form-card", "form-actions"),
+            ),
+        ]
+
+        for url, belgilar in sahifa_tekshiruvlari:
+            javob = self.client.get(url)
+            self.assertEqual(javob.status_code, 200, url)
+            for belgi in belgilar:
+                self.assertContains(javob, belgi, msg_prefix=url)
+
+    def test_men_yuklamalar_va_dastur_panel_ui(self) -> None:
+        from plans.models import Yuklama
+
+        yil = dashboard.joriy_akademik_yil()
+        kaf = Department.objects.create(nomi="Raqamli texnologiyalar")
+        user = oqituvchi_yarat(kafedra=kaf)
+        login(self.client, user)
+
+        bosh_men = self.client.get(reverse("men:yuklamalar"), {"yil": yil})
+        self.assertEqual(bosh_men.status_code, 200)
+        self.assertContains(bosh_men, "empty-state-rich")
+        self.assertNotContains(bosh_men, "empty-state-filtered")
+
+        reja = make_reja(boshlanish_yili=yil, yonalish_kodi="60610400")
+        fan = make_fan(reja, kafedra=kaf)
+        assert fan.tanlangan_variant is not None
+        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        yuklama = Yuklama.objects.create(
+            fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=user.oqituvchi_profil
+        )
+
+        yuklamali = self.client.get(reverse("men:yuklamalar"), {"yil": yil})
+        self.assertEqual(yuklamali.status_code, 200)
+        for belgi in (
+            "tur-legend-row",
+            "filter-toolbar",
+            "search-clear",
+            "reja-link-btn",
+            "table-total-label",
+            "empty-state-filtered",
+        ):
+            self.assertContains(yuklamali, belgi)
+
+        panel = self.client.get(
+            reverse("men:dastur_tarixi", args=[fan.tanlangan_variant.pk])
+        )
+        self.assertEqual(panel.status_code, 200)
+        for belgi in (
+            "app-modal-close",
+            "tarix-panel-foot",
+            "file-picker-compact",
+            "Fayl tanlash",
+        ):
+            self.assertContains(panel, belgi)
+
+        yuklama.delete()
+        user.oqituvchi_profil.delete()
+        profilsiz = self.client.get(reverse("men:yuklamalar"), {"yil": yil})
+        self.assertEqual(profilsiz.status_code, 200)
+        self.assertContains(profilsiz, "empty-state-rich")
+        self.assertContains(profilsiz, "Profil biriktirilmagan")
+
+    def test_bildirishnoma_ui_yaxshilanishlari(self) -> None:
+        from plans.models import Bildirishnoma
+
+        user = oqituvchi_yarat()
+        login(self.client, user)
+
+        bild_bosh = self.client.get(reverse("bildirishnoma_list"))
+        self.assertEqual(bild_bosh.status_code, 200)
+        self.assertContains(bild_bosh, "empty-state-rich")
+
+        Bildirishnoma.objects.bulk_create(
+            [
+                Bildirishnoma(qabul_qiluvchi=user, sarlavha=f"Bildirishnoma {i}")
+                for i in range(31)
+            ]
+        )
+        bild_royxat = self.client.get(reverse("bildirishnoma_list"))
+        self.assertEqual(bild_royxat.status_code, 200)
+        for belgi in ("audit-vaqt", "notif-title-unread", "notif-dot-inline", "page=2"):
+            self.assertContains(bild_royxat, belgi)
+
+    def test_jadval_popover_fixed_va_qidiruv_belgilari(self) -> None:
+        yil = dashboard.joriy_akademik_yil()
+        reja = make_reja(boshlanish_yili=yil, yonalish_kodi="60610500")
+        kaf = Department.objects.create(nomi="Sun'iy intellekt kafedrasi")
+        make_oqituvchi(kaf)
+        fan = make_fan(reja, kafedra=kaf)
+        assert fan.tanlangan_variant is not None
+        make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        login(self.client, office_admin_yarat())
+
+        sahifalar = [
+            reverse("office:dashboard"),
+            reverse("office:reja_detail", args=[reja.pk]),
+            f"{reverse('office:reja_detail', args=[reja.pk])}?tab=semestr&sem=1",
+            reverse("office:kafedra_list"),
+        ]
+        for url in sahifalar:
+            javob = self.client.get(url)
+            self.assertEqual(javob.status_code, 200, url)
+            for belgi in (
+                "Alpine.data('jadvalPopover'",
+                "anim-tugadi",
+                "popover popover-fixed",
+                "popover-scroll-body",
+                "popover-empty-hint",
+            ):
+                self.assertContains(javob, belgi, msg_prefix=url)
+
+        from django.conf import settings
+
+        css_matn = (
+            settings.BASE_DIR / "web" / "static" / "web" / "css" / "app.css"
+        ).read_text(encoding="utf-8")
+        self.assertIn("table-wrap.anim-tugadi", css_matn)
+        self.assertNotIn("table-wrap:has(.popover-ochiq)", css_matn)
+
+    def test_kafedra_sahifalar_va_panel_shablonlari(self) -> None:
+        yil = dashboard.joriy_akademik_yil()
+        kaf = Department.objects.create(nomi="Dasturlash kafedrasi")
+        mudir = mudir_yarat(kaf)
+        reja = make_reja(boshlanish_yili=yil, yonalish_kodi="60610600")
+        fan = make_fan(reja, kafedra=kaf)
+        assert fan.tanlangan_variant is not None
+        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        login(self.client, mudir)
+
+        for url in (
+            reverse("kafedra:dashboard"),
+            reverse("kafedra:hisobot"),
+            reverse("kafedra:oqituvchi_list"),
+            reverse("kafedra:taqsimot_panel", args=[fs.pk]),
+        ):
+            javob = self.client.get(url)
+            self.assertEqual(javob.status_code, 200, url)
+            self.assertContains(javob, 'stroke="currentColor"', msg_prefix=url)

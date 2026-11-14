@@ -1,5 +1,8 @@
 """Tests for first-login accessibility onboarding and appearance preferences."""
 
+from pathlib import Path
+
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
@@ -77,3 +80,19 @@ class KorinishOnboardingTests(TestCase):
         )
         self.assertEqual(xato.status_code, 400)
         self.assertFalse(xato.json()["ok"])
+
+    def test_korinish_css_layout_himoyasi(self) -> None:
+        css_yoli = (
+            Path(settings.BASE_DIR) / "web" / "static" / "web" / "css" / "app.css"
+        )
+        css_matn = css_yoli.read_text(encoding="utf-8")
+        self.assertIn("body.ui-kontrast .navbar *:focus-visible", css_matn)
+        self.assertIn("body.ui-font-juda_yirik .popover-filter-chip", css_matn)
+        self.assertIn("body.ui-font-juda_yirik .soat-input", css_matn)
+        self.assertIn("body.ui-keng .panel-row > td", css_matn)
+        eski_badge_xato = (
+            "body.ui-kontrast .badge-major {\n"
+            "  border-color: #1a2a6e !important;\n"
+            "  color: #1a2a6e !important;"
+        )
+        self.assertNotIn(eski_badge_xato, css_matn)

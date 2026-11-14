@@ -122,6 +122,10 @@ class HealthVaXavfsizlikWebTests(TestCase):
         r_health = client2.get("/health/")
         self.assertEqual(r_health.status_code, 200)
 
+        r_jonli = client2.get(reverse("jonli_holat"))
+        self.assertEqual(r_jonli.status_code, 403)
+        self.assertEqual(r_jonli.json()["manzil"], reverse("parol_ozgartirish"))
+
         # Superadmin parolini tiklab bo'lmaydi; almashtirilgach sahifa ochiladi
         self.assertTrue(bool(super_user.pk))
         oqit.foydalanuvchi.parol_ozgartirish_kerak = False

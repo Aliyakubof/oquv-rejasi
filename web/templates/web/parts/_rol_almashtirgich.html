@@ -4,14 +4,17 @@
     hx-get="{% url 'dev:panel' %}" hx-target="#rol-royxati" hx-trigger="click once" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish">
     {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
   </button>
-  <div class="menu-panel" x-show="ochiq" x-transition.duration.200ms x-cloak>
+  <div class="menu-panel" x-show="ochiq"
+       x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+       x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+       x-cloak>
     <div class="menu-bosh">
       <div class="menu-ism">{{ user.get_full_name }}</div>
       <div class="menu-rol">{{ user.get_rol_display }}</div>
     </div>
     <div class="menu-parol-wrap">
-      <a href="{% url 'parol_ozgartirish' %}" class="menu-item menu-parol-link">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.75;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      <a href="{% url 'parol_ozgartirish' %}" class="menu-item menu-parol-link{% if request.resolver_match.view_name == 'parol_ozgartirish' %} active{% endif %}" @click="ochiq = false">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
         <span>Parolni o'zgartirish</span>
       </a>
     </div>

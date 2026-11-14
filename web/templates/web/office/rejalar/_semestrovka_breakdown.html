@@ -5,11 +5,9 @@ flag are editable; weekly hours and credits stay as parsed.{% endcomment %}
       hx-post="{% url 'office:semestrovka_saqlash' reja.pk %}"
       hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish">
   {% csrf_token %}
-  <div class="controls"
-    style="justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:#f8fafc;">
-    <span class="credits">Har bir semestr bo'yicha auditoriya soatlarini va kurs ishi belgisini tahrirlab
-      saqlang.</span>
-    <button type="submit" class="btn btn-primary">Semestrovkani saqlash</button>
+  <div class="table-action-bar">
+    <span class="table-action-hint">Har bir semestr bo'yicha auditoriya soatlarini va kurs ishi belgisini tahrirlab saqlang.</span>
+    <button type="submit" class="btn btn-primary btn-sm">Semestrovkani saqlash</button>
   </div>
   <table>
     <thead>
@@ -57,8 +55,7 @@ flag are editable; weekly hours and credits stay as parsed.{% endcomment %}
       {% endfor %}
     </tbody>
   </table>
-  <div class="controls"
-    style="justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);background:#f8fafc;">
-    <button type="submit" class="btn btn-primary">Semestrovkani saqlash</button>
+  <div class="table-action-bar foot-bar">
+    <button type="submit" class="btn btn-primary btn-sm">Semestrovkani saqlash</button>
   </div>
 </form>

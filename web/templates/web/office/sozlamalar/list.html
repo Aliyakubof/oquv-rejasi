@@ -7,33 +7,33 @@
   </div>
 </div>
 
-<div class="card settings-card" style="margin-bottom:24px;max-width:760px;">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-    <div class="analitika-title-icon">
+<div class="card settings-card">
+  <div class="settings-card-head">
+    <div class="analitika-title-icon" aria-hidden="true">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 3l10 7H2l10-7z"/>
       </svg>
     </div>
     <div>
-      <div style="font-size:15px;font-weight:700;color:var(--ink);">Universitet ma'lumotlari</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Tizim hisobotlari va 1-shakl hujjatlarida aks etuvchi rasmiy muassasa nomi</div>
+      <div class="settings-card-title">Universitet ma'lumotlari</div>
+      <div class="settings-card-desc">1-shakl va hisobotlarda chiqadigan muassasa nomi</div>
     </div>
   </div>
-  <form method="post" action="{% url 'office:universitet_saqlash' %}" class="controls" style="align-items:flex-end;gap:12px;">
+  <form method="post" action="{% url 'office:universitet_saqlash' %}" class="settings-inline-form">
     {% csrf_token %}
-    <div style="flex:1;min-width:280px;">
-      <label for="{{ universitet_form.rasmiy_nomi.id_for_label }}" style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">
+    <div class="settings-inline-field">
+      <label for="{{ universitet_form.rasmiy_nomi.id_for_label }}">
         {{ universitet_form.rasmiy_nomi.label }}
       </label>
       {{ universitet_form.rasmiy_nomi }}
     </div>
-    <button type="submit" class="btn btn-primary" style="height:38px;padding:0 22px;white-space:nowrap;">Saqlash</button>
+    <button type="submit" class="btn btn-primary">Saqlash</button>
   </form>
 </div>
 
-<div class="topbar" style="margin-top:20px;">
+<div class="topbar section-topbar">
   <div>
-    <h2>Lavozimlar va minimal yuklama normalari</h2>
+    <h2 class="section-heading">Lavozim normalari</h2>
   </div>
   <div class="controls">
     <a class="btn btn-primary" href="{% url 'office:lavozim_yangi' %}">
@@ -42,36 +42,36 @@
     </a>
   </div>
 </div>
-<div class="table-wrap narrow cards" style="margin-bottom:28px;">
+<div class="table-wrap narrow cards section-table-wrap">
   <table>
     <thead>
       <tr>
         <th style="min-width:200px;">Lavozim nomi</th>
-        <th class="col-center" style="text-align:center;width:170px;">Minimal soat</th>
-        <th class="col-center" style="text-align:center;width:170px;">O'qituvchilar soni</th>
-        <th class="col-center" style="text-align:center;width:180px;">Amallar</th>
+        <th class="col-center" style="width:165px;">Minimal soat</th>
+        <th class="col-center" style="width:165px;">O'qituvchilar soni</th>
+        <th class="col-center" style="width:210px;">Amallar</th>
       </tr>
     </thead>
     <tbody data-jonli="sozlamalar-lavozimlar">
       {% for l in lavozimlar %}
       <tr>
         <td data-label="Lavozim"><strong>{{ l.nomi }}</strong></td>
-        <td class="col-center" data-label="Minimal soat" style="text-align:center;">
+        <td class="col-center" data-label="Minimal soat">
           <span class="hour-tag">{{ l.min_soat }} soat</span>
         </td>
-        <td class="col-center" data-label="O'qituvchilar" style="text-align:center;">
+        <td class="col-center" data-label="O'qituvchilar">
           <span class="badge-count">{{ l.oqituvchilar_soni }}</span>
         </td>
-        <td class="col-center" data-label="Amallar" style="text-align:center;">
-          <div class="row-actions" style="justify-content:center;">
-            <button type="button" class="btn"
+        <td class="col-center col-nowrap" data-label="Amallar">
+          <div class="row-actions row-actions-center">
+            <button type="button" class="btn btn-sm"
                     data-modal-title="{{ l.nomi }}"
                     data-modal-subtitle="Lavozim va yillik yuklama me'yori"
                     data-modal-edit-url="{% url 'office:lavozim_tahrir' l.pk %}"
                     data-row-modal="Lavozim nomi::{{ l.nomi }}||Minimal yillik soat::{{ l.min_soat }} soat||Biriktirilgan o'qituvchilar::{{ l.oqituvchilar_soni }} nafar">
               Ko'rish
             </button>
-            <a class="btn" href="{% url 'office:lavozim_tahrir' l.pk %}">Tahrirlash</a>
+            <a class="btn btn-sm" href="{% url 'office:lavozim_tahrir' l.pk %}">Tahrirlash</a>
             <form method="post" action="{% url 'office:lavozim_ochirish' l.pk %}" style="display:inline"
                   data-modal-title="Lavozimni o'chirish"
                   data-modal-subtitle="{{ l.nomi }}"
@@ -79,84 +79,121 @@
                   data-modal-type="danger"
                   data-modal-btn="Ha, o'chirish">
               {% csrf_token %}
-              <button type="submit" class="btn btn-danger">O'chirish</button>
+              <button type="submit" class="btn btn-ghost-danger btn-sm">O'chirish</button>
             </form>
           </div>
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="4"><div class="empty-state">Lavozimlar kiritilmagan.</div></td></tr>
+      <tr><td colspan="4">
+        <div class="empty-state empty-state-rich">
+          <div class="empty-state-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+          </div>
+          <h3 class="empty-state-title">Lavozimlar kiritilmagan</h3>
+          <p class="empty-state-desc">O'qituvchilarning yillik minimal soat me'yorlarini belgilash uchun lavozim qo'shing.</p>
+          <a class="btn btn-primary btn-sm" href="{% url 'office:lavozim_yangi' %}">Yangi lavozim</a>
+        </div>
+      </td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
-<div class="topbar">
+<div class="topbar section-topbar">
   <div>
-    <h2>Ta'lim yo'nalishlari klassifikatori</h2>
+    <h2 class="section-heading">Ta'lim yo'nalishlari</h2>
   </div>
-  <div class="controls" style="flex-wrap:wrap;gap:8px;">
-    <a class="btn" href="{% url 'office:yonalish_namuna_excel' %}" hx-boost="false">Namuna (.xlsx)</a>
-    <form method="post" action="{% url 'office:yonalish_import' %}" enctype="multipart/form-data" hx-boost="false" class="controls" style="gap:6px;">
-      {% csrf_token %}
-      <input type="file" name="fayl" accept=".xlsx" required aria-label="Klassifikator Excel fayli" style="max-width:210px;">
-      <button type="submit" class="btn">Excel import</button>
-    </form>
+  <div class="controls">
+    <a class="btn" href="{% url 'office:yonalish_namuna_excel' %}" hx-boost="false">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Namuna (.xlsx)</span>
+    </a>
     <a class="btn btn-primary" href="{% url 'office:yonalish_yangi' %}">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       <span>Yangi yo'nalish</span>
     </a>
   </div>
 </div>
-<form method="get" action="{% url 'office:sozlamalar' %}" class="controls" style="margin-bottom:10px;"
-      hx-get="{% url 'office:sozlamalar' %}"
-      hx-trigger="input changed delay:300ms from:input[name='q'], submit"
-      hx-target="#yonalishlar-bolim"
-      hx-select="#yonalishlar-bolim"
-      hx-swap="outerHTML"
-      hx-push-url="true"
-      hx-indicator="#htmx-yuklanish">
-  <div class="search">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    <input type="text" name="q" value="{{ yonalish_q }}" placeholder="Kod, yo'nalish yoki soha nomi" aria-label="Yo'nalish qidirish">
-  </div>
-  {% if yonalish_q %}
-  <a class="btn" href="{% url 'office:sozlamalar' %}">Tozalash</a>
-  {% endif %}
-</form>
+
+<div class="filter-toolbar sozlamalar-tools-bar">
+  <form method="get" action="{% url 'office:sozlamalar' %}" class="filter-toolbar-left"
+        hx-get="{% url 'office:sozlamalar' %}"
+        hx-trigger="input changed delay:300ms from:input[name='q'], submit"
+        hx-target="#yonalishlar-bolim"
+        hx-select="#yonalishlar-bolim"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-indicator="#htmx-yuklanish"
+        x-data="{ val: '{{ yonalish_q|escapejs }}' }">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" name="q" x-model="val" x-ref="qInput" value="{{ yonalish_q }}" placeholder="Kod, yo'nalish yoki soha nomi..." aria-label="Yo'nalish qidirish">
+      <button type="button" class="search-clear" x-show="(val || '').length > 0" x-cloak
+              @click="val = ''; $nextTick(() => $refs.qInput.dispatchEvent(new Event('input', { bubbles: true })))"
+              aria-label="Qidiruvni tozalash" title="Tozalash">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <a class="btn btn-sm"
+       href="{% url 'office:sozlamalar' %}"
+       x-show="(val || '').trim() !== ''"
+       {% if not yonalish_q %}x-cloak{% endif %}
+       @click.prevent="val = ''; $nextTick(() => $el.closest('form').requestSubmit())">Tozalash</a>
+  </form>
+  <form method="post" action="{% url 'office:yonalish_import' %}" enctype="multipart/form-data" hx-boost="false" class="sozlamalar-import-form">
+    {% csrf_token %}
+    <div class="file-picker file-picker-compact">
+      <input type="file" name="fayl" accept=".xlsx" required aria-label="Klassifikator Excel fayli" class="file-picker-input">
+      <span class="file-picker-btn" aria-hidden="true">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Fayl tanlash</span>
+      </span>
+      <span class="file-picker-name" data-empty="Fayl tanlanmagan">Fayl tanlanmagan</span>
+    </div>
+    <button type="submit" class="btn btn-sm">Excel import</button>
+  </form>
+</div>
+
 <div id="yonalishlar-bolim">
 <div class="table-wrap narrow cards">
   <table>
     <thead>
       <tr>
-        <th class="col-center" style="text-align:center;width:120px;">Kod</th>
+        <th class="col-center" style="width:120px;">Kod</th>
         <th style="min-width:220px;">Yo'nalish nomi</th>
-        <th class="col-center" style="text-align:center;">Bilim sohasi</th>
-        <th class="col-center" style="text-align:center;">Ta'lim sohasi</th>
-        <th class="col-center" style="text-align:center;width:180px;">Amallar</th>
+        <th>Bilim sohasi</th>
+        <th>Ta'lim sohasi</th>
+        <th class="col-center" style="width:210px;">Amallar</th>
       </tr>
     </thead>
     <tbody data-jonli="sozlamalar-yonalishlar">
       {% for y in yonalishlar %}
       <tr>
-        <td class="col-center" data-label="Kod" style="text-align:center;"><span class="code">{{ y.kodi }}</span></td>
+        <td class="col-center" data-label="Kod"><span class="code">{{ y.kodi }}</span></td>
         <td data-label="Yo'nalish"><strong>{{ y.nomi }}</strong></td>
-        <td class="col-center" data-label="Bilim sohasi" style="text-align:center;">
-          <span class="code" style="margin-right:4px;">{{ y.bilim_sohasi_kodi }}</span> {{ y.bilim_sohasi_nomi }}
+        <td data-label="Bilim sohasi">
+          <div class="soha-cell">
+            <span class="code">{{ y.bilim_sohasi_kodi }}</span>
+            <span>{{ y.bilim_sohasi_nomi }}</span>
+          </div>
         </td>
-        <td class="col-center" data-label="Ta'lim sohasi" style="text-align:center;">
-          <span class="code" style="margin-right:4px;">{{ y.talim_sohasi_kodi }}</span> {{ y.talim_sohasi_nomi }}
+        <td data-label="Ta'lim sohasi">
+          <div class="soha-cell">
+            <span class="code">{{ y.talim_sohasi_kodi }}</span>
+            <span>{{ y.talim_sohasi_nomi }}</span>
+          </div>
         </td>
-        <td class="col-center" data-label="Amallar" style="text-align:center;">
-          <div class="row-actions" style="justify-content:center;">
-            <button type="button" class="btn"
+        <td class="col-center col-nowrap" data-label="Amallar">
+          <div class="row-actions row-actions-center">
+            <button type="button" class="btn btn-sm"
                     data-modal-title="{{ y.kodi }} — {{ y.nomi }}"
                     data-modal-subtitle="Ta'lim yo'nalishi klassifikatori"
                     data-modal-edit-url="{% url 'office:yonalish_tahrir' y.pk %}"
                     data-row-modal="Yo'nalish kodi::{{ y.kodi }}||Yo'nalish nomi::{{ y.nomi }}||Bilim sohasi::{{ y.bilim_sohasi_kodi }} — {{ y.bilim_sohasi_nomi }}||Ta'lim sohasi::{{ y.talim_sohasi_kodi }} — {{ y.talim_sohasi_nomi }}">
               Ko'rish
             </button>
-            <a class="btn" href="{% url 'office:yonalish_tahrir' y.pk %}">Tahrirlash</a>
+            <a class="btn btn-sm" href="{% url 'office:yonalish_tahrir' y.pk %}">Tahrirlash</a>
             <form method="post" action="{% url 'office:yonalish_ochirish' y.pk %}" style="display:inline"
                   data-modal-title="Ta'lim yo'nalishini o'chirish"
                   data-modal-subtitle="{{ y.kodi }} — {{ y.nomi }}"
@@ -164,13 +201,24 @@
                   data-modal-type="danger"
                   data-modal-btn="Ha, o'chirish">
               {% csrf_token %}
-              <button type="submit" class="btn btn-danger">O'chirish</button>
+              <button type="submit" class="btn btn-ghost-danger btn-sm">O'chirish</button>
             </form>
           </div>
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="5"><div class="empty-state">Ta'lim yo'nalishlari kiritilmagan.</div></td></tr>
+      <tr><td colspan="5">
+        <div class="empty-state empty-state-rich">
+          <div class="empty-state-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </div>
+          <h3 class="empty-state-title">{% if yonalish_q %}Qidiruv bo'yicha yo'nalish topilmadi{% else %}Ta'lim yo'nalishlari kiritilmagan{% endif %}</h3>
+          <p class="empty-state-desc">{% if yonalish_q %}Qidiruv so'zini o'zgartiring yoki tozalang.{% else %}Yo'nalishlarni bitta-bitta qo'shing yoki Excel (.xlsx) fayldan yuklang.{% endif %}</p>
+          {% if yonalish_q %}
+          <a class="btn btn-sm" href="{% url 'office:sozlamalar' %}">Tozalash</a>
+          {% endif %}
+        </div>
+      </td></tr>
       {% endfor %}
     </tbody>
   </table>

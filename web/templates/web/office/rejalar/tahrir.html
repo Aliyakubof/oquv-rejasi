@@ -13,7 +13,7 @@
     <div class="title">{{ reja }}</div>
   </div>
 </div>
-<div class="card">
+<div class="card form-card">
   <form method="post">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
@@ -36,8 +36,10 @@
       <div class="form-field">{% include "web/parts/_maydon.html" with field=form.guruh_prefiksi %}</div>
     </div>
 
-    <button type="submit" class="btn btn-primary">Saqlash</button>
-    <a class="btn" href="{% url 'office:reja_detail' reja.pk %}">Bekor qilish</a>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Saqlash</button>
+      <a class="btn" href="{% url 'office:reja_detail' reja.pk %}">Bekor qilish</a>
+    </div>
   </form>
 </div>
 {% endblock %}

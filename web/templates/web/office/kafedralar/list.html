@@ -21,30 +21,42 @@
     </a>
   </div>
 </div>
-<div x-data="{ qidiruv: '' }">
-  <div class="controls" style="margin-bottom:10px;">
-    {% include "web/parts/_qidiruv.html" with placeholder="Kafedra nomi" aria_label="Kafedra nomi" %}
+<div x-data="{
+  qidiruv: '',
+  mosSoni() {
+    const q = this.qidiruv.toLowerCase();
+    let soni = 0;
+    this.$root.querySelectorAll('tbody#kafedralar-tbody tr[data-nomi]').forEach((tr) => {
+      if (q === '' || (tr.dataset.nomi || '').includes(q)) soni += 1;
+    });
+    return soni;
+  }
+}">
+  <div class="filter-toolbar">
+    <div class="filter-toolbar-left">
+      {% include "web/parts/_qidiruv.html" with placeholder="Kafedra yoki mudir..." aria_label="Kafedra qidirish" %}
+    </div>
   </div>
-  <div class="table-wrap">
+  <div class="table-wrap cards">
     <table>
       <thead>
         <tr>
           <th style="min-width:200px;">Kafedra</th>
           <th style="min-width:180px;">Mudir</th>
-          <th class="col-center" style="width:130px;text-align:center;">O'qituvchilar</th>
-          <th class="col-center" style="width:140px;text-align:center;">Biriktirilgan soat</th>
-          <th class="col-center" style="width:140px;text-align:center;">Taqsimlangan soat</th>
-          <th class="col-center" style="min-width:150px;text-align:center;">Qamrov</th>
-          <th class="col-center" style="width:140px;text-align:center;">Holat</th>
-          <th class="col-center" style="width:90px;text-align:center;">Amallar</th>
+          <th class="col-center" style="width:130px;">O'qituvchilar</th>
+          <th class="col-center" style="width:140px;">Biriktirilgan soat</th>
+          <th class="col-center" style="width:140px;">Taqsimlangan soat</th>
+          <th class="col-center" style="min-width:150px;">Qamrov</th>
+          <th class="col-center" style="width:140px;">Holat</th>
+          <th class="col-center" style="width:90px;">Amallar</th>
         </tr>
       </thead>
       <tbody id="kafedralar-tbody" data-jonli="kafedralar-tbody">
         {% for q in qamrovlar %}
-        <tr data-nomi="{{ q.kafedra.nomi|lower }}"
+        <tr data-nomi="{{ q.kafedra.nomi|lower }} {{ q.kafedra.mudir|default:''|stringformat:'s'|lower }}"
             x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
           <td data-label="Kafedra">
-            <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
+            <button type="button" class="reja-link reja-link-btn"
                     data-modal-title="{{ q.kafedra.nomi }} kafedrasi"
                     data-modal-subtitle="{{ yil }}/{{ yil|add:1 }} o'quv yili yuklama ko'rsatkichlari"
                     data-modal-edit-url="{% url 'office:kafedra_tahrir' q.kafedra.pk %}"
@@ -52,32 +64,45 @@
               <strong>{{ q.kafedra.nomi }}</strong>
             </button>
           </td>
-          <td data-label="Mudir" class="assign-cell cell-relative" x-data="{ ochiq: false, q_m: '' }" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
+          <td data-label="Mudir" class="assign-cell cell-relative"
+              :class="ochiq && 'popover-ochiq'"
+              x-data="jadvalPopover()"
+              @click.outside="yopish()" @keydown.escape.window="yopish()"
+              @scroll.window.capture="skrollYopish($event)" @resize.window="yopish()">
             {% if q.kafedra.mudir %}
-            <button type="button" class="teacher-chip" @click="ochiq = !ochiq">
-              <span class="avatar">{{ q.kafedra.mudir|stringformat:"s"|bosh_harflar }}</span>{{ q.kafedra.mudir }}
+            <button type="button" class="teacher-chip" @click="ochishYopish($el)">
+              <span class="avatar">{{ q.kafedra.mudir|stringformat:"s"|bosh_harflar }}</span><span class="chip-label">{{ q.kafedra.mudir }}</span>
             </button>
             {% else %}
-            <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
+            <button type="button" class="teacher-chip empty" @click="ochishYopish($el)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span>Mudir tayinlash</span>
             </button>
             {% endif %}
-            <div class="popover" x-show="ochiq" x-transition.duration.180ms x-cloak>
-              {% if q.kafedra.oqituvchilar.all %}
-              <input type="text" placeholder="O'qituvchi qidirish" aria-label="O'qituvchi qidirish" x-model="q_m">
-              {% endif %}
-              {% for profil in q.kafedra.oqituvchilar.all %}
-              <form method="post" action="{% url 'office:kafedra_mudir' q.kafedra.pk %}"
-                    x-show="q_m === '' || $el.textContent.toLowerCase().includes(q_m.toLowerCase())">
-                {% csrf_token %}
-                <input type="hidden" name="yil" value="{{ yil }}">
-                <input type="hidden" name="profil" value="{{ profil.pk }}">
-                <button type="submit" class="opt"><span class="avatar">{{ profil|stringformat:"s"|bosh_harflar }}</span>{{ profil }}</button>
-              </form>
-              {% empty %}
-              <div class="hint" style="padding:6px 8px;">Kafedrada o'qituvchi yo'q</div>
-              {% endfor %}
+            <div class="popover popover-fixed" :class="tepagaOchil && 'popover-up'" :style="posStyle" x-ref="popoverOyna" x-show="ochiq"
+                 x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+                 x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+                 x-cloak>
+              {% with oqituvchilar=q.kafedra.oqituvchilar.all %}
+              {% if oqituvchilar %}{% include "web/parts/_popover_qidiruv.html" with placeholder="O'qituvchi qidirish" model="q" %}{% endif %}
+              <div class="popover-scroll-body" x-ref="royxat">
+                {% for profil in oqituvchilar %}
+                <form method="post" action="{% url 'office:kafedra_mudir' q.kafedra.pk %}"
+                      data-nomi="{{ profil|stringformat:'s'|lower }}"
+                      x-show="q.trim() === '' || $el.dataset.nomi.includes(q.trim().toLowerCase())">
+                  {% csrf_token %}
+                  <input type="hidden" name="yil" value="{{ yil }}">
+                  <input type="hidden" name="profil" value="{{ profil.pk }}">
+                  <button type="submit" class="opt"><span class="avatar">{{ profil|stringformat:"s"|bosh_harflar }}</span>{{ profil }}</button>
+                </form>
+                {% empty %}
+                <div class="hint popover-empty-hint">Kafedrada o'qituvchi yo'q</div>
+                {% endfor %}
+                {% if oqituvchilar %}
+                <div class="hint popover-empty-hint" x-show="q.trim() !== '' && mosSoni() === 0" x-cloak>Mos o'qituvchi topilmadi</div>
+                {% endif %}
+              </div>
+              {% endwith %}
               {% if q.kafedra.mudir %}
               <form method="post" action="{% url 'office:kafedra_mudir' q.kafedra.pk %}">
                 {% csrf_token %}
@@ -88,24 +113,24 @@
               {% endif %}
             </div>
           </td>
-          <td class="col-center" data-label="O'qituvchilar" style="text-align:center;">
+          <td class="col-center" data-label="O'qituvchilar">
             <span class="badge-count">{{ q.oqituvchilar_soni }}</span>
           </td>
-          <td class="col-center" data-label="Biriktirilgan soat" style="text-align:center;">
+          <td class="col-center" data-label="Biriktirilgan soat">
             <span class="hour-tag">{{ q.biriktirilgan_soat }} soat</span>
           </td>
-          <td class="col-center" data-label="Taqsimlangan soat" style="text-align:center;">
+          <td class="col-center" data-label="Taqsimlangan soat">
             <span class="hour-tag accent">{{ q.taqsimlangan_soat }} soat</span>
           </td>
           <td class="col-center" data-label="Qamrov">
             {% with f=q.taqsimlangan_soat|foiz:q.biriktirilgan_soat %}
-            <div style="display:flex;align-items:center;gap:8px;">
-              <div class="progress" style="flex:1;" title="{{ f }}%"><div class="fill {% if f < 100 %}warn{% endif %}" data-width="{{ f }}"></div></div>
-              <span class="credits num" style="min-width:38px;text-align:center;font-weight:600;">{{ f }}%</span>
+            <div class="qamrov-cell">
+              <div class="progress" title="{{ f }}%"><div class="fill {% if f < 100 %}warn{% endif %}" data-width="{{ f }}"></div></div>
+              <span class="qamrov-pct">{{ f }}%</span>
             </div>
             {% endwith %}
           </td>
-          <td class="col-center" data-label="Holat" style="text-align:center;">
+          <td class="col-center" data-label="Holat">
             {% if q.tasdiq.holat == "TASDIQLANGAN" %}
               <span class="tag tag-mand">TASDIQLANGAN</span>
             {% elif q.tasdiq.holat == "TASDIQDA" %}
@@ -116,33 +141,15 @@
               <span class="tag tag-draft">QORALAMA</span>
             {% endif %}
           </td>
-          <td class="col-center" data-label="Amallar" style="text-align:center;">
+          <td class="col-center" data-label="Amallar">
             <div class="action-dropdown"
                  :class="ochiq && 'dropdown-ochiq'"
-                 x-data="{
-                   ochiq: false,
-                   pos: { top: '0px', left: '0px' },
-                   ochish(btn) {
-                     if (this.ochiq) {
-                       this.ochiq = false;
-                       return;
-                     }
-                     const rect = btn.getBoundingClientRect();
-                     const menuW = 250;
-                     let l = rect.right - menuW;
-                     if (l < 10) l = 10;
-                     let t = rect.bottom + 6;
-                     if (t + 220 > window.innerHeight) {
-                       t = Math.max(10, rect.top - 200);
-                     }
-                     this.pos = { top: Math.round(t) + 'px', left: Math.round(l) + 'px' };
-                     this.ochiq = true;
-                   }
-                 }"
-                 @click.outside="ochiq = false"
-                 @keydown.escape.window="ochiq = false"
-                 @scroll.window.capture="ochiq = false"
-                 @resize.window="ochiq = false">
+                 x-data="amalMenyu()"
+                 @click.outside="yopish()"
+                 @keydown.escape.window="yopish()"
+                 @scroll.window.capture="skrollYopish($event)"
+                 @resize.window="yopish()"
+                 @action-menu:yopish.window="yopish()">
               <button type="button" class="btn-dots" :class="ochiq && 'active'" @click="ochish($el)" title="Amallar" aria-label="Amallar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <circle cx="12" cy="5" r="2"/>
@@ -152,8 +159,11 @@
               </button>
 
               <div class="action-menu action-menu-fixed"
+                   x-ref="menyuOyna"
+                   :class="tepagaOchil && 'popover-up'"
                    x-show="ochiq"
-                   x-transition.duration.200ms
+                   x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+                   x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
                    x-cloak
                    :style="'top:' + pos.top + '; left:' + pos.left + ';'">
                 <button type="button" class="action-item" @click="ochiq = false"
@@ -168,7 +178,6 @@
                   </svg>
                   <div class="action-text">
                     <span class="action-title">Ma'lumot</span>
-                    <span class="action-desc">Kafedra ko'rsatkichlarini oynada ko'rish</span>
                   </div>
                 </button>
                 <div class="action-divider"></div>
@@ -189,7 +198,6 @@
                       </svg>
                       <div class="action-text">
                         <span class="action-title">Tasdiqlash</span>
-                        <span class="action-desc">Yuklamani tasdiqlash va qulflash</span>
                       </div>
                     </button>
                   </form>
@@ -213,7 +221,6 @@
                       </svg>
                       <div class="action-text">
                         <span class="action-title">Qaytarish</span>
-                        <span class="action-desc">Tuzatish uchun kafedraga qaytarish</span>
                       </div>
                     </button>
                   </form>
@@ -239,7 +246,6 @@
                       </svg>
                       <div class="action-text">
                         <span class="action-title">Qulfni ochish</span>
-                        <span class="action-desc">Qayta tahrirlash uchun qaytarish</span>
                       </div>
                     </button>
                   </form>
@@ -253,7 +259,6 @@
                   </svg>
                   <div class="action-text">
                     <span class="action-title">Tahrirlash</span>
-                    <span class="action-desc">Kafedra nomi va fakultetni o'zgartirish</span>
                   </div>
                 </a>
 
@@ -264,6 +269,7 @@
                       data-modal-type="danger"
                       data-modal-btn="Ha, o'chirish">
                   {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
                   <button type="submit" class="action-item action-item-danger" @click="ochiq = false">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="3 6 5 6 21 6"/>
@@ -271,7 +277,6 @@
                     </svg>
                     <div class="action-text">
                       <span class="action-title">O'chirish</span>
-                      <span class="action-desc">Kafedrani tizimdan o'chirish</span>
                     </div>
                   </button>
                 </form>
@@ -280,9 +285,32 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8"><div class="empty-state">Kafedralar hali yaratilmagan.</div></td></tr>
+        <tr><td colspan="8">
+          <div class="empty-state empty-state-rich">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 3l10 7H2l10-7z"/></svg>
+            </div>
+            <h3 class="empty-state-title">Kafedralar hali yaratilmagan</h3>
+            <p class="empty-state-desc">O'qituvchilar va yuklamalarni boshqarish uchun birinchi kafedrani qo'shing.</p>
+            <a class="btn btn-primary btn-sm" href="{% url 'office:kafedra_yangi' %}">Yangi kafedra</a>
+          </div>
+        </td></tr>
         {% endfor %}
       </tbody>
+      {% if qamrovlar %}
+      <tbody x-show="qidiruv !== '' && mosSoni() === 0" x-cloak>
+        <tr><td colspan="8">
+          <div class="empty-state empty-state-rich empty-state-filtered">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            </div>
+            <h3 class="empty-state-title">Qidiruv bo'yicha kafedra topilmadi</h3>
+            <p class="empty-state-desc">Qidiruv so'zini tozalab qayta urinib ko'ring.</p>
+            <button type="button" class="btn btn-sm" @click="qidiruv = ''">Qidiruvni tozalash</button>
+          </div>
+        </td></tr>
+      </tbody>
+      {% endif %}
     </table>
   </div>
 </div>

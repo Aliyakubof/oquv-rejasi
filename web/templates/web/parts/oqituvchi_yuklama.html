@@ -15,7 +15,7 @@
       <span class="badge-major">{{ profil.kafedra.nomi }}</span>
     </div>
     <div class="subtitle">
-      {{ profil.turi.nomi }} · Minimal norma: {{ profil.turi.min_soat }} soat · {{ profil.foydalanuvchi.telefon }}
+      {{ profil.turi.nomi|capfirst }} · Minimal norma: {{ profil.turi.min_soat }} soat · {{ profil.foydalanuvchi.telefon }}
     </div>
   </div>
   <div class="controls">
@@ -54,7 +54,7 @@
 
 <div class="stats wide stats-compact print-hide" data-jonli="oqituvchi-yuklama-summary">
   <div class="stat"><div class="num">{{ jami_soat }}</div><div class="lbl">Jami yuklama soat</div></div>
-  <div class="stat"><div class="num">{{ profil.turi.min_soat }}</div><div class="lbl">Minimal norma ({{ profil.turi.nomi }})</div></div>
+  <div class="stat"><div class="num">{{ profil.turi.min_soat }}</div><div class="lbl">Minimal norma ({{ profil.turi.nomi|capfirst }})</div></div>
   <div class="stat {% if kamomad %}warn{% else %}ok{% endif %}">
     <div class="num">{{ jami_soat|foiz:profil.turi.min_soat }}%</div>
     <div class="lbl">Qoplanish</div>
@@ -75,21 +75,22 @@
 
 <div class="report-sheet">
   <div class="letterhead">
-    <div class="letterhead-kicker">1-SHAKL (O'QUV YUKLAMASI)</div>
+    <div class="letterhead-kicker" x-text="tab === 'shakl1' ? '1-SHAKL (O\'QUV YUKLAMASI)' : 'BATAFSIL YUKLAMA RO\'YXATI'">1-SHAKL (O'QUV YUKLAMASI)</div>
     <h1>{{ profil }} — {{ yil }}/{{ yil|add:1 }} o'quv yili shaxsiy ish rejasi</h1>
-    <div class="sana">Kafedra: {{ profil.kafedra.nomi }} · Lavozim: {{ profil.turi.nomi }} · Telefon: {{ profil.foydalanuvchi.telefon }} · Jami: {{ jami_soat }} / {{ profil.turi.min_soat }} soat</div>
+    <div class="sana">Kafedra: {{ profil.kafedra.nomi }} · Lavozim: {{ profil.turi.nomi|capfirst }} · Telefon: {{ profil.foydalanuvchi.telefon }} · Jami: {{ jami_soat }} / {{ profil.turi.min_soat }} soat</div>
   </div>
 
   {# 1-shakl: rasmiy ta'lim standarti jadvali #}
-  <div class="table-wrap cards" x-show="tab === 'shakl1'">
+  <div class="table-wrap cards table-shakl1" x-show="tab === 'shakl1'"
+       x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
     <table>
       <thead>
         <tr>
           <th class="col-center" style="width:44px;">№</th>
           <th>Fan nomi</th>
-          <th class="col-center" style="width:120px;">Yo'nalish</th>
-          <th class="col-center" style="width:80px;">Kurs</th>
-          <th class="col-center" style="width:80px;">Sem.</th>
+          <th class="col-center col-yonalish">Yo'nalish</th>
+          <th class="col-center col-kurs">Kurs</th>
+          <th class="col-center col-sem">Sem.</th>
           <th class="col-center">Guruh / Oqim</th>
           <th class="col-center">Ma'ruza</th>
           <th class="col-center">Amaliyot</th>
@@ -129,7 +130,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
             </div>
             <div class="empty-state-title">Bu o'quv yili uchun yuklama taqsimlanmagan</div>
-            <div class="empty-state-desc">O'qituvchiga fanlar biriktirilgach, 1-shakl individual ish rejasi shu yerda shakllanadi.</div>
+            <div class="empty-state-desc">Fanlar biriktirilgach, 1-shakl reja shu yerda chiqadi.</div>
           </div>
         </td></tr>
         {% endfor %}
@@ -146,7 +147,8 @@
   </div>
 
   {# Batafsil ro'yxat #}
-  <div class="table-wrap cards" x-show="tab === 'royxat'" x-cloak>
+  <div class="table-wrap cards" x-show="tab === 'royxat'" x-cloak
+       x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
     <table data-jonli="oqituvchi-yuklama-jadval">
       <thead>
         <tr>
@@ -164,8 +166,10 @@
         <tr>
           <td class="col-center" data-label="№" style="color:var(--text-muted);font-weight:600;">{{ forloop.counter }}</td>
           <td data-label="Fan">
-            {% if yuklama.fan_semestr.variant.kodi %}<span class="code">{{ yuklama.fan_semestr.variant.kodi }}</span>{% endif %}
-            <strong>{{ yuklama.fan_semestr.variant.nomi }}</strong>
+            <span class="cell-val">
+              {% if yuklama.fan_semestr.variant.kodi %}<span class="code">{{ yuklama.fan_semestr.variant.kodi }}</span>{% endif %}
+              <strong>{{ yuklama.fan_semestr.variant.nomi }}</strong>
+            </span>
           </td>
           <td class="col-center" data-label="Yo'nalish"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
           <td class="col-center" data-label="Semestr"><span class="hour-tag">{{ yuklama.fan_semestr.semestr }}-semestr</span></td>
@@ -186,7 +190,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
             </div>
             <div class="empty-state-title">Bu o'quv yilida o'qituvchiga yuklama taqsimlanmagan</div>
-            <div class="empty-state-desc">Fan taqsimlash sahifasidan o'qituvchiga mashg'ulot biriktirishingiz mumkin.</div>
+            <div class="empty-state-desc">Fan taqsimlashdan mashg'ulot biriktiring.</div>
           </div>
         </td></tr>
         {% endfor %}

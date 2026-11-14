@@ -1,8 +1,10 @@
 {% load ui %}
-<div class="popover popover-kafedra" x-show="ochiq" x-transition x-cloak
-     x-data="{
+<div class="popover popover-kafedra" x-show="ochiq" x-transition:enter="anim-pop-enter"
+  x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end" x-transition:leave="anim-pop-leave"
+  x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start" x-cloak x-data="{
        faqatKamomad: false,
        tepagaOchil: false,
+       ongaOchil: false,
        mosOqituvchiBor() {
          const body = this.$refs.scrollBody;
          if (!body) return true;
@@ -12,24 +14,35 @@
            (qLower === '' || (el.dataset.ism || '').includes(qLower))
          );
        }
-     }"
-     :class="tepagaOchil && 'popover-up'"
-     x-effect="if (ochiq) { $nextTick(() => { $refs.qidiruvInput?.focus(); const dialog = $el.closest('.table-modal-dialog'); const rect = $el.parentElement.getBoundingClientRect(); const bottomBound = dialog ? dialog.getBoundingClientRect().bottom : window.innerHeight; const topBound = dialog ? dialog.getBoundingClientRect().top : 0; tepagaOchil = (bottomBound - rect.bottom) < 280 && (rect.top - topBound) > 220; }); } else { tepagaOchil = false; }">
+     }" :class="[tepagaOchil && 'popover-up', ongaOchil && 'popover-right']"
+  x-effect="if (ochiq) { $nextTick(() => { $refs.qidiruvInput?.focus(); const dialog = $el.closest('.table-modal-dialog'); const dRect = dialog ? dialog.getBoundingClientRect() : null; const rect = $el.parentElement.getBoundingClientRect(); const bottomBound = dRect ? dRect.bottom : window.innerHeight; const topBound = dRect ? dRect.top : 0; const rightBound = dRect ? dRect.right : window.innerWidth; const leftBound = dRect ? dRect.left : 0; const popW = $el.offsetWidth || 310; tepagaOchil = (bottomBound - rect.bottom) < 280 && (rect.top - topBound) > 220; ongaOchil = (rightBound - rect.left) < popW && (rect.right - leftBound) >= popW; }); } else { tepagaOchil = false; ongaOchil = false; }">
   {% if bulk_mode %}
   <div class="popover-bulk-head">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+      aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="8.5" cy="7" r="4" />
+      <polyline points="17 11 19 13 23 9" />
+    </svg>
     <span>Barcha bo'sh guruhlarga biriktirish</span>
   </div>
   {% endif %}
   <div class="popover-search-wrap">
     <div class="popover-input-box">
-      <input type="text" x-ref="qidiruvInput" placeholder="O'qituvchi qidirish..." aria-label="O'qituvchi qidirish" x-model="q">
-      <button type="button" class="search-clear" x-show="q !== ''" x-cloak @click="q = ''; $refs.qidiruvInput?.focus()" aria-label="Qidiruvni tozalash" title="Tozalash">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <input type="text" x-ref="qidiruvInput" placeholder="O'qituvchi qidirish..." aria-label="O'qituvchi qidirish"
+        x-model="q">
+      <button type="button" class="search-clear" x-show="q !== ''" x-cloak @click="q = ''; $refs.qidiruvInput?.focus()"
+        aria-label="Qidiruvni tozalash" title="Tozalash">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"
+          aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
       </button>
     </div>
     <div class="popover-filter-row">
-      <button type="button" class="chip-btn popover-filter-chip" :class="faqatKamomad && 'active'" @click="faqatKamomad = !faqatKamomad">
+      <button type="button" class="chip-btn popover-filter-chip" :class="faqatKamomad && 'active'"
+        @click="faqatKamomad = !faqatKamomad">
         <span x-text="faqatKamomad ? '✓ Faqat kamomadli' : 'Faqat kamomadli'"></span>
       </button>
       <span class="credits">Jami: {{ oqituvchilar|length }} ta</span>
@@ -37,35 +50,31 @@
   </div>
   <div class="popover-scroll-body" x-ref="scrollBody">
     {% for profil in oqituvchilar %}
-    <button type="button" class="opt"
-            data-kamomad="{% if profil.kamomad %}1{% else %}0{% endif %}"
-            data-ism="{{ profil|lower }} {{ profil.turi.nomi|lower }}"
-            x-show="(!faqatKamomad || {{ profil.kamomad|yesno:'true,false' }}) && (q === '' || $el.textContent.toLowerCase().includes(q.toLowerCase()))"
-            hx-post="{% url url_nomi fs.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
-            {% if bulk_mode %}
-            hx-vals='{"oqituvchi": {{ profil.pk }}, "tur": "{{ holat_tur }}"}'
-            {% elif slot_guruh %}
-            hx-vals='{"oqituvchi": {{ profil.pk }}, "guruh": {{ slot_guruh.pk }}, "tur": "{{ holat_tur }}"}'
-            {% else %}
-            hx-vals='{"oqituvchi": {{ profil.pk }}}'
-            {% endif %}
-            hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
+    <button type="button" class="opt" data-kamomad="{% if profil.kamomad %}1{% else %}0{% endif %}"
+      data-ism="{{ profil|lower }} {{ profil.turi.nomi|lower }}"
+      x-show="(!faqatKamomad || {{ profil.kamomad|yesno:'true,false' }}) && (q === '' || ($el.dataset.ism || '').includes(q.toLowerCase()))"
+      hx-post="{% url url_nomi fs.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}" {% if bulk_mode %}
+      hx-vals='{"oqituvchi": {{ profil.pk }}, "tur": "{{ holat_tur }}"}' {% elif slot_guruh %}
+      hx-vals='{"oqituvchi": {{ profil.pk }}, "guruh": {{ slot_guruh.pk }}, "tur": "{{ holat_tur }}"}' {% else %}
+      hx-vals='{"oqituvchi": {{ profil.pk }}}' {% endif %} hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML"
+      hx-disabled-elt="this">
       <span class="avatar">{{ profil|stringformat:"s"|bosh_harflar }}</span>
       <span class="opt-info">
         <span class="opt-ism">{{ profil }}</span>
-        <span class="opt-lavozim">{{ profil.turi.nomi }}</span>
+        <span class="opt-lavozim">{{ profil.turi.nomi|capfirst }}</span>
       </span>
       {% if profil.tolganmi %}
-      <span class="menu-soat ok" title="Norma to'liq bajarilgan: {{ profil.jami_soat }}/{{ profil.turi.min_soat }} soat">✓ {{ profil.jami_soat }} s</span>
+      <span class="menu-soat ok"
+        title="Norma to'liq bajarilgan: {{ profil.jami_soat }}/{{ profil.turi.min_soat }} soat">✓ {{ profil.jami_soat }} s</span>
       {% else %}
       <span class="menu-soat kam" title="Normagacha {{ profil.kamomad }} soat kam">{{ profil.jami_soat }} / {{ profil.turi.min_soat }} (-{{ profil.kamomad }}s)</span>
       {% endif %}
     </button>
     {% empty %}
-    <div class="hint" style="padding:8px;">Kafedrada o'qituvchi yo'q</div>
+    <div class="hint popover-empty-hint">Kafedrada o'qituvchi yo'q</div>
     {% endfor %}
     {% if oqituvchilar %}
-    <div class="hint" style="padding:8px;" x-show="(q !== '' || faqatKamomad) && !mosOqituvchiBor()" x-cloak>
+    <div class="hint popover-empty-hint" x-show="(q !== '' || faqatKamomad) && !mosOqituvchiBor()" x-cloak>
       Mos o'qituvchi topilmadi
     </div>
     {% endif %}

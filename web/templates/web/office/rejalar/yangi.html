@@ -1,6 +1,7 @@
 {% extends "web/base.html" %}
 {% block title %}Yangi o'quv reja{% endblock %}
 {% block content %}
+<div class="form-shell">
 <nav class="breadcrumb" aria-label="Breadcrumb">
   <a href="{% url 'office:reja_list' %}">O'quv rejalar</a>
   <span class="sep">/</span>
@@ -11,7 +12,7 @@
     <div class="title">Yangi o'quv reja</div>
   </div>
 </div>
-<div class="card">
+<div class="card form-card">
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
@@ -27,8 +28,11 @@
       <div class="form-field form-field-wide">{% include "web/parts/_maydon.html" with field=form.replace %}</div>
     </div>
 
-    <button type="submit" class="btn btn-primary">Import qilish</button>
-    <a class="btn" href="{% url 'office:reja_list' %}">Bekor qilish</a>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Import qilish</button>
+      <a class="btn" href="{% url 'office:reja_list' %}">Bekor qilish</a>
+    </div>
   </form>
+</div>
 </div>
 {% endblock %}

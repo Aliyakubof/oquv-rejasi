@@ -25,6 +25,7 @@ from web.mixins import (
     musbat_int_yoki_none,
     office_admin_talab,
     xato_matni,
+    xavfsiz_qaytish,
 )
 
 
@@ -96,7 +97,7 @@ def kafedra_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
             f"{kafedra.nomi} kafedrasida o'qituvchilar yoki fanlar bor — "
             "avval ularni boshqa kafedraga ko'chiring.",
         )
-    return redirect("office:kafedra_list")
+    return xavfsiz_qaytish(request, "office:kafedra_list")
 
 
 @require_POST
@@ -139,7 +140,7 @@ def kafedra_mudir(request: HttpRequest, pk: int) -> HttpResponse:
     _, yil = yilni_tanlash(request.POST.get("yil"))
     if yil:
         return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
-    return redirect("office:kafedra_list")
+    return xavfsiz_qaytish(request, "office:kafedra_list")
 
 
 @require_POST

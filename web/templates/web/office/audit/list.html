@@ -3,62 +3,70 @@
 {% block content %}
 <div class="topbar">
   <div>
-    <div class="title">Audit jurnali (O'zgarishlar tarixi)</div>
+    <div class="title">Audit jurnali</div>
   </div>
-  <div class="controls">
-    <form method="get" class="audit-filter-form">
-      <select name="amal" aria-label="Amal turi" onchange="this.form.requestSubmit()">
-        <option value="">Barcha amallar</option>
-        {% for kod, label in amallar %}
-        <option value="{{ kod }}" {% if kod == tanlangan_amal %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <div class="search">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input type="text" name="q" placeholder="Qidirish..." value="{{ q }}" aria-label="Audit qidirish">
-      </div>
-      <button type="submit" class="btn">Qidirish</button>
-      {% if tanlangan_amal or q %}
-      <a href="{% url 'office:audit_list' %}" class="btn">Tozalash</a>
-      {% endif %}
-    </form>
-  </div>
+</div>
+
+<div class="filter-toolbar">
+  <form method="get" class="filter-toolbar-left audit-filter-form" x-data="{ val: '{{ q|escapejs }}' }">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" name="q" x-model="val" x-ref="qInput" placeholder="Tavsifdan qidirish..." value="{{ q }}" aria-label="Audit qidirish">
+      <button type="button" class="search-clear" x-show="(val || '').length > 0" x-cloak
+              @click="val = ''; $nextTick(() => $refs.qInput.form.requestSubmit())"
+              aria-label="Qidiruvni tozalash" title="Tozalash">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <select name="amal" aria-label="Amal turi" onchange="this.form.requestSubmit()">
+      <option value="">Barcha amallar</option>
+      {% for kod, label in amallar %}
+      <option value="{{ kod }}" {% if kod == tanlangan_amal %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm">Qidirish</button>
+    {% if tanlangan_amal or q %}
+    <a href="{% url 'office:audit_list' %}" class="btn btn-sm">Tozalash</a>
+    {% endif %}
+  </form>
 </div>
 
 <div class="table-wrap narrow cards">
   <table>
     <thead>
       <tr>
-        <th style="width:160px;">Vaqt</th>
+        <th style="width:155px;">Vaqt</th>
         <th>Foydalanuvchi</th>
-        <th>Amal</th>
+        <th>Hodisa</th>
         <th>Obyekt</th>
         <th>Tafsilot</th>
         <th>IP manzil</th>
-        <th class="col-center" style="width:110px;">Amal</th>
+        <th class="col-center" style="width:105px;">Amal</th>
       </tr>
     </thead>
     <tbody>
       {% for y in yozuvlar %}
       <tr>
-        <td data-label="Vaqt" style="white-space:nowrap;color:var(--text-secondary);font-size:12.5px;">
-          {{ y.vaqt|date:"d.m.Y H:i:s" }}
+        <td data-label="Vaqt" class="col-nowrap">
+          <span class="audit-vaqt">{{ y.vaqt|date:"d.m.Y H:i:s" }}</span>
         </td>
         <td data-label="Foydalanuvchi">
           {% if y.foydalanuvchi %}
-            <strong>{{ y.foydalanuvchi.get_full_name }}</strong>
-            <span class="credits">({{ y.foydalanuvchi.telefon }})</span>
+            <div class="cell-stack">
+              <strong class="cell-stack-main">{{ y.foydalanuvchi.get_full_name }}</strong>
+              <span class="cell-stack-sub">{{ y.foydalanuvchi.telefon }}</span>
+            </div>
           {% else %}
-            <span style="color:var(--text-muted);">Tizim</span>
+            <span class="muted">Tizim</span>
           {% endif %}
         </td>
-        <td data-label="Amal">
+        <td data-label="Hodisa">
           {% if y.amal == "YARATILDI" %}<span class="tag tag-mand">YARATILDI</span>
           {% elif y.amal == "OCHIRILDI" %}<span class="tag tag-rad">O'CHIRILDI</span>
           {% elif y.amal == "TASDIQLANDI" %}<span class="tag tag-mand">TASDIQLANDI</span>
           {% elif y.amal == "QAYTARILDI" %}<span class="tag tag-rad">QAYTARILDI</span>
-          {% elif y.amal == "TASDIQ_YUBORILDI" %}<span class="tag tag-elec">TASDIQQA YUBORILDI</span>
-          {% else %}<span class="tag">{{ y.get_amal_display }}</span>{% endif %}
+          {% elif y.amal == "TASDIQ_YUBORILDI" or y.amal == "TAHRIRLANDI" %}<span class="tag tag-elec">{{ y.get_amal_display }}</span>
+          {% else %}<span class="tag tag-draft">{{ y.get_amal_display }}</span>{% endif %}
         </td>
         <td data-label="Obyekt">
           <span class="code">{{ y.model_nomi }}</span>
@@ -66,11 +74,11 @@
         <td data-label="Tafsilot">
           {{ y.tavsif }}
         </td>
-        <td data-label="IP manzil" style="font-size:12px;color:var(--text-muted);">
-          {{ y.ip_manzil|default:"—" }}
+        <td data-label="IP manzil">
+          <span class="audit-ip">{{ y.ip_manzil|default:"—" }}</span>
         </td>
-        <td class="col-center" data-label="Amal">
-          <button type="button" class="btn"
+        <td class="col-center col-nowrap" data-label="Amal">
+          <button type="button" class="btn btn-sm"
                   data-modal-title="Audit yozuvi #{{ y.pk }}"
                   data-modal-subtitle="{{ y.vaqt|date:'d.m.Y H:i:s' }}"
                   data-row-modal="Vaqt::{{ y.vaqt|date:'d.m.Y H:i:s' }}||Foydalanuvchi::{% if y.foydalanuvchi %}{{ y.foydalanuvchi.get_full_name }} ({{ y.foydalanuvchi.telefon }}){% else %}Tizim{% endif %}||Amal turi::{{ y.get_amal_display }}||Obyekt modeli::{{ y.model_nomi }} (ID: {{ y.obyekt_id|default:'—' }})||IP manzil::{{ y.ip_manzil|default:'—' }}||Tafsilot::{{ y.tavsif }}">
@@ -79,25 +87,33 @@
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="7"><div class="empty-state">Audit yozuvlari topilmadi.</div></td></tr>
+      <tr><td colspan="7">
+        <div class="empty-state empty-state-rich">
+          <div class="empty-state-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <h3 class="empty-state-title">Audit yozuvlari topilmadi</h3>
+          <p class="empty-state-desc">Filtr shartlariga mos yozuv yo'q yoki tizimda hali hodisa qayd etilmagan.</p>
+        </div>
+      </td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% if is_paginated %}
-<div class="controls" style="justify-content:space-between;margin-top:14px;">
+<div class="sahifalash">
   <span class="credits">
     Sahifa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} (Jami: {{ page_obj.paginator.count }} ta yozuv)
   </span>
   <div class="controls">
     {% if page_obj.has_previous %}
-    <a class="btn" href="?page={{ page_obj.previous_page_number }}{% if tanlangan_amal %}&amal={{ tanlangan_amal }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}">
+    <a class="btn btn-sm" href="?page={{ page_obj.previous_page_number }}{% if tanlangan_amal %}&amal={{ tanlangan_amal }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
       <span>Oldingi</span>
     </a>
     {% endif %}
     {% if page_obj.has_next %}
-    <a class="btn" href="?page={{ page_obj.next_page_number }}{% if tanlangan_amal %}&amal={{ tanlangan_amal }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}">
+    <a class="btn btn-sm" href="?page={{ page_obj.next_page_number }}{% if tanlangan_amal %}&amal={{ tanlangan_amal }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}">
       <span>Keyingi</span>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
     </a>

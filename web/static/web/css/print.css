@@ -49,26 +49,102 @@
   text-align: center;
 }
 
+@media screen and (max-width: 640px) {
+  .signatures {
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 22px;
+    margin-bottom: 12px;
+  }
+
+  .signatures .line {
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+  }
+}
+
 @media print {
-  @page { size: A4 landscape; margin: 12mm 10mm; }
-  body { background: #fff; font-size: 11px; }
-  .navbar, .test-rejimi, .messages, .print-toolbar, .print-hide, .subtoolbar, .search-clear { display: none !important; }
-  .print-only { display: block !important; }
-  .app { max-width: none; padding: 0; }
-  .report-sheet { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; }
-  .letterhead { border-bottom: 0; padding-bottom: 0; margin-bottom: 12px; }
-  .table-wrap { max-height: none; overflow: visible; border: 0; box-shadow: none; }
-  table { min-width: 0 !important; width: 100%; font-size: 10.5px; }
-  th, td { padding: 5px 6px !important; }
-  thead th { position: static; }
-  tr { page-break-inside: avoid; }
-  .progress { display: none; }
+  @page {
+    size: A4 landscape;
+    margin: 12mm 10mm;
+  }
+
+  body {
+    background: #fff;
+    font-size: 11px;
+  }
+
+  .navbar,
+  .test-rejimi,
+  .messages,
+  .print-toolbar,
+  .print-hide,
+  .subtoolbar,
+  .search-clear {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .app {
+    max-width: none;
+    padding: 0;
+  }
+
+  .report-sheet {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .letterhead {
+    border-bottom: 0;
+    padding-bottom: 0;
+    margin-bottom: 12px;
+  }
+
+  .table-wrap {
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+  }
+
+  table {
+    min-width: 0 !important;
+    width: 100%;
+    font-size: 10.5px;
+  }
+
+  th,
+  td {
+    padding: 5px 6px !important;
+  }
+
+  thead th {
+    position: static;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  .progress {
+    display: none;
+  }
+
   .signatures {
     flex-wrap: nowrap;
     gap: 16px;
     margin-top: 20px;
     page-break-inside: avoid;
   }
+
   .signatures .line {
     border-top-color: #000;
     color: #000;

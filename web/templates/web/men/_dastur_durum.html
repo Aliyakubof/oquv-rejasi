@@ -1,34 +1,17 @@
 {% with joriy=variant.dastur_topshirishlari.all.0 %}
 <div class="dastur-durum-cell"
-     x-data="{
-       ochiq: false,
-       pos: { top: '0px', left: '0px' },
-       ochish(btn) {
-         if (this.ochiq) {
-           this.ochiq = false;
-           return;
-         }
-         const rect = btn.getBoundingClientRect();
-         const menuW = 240;
-         let l = rect.right - menuW;
-         if (l < 10) l = 10;
-         let t = rect.bottom + 6;
-         if (t + 160 > window.innerHeight) {
-           t = Math.max(10, rect.top - 150);
-         }
-         this.pos = { top: Math.round(t) + 'px', left: Math.round(l) + 'px' };
-         this.ochiq = true;
-       }
-     }"
-     @scroll.window.capture="ochiq = false"
-     @resize.window="ochiq = false">
+     x-data="amalMenyu()"
+     @keydown.escape.window="yopish()"
+     @scroll.window.capture="skrollYopish($event)"
+     @resize.window="yopish()"
+     @action-menu:yopish.window="yopish()">
   {# Status badge — clicking opens the panel #}
   <button type="button" class="status-btn"
           hx-get="{% url 'men:dastur_tarixi' variant.pk %}"
           hx-target="#dastur-panel-{{ variant.pk }}"
           hx-swap="innerHTML"
           hx-indicator="#htmx-yuklanish"
-          hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }"
+          hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { yopishTableModal(p); event.preventDefault(); }"
           title="Topshirish va tarixni ko'rish">
     {% if joriy %}
       {% if joriy.holat == "QABUL_QILINDI" %}
@@ -56,7 +39,7 @@
   </button>
 
   {# 3-dots action menu #}
-  <div class="action-dropdown" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
+  <div class="action-dropdown" :class="ochiq && 'dropdown-ochiq'" @click.outside="yopish()">
     <button type="button" class="btn-dots" :class="ochiq && 'active'" @click="ochish($el)" title="Amallar" aria-label="Amallar">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
         <circle cx="12" cy="5" r="2"/>
@@ -66,8 +49,11 @@
     </button>
 
     <div class="action-menu action-menu-fixed"
+         x-ref="menyuOyna"
+         :class="tepagaOchil && 'popover-up'"
          x-show="ochiq"
-         x-transition.duration.200ms
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
          x-cloak
          :style="'top:' + pos.top + '; left:' + pos.left + ';'">
       <a class="action-item" href="{% url 'men:dastur' variant.pk %}" hx-boost="false" @click="ochiq = false">
@@ -78,7 +64,6 @@
         </svg>
         <div class="action-text">
           <span class="action-title">Shablon (.docx)</span>
-          <span class="action-desc">Tayyor shablonni yuklab olish</span>
         </div>
       </a>
 
@@ -88,7 +73,7 @@
               hx-swap="innerHTML"
               hx-indicator="#htmx-yuklanish"
               @click="ochiq = false"
-              hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { p.innerHTML = ''; event.preventDefault(); }">
+              hx-on::before-request="const p = document.getElementById('dastur-panel-{{ variant.pk }}'); if (p && p.innerHTML.trim() !== '') { yopishTableModal(p); event.preventDefault(); }">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
@@ -97,7 +82,6 @@
         </svg>
         <div class="action-text">
           <span class="action-title">Topshirish va tarix</span>
-          <span class="action-desc">Fayl yuklash yoki natijalarni ko'rish</span>
         </div>
       </button>
     </div>

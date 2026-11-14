@@ -1,5 +1,5 @@
 <div class="table-modal-backdrop" onclick="if(event.target===this) yopishTableModal('dastur-panel-{{ variant.pk }}')">
-<div class="table-modal-dialog taqsimot-panel" role="dialog" aria-modal="true">
+<div class="table-modal-dialog taqsimot-panel" role="dialog" aria-modal="true" aria-label="{{ variant.nomi }} o'quv dasturi topshirig'i">
   <div class="taqsimot-panel-head">
     <div>
       <div class="taqsimot-panel-title">
@@ -7,24 +7,33 @@
         {{ variant.nomi }} — o'quv dasturi topshirig'i
       </div>
     </div>
-    <button type="button" class="btn" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')" style="display:inline-flex;align-items:center;gap:6px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      <span>Yopish</span>
+    <button type="button" class="app-modal-close" aria-label="Yopish" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
   {% if xato %}
   <div class="form-errors">{{ xato }}</div>
   {% endif %}
   {% include "web/dastur/_tarix_royxati.html" with urinishlar=urinishlar fayl_url_nomi="men:dastur_fayl" %}
-  {% if joriy.holat == "KUTILMOQDA" %}
-  <div class="credits" style="margin-top:10px;">Joriy topshiriq hali ko'rib chiqilmoqda — javob kutilsin.</div>
-  {% else %}
-  <form method="post" hx-post="{% url 'men:dastur_topshirish' variant.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
-        enctype="multipart/form-data" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    {% csrf_token %}
-    <input type="file" name="fayl" accept=".docx" aria-label="O'quv dasturi (.docx)" required>
-    <button type="submit" class="btn btn-primary">Topshirish</button>
-  </form>
-  {% endif %}
+  <div class="taqsimot-panel-foot tarix-panel-foot">
+    {% if joriy.holat == "KUTILMOQDA" %}
+    <div class="credits">Joriy topshiriq hali ko'rib chiqilmoqda — javob kutilsin.</div>
+    {% else %}
+    <form method="post" hx-post="{% url 'men:dastur_topshirish' variant.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
+          enctype="multipart/form-data" class="tarix-qaror-actions">
+      {% csrf_token %}
+      <div class="file-picker file-picker-compact">
+        <input type="file" name="fayl" accept=".docx" aria-label="O'quv dasturi (.docx)" class="file-picker-input" required>
+        <span class="file-picker-btn" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Fayl tanlash</span>
+        </span>
+        <span class="file-picker-name" data-empty="Fayl tanlanmagan">Fayl tanlanmagan</span>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Topshirish</button>
+    </form>
+    {% endif %}
+    <button type="button" class="btn btn-sm" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')">Yopish</button>
+  </div>
 </div>
 </div>

@@ -5,7 +5,7 @@ from collections.abc import Callable
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 
@@ -54,6 +54,8 @@ class ParolAlmashtirishMajburiyMiddleware:
             and not self._ruxsat_etilgan_yolmi(request.path_info)
         ):
             parol_url = reverse("parol_ozgartirish")
+            if request.path_info == reverse("jonli_holat"):
+                return JsonResponse({"manzil": parol_url}, status=403)
             if request.headers.get("HX-Request"):
                 javob = HttpResponse(status=401)
                 javob["HX-Redirect"] = parol_url

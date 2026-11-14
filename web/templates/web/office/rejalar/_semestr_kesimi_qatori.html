@@ -1,8 +1,8 @@
 {% load ui %}
 <tr class="{% if satr.biriktirilmagan %}qator-biriktirilmagan{% endif %}">
-  <td class="col-idx">{{ satr.fan.raqam }}</td>
-  <td class="col-code"><span class="code">{{ satr.variant.kodi|default:"—" }}</span></td>
-  <td class="col-name">
+  <td class="col-idx" data-label="№">{{ satr.fan.raqam }}</td>
+  <td class="col-code" data-label="Kod"><span class="code">{{ satr.variant.kodi|default:"—" }}</span></td>
+  <td class="col-name" data-label="Fan">
     <div class="fan-nomi-wrap">
       <span class="fan-nomi">{{ satr.variant.nomi }}</span>
       <span class="fan-teglar">
@@ -11,12 +11,12 @@
       </span>
     </div>
   </td>
-  <td class="col-num num credits">{% if satr.fan_semestr.kredit %}{{ satr.fan_semestr.kredit }} kr{% else %}—{% endif %}</td>
-  <td class="col-num num">{% if satr.fan_semestr.maruza_soat %}{{ satr.fan_semestr.maruza_soat }}{% else %}—{% endif %}</td>
-  <td class="col-num num">{% if satr.fan_semestr.amaliyot_soat %}{{ satr.fan_semestr.amaliyot_soat }}{% else %}—{% endif %}</td>
-  <td class="col-num num">{% if satr.fan_semestr.laboratoriya_soat %}{{ satr.fan_semestr.laboratoriya_soat }}{% else %}—{% endif %}</td>
-  <td class="col-num num">{% if satr.fan_semestr.seminar_soat %}{{ satr.fan_semestr.seminar_soat }}{% else %}—{% endif %}</td>
-  <td class="col-num num">
+  <td class="col-num num credits" data-label="Kredit">{% if satr.fan_semestr.kredit %}{{ satr.fan_semestr.kredit }} kr{% else %}—{% endif %}</td>
+  <td class="col-num num" data-label="Ma'ruza">{% if satr.fan_semestr.maruza_soat %}{{ satr.fan_semestr.maruza_soat }}{% else %}—{% endif %}</td>
+  <td class="col-num num" data-label="Amaliyot">{% if satr.fan_semestr.amaliyot_soat %}{{ satr.fan_semestr.amaliyot_soat }}{% else %}—{% endif %}</td>
+  <td class="col-num num" data-label="Laboratoriya">{% if satr.fan_semestr.laboratoriya_soat %}{{ satr.fan_semestr.laboratoriya_soat }}{% else %}—{% endif %}</td>
+  <td class="col-num num" data-label="Seminar">{% if satr.fan_semestr.seminar_soat %}{{ satr.fan_semestr.seminar_soat }}{% else %}—{% endif %}</td>
+  <td class="col-num num" data-label="Kurs ishi">
     {% if satr.fan_semestr.kurs_ishi_bor %}
     <span class="badge-dot-check" title="Kurs ishi bor">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ok);vertical-align:middle;" aria-label="Kurs ishi bor"><polyline points="20 6 9 17 4 12"/></svg>
@@ -25,46 +25,64 @@
     <span class="muted">—</span>
     {% endif %}
   </td>
-  <td class="col-kafedra assign-cell cell-relative" :class="ochiq_k && 'popover-ochiq'" x-data="{ ochiq_k: false, q_k: '' }" x-effect="if (ochiq_k) $nextTick(() => $refs.qidiruvInput?.focus())" @click.outside="ochiq_k = false" @keydown.escape.window="ochiq_k = false">
+  <td class="col-kafedra assign-cell cell-relative" data-label="Kafedra" :class="ochiq_k && 'popover-ochiq'" x-data="jadvalPopover({ ochiq: 'ochiq_k', q: 'q_k' })"
+      @click.outside="yopish()" @keydown.escape.window="yopish()"
+      @scroll.window.capture="skrollYopish($event)" @resize.window="yopish()">
     {% if satr.tanlanmagan %}
-    <button type="button" class="teacher-chip empty" @click="ochiq_k = !ochiq_k">Variant tanlanmagan</button>
-    <div class="popover" x-show="ochiq_k" x-transition.duration.180ms x-cloak>
-      {% for v in satr.fan.variantlar.all %}
-      <form method="post" action="{% url 'office:variant_tanlash' satr.fan.pk %}"
-            hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}"
-            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish">
-        {% csrf_token %}
-        <input type="hidden" name="variant" value="{{ v.pk }}">
-        <input type="hidden" name="redirect" value="{% url 'office:reja_detail' reja.pk %}?tab=semestr&sem={{ s }}">
-        <button type="submit" class="opt">{{ v.nomi }}</button>
-      </form>
-      {% endfor %}
+    <button type="button" class="teacher-chip empty" @click="ochishYopish($el)">Variant tanlanmagan</button>
+    <div class="popover popover-fixed" :class="tepagaOchil && 'popover-up'" :style="posStyle" x-ref="popoverOyna" x-show="ochiq_k"
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+         x-cloak>
+      <div class="popover-scroll-body">
+        {% for v in satr.fan.variantlar.all %}
+        <form method="post" action="{% url 'office:variant_tanlash' satr.fan.pk %}"
+              hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}"
+              hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish">
+          {% csrf_token %}
+          <input type="hidden" name="variant" value="{{ v.pk }}">
+          <input type="hidden" name="redirect" value="{% url 'office:reja_detail' reja.pk %}?tab=semestr&sem={{ s }}">
+          <button type="submit" class="opt">{{ v.nomi }}</button>
+        </form>
+        {% endfor %}
+      </div>
     </div>
     {% else %}
     {% if satr.kafedra %}
-    <button type="button" class="teacher-chip" @click="ochiq_k = !ochiq_k" title="{{ satr.kafedra.nomi }}">
+    <button type="button" class="teacher-chip" @click="ochishYopish($el)" title="{{ satr.kafedra.nomi }}">
       <span class="avatar">{{ satr.kafedra.nomi|bosh_harflar }}</span>
       <span class="chip-label">{{ satr.kafedra.nomi }}</span>
     </button>
     {% else %}
-    <button type="button" class="teacher-chip empty" @click="ochiq_k = !ochiq_k">
+    <button type="button" class="teacher-chip empty" @click="ochishYopish($el)">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       <span>Kafedra biriktirish</span>
     </button>
     {% endif %}
-    <div class="popover" x-show="ochiq_k" x-transition.duration.180ms x-cloak>
-      <input type="text" placeholder="Kafedra qidirish" x-model="q_k" x-ref="qidiruvInput">
-      {% for k in kafedralar %}
-      <form method="post" action="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
-            hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
-            hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish"
-            x-show="q_k === '' || $el.textContent.toLowerCase().includes(q_k.toLowerCase())">
-        {% csrf_token %}
-        <input type="hidden" name="kafedra" value="{{ k.pk }}">
-        <input type="hidden" name="redirect" value="{% url 'office:reja_detail' reja.pk %}?tab=semestr&sem={{ s }}">
-        <button type="submit" class="opt"><span class="avatar">{{ k.nomi|bosh_harflar }}</span>{{ k.nomi }}</button>
-      </form>
-      {% endfor %}
+    <div class="popover popover-fixed" :class="tepagaOchil && 'popover-up'" :style="posStyle" x-ref="popoverOyna" x-show="ochiq_k"
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+         x-cloak>
+      {% if kafedralar %}{% include "web/parts/_popover_qidiruv.html" with placeholder="Kafedra qidirish" model="q_k" %}{% endif %}
+      <div class="popover-scroll-body" x-ref="royxat">
+        {% for k in kafedralar %}
+        <form method="post" action="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
+              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
+              hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish"
+              data-nomi="{{ k.nomi|lower }}"
+              x-show="q_k.trim() === '' || $el.dataset.nomi.includes(q_k.trim().toLowerCase())">
+          {% csrf_token %}
+          <input type="hidden" name="kafedra" value="{{ k.pk }}">
+          <input type="hidden" name="redirect" value="{% url 'office:reja_detail' reja.pk %}?tab=semestr&sem={{ s }}">
+          <button type="submit" class="opt"><span class="avatar">{{ k.nomi|bosh_harflar }}</span>{{ k.nomi }}</button>
+        </form>
+        {% empty %}
+        <div class="hint popover-empty-hint">Kafedra mavjud emas</div>
+        {% endfor %}
+        {% if kafedralar %}
+        <div class="hint popover-empty-hint" x-show="q_k.trim() !== '' && mosSoni() === 0" x-cloak>Mos kafedra topilmadi</div>
+        {% endif %}
+      </div>
       {% if satr.kafedra %}
       <form method="post" action="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
             hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}"
@@ -78,18 +96,25 @@
     </div>
     {% endif %}
   </td>
-  <td class="col-oqituvchi assign-cell cell-relative" x-data="{ ochiq_o: false }" @click.outside="ochiq_o = false" @keydown.escape.window="ochiq_o = false">
+  <td class="col-oqituvchi assign-cell cell-relative" data-label="O'qituvchi" :class="ochiq_o && 'popover-ochiq'" x-data="jadvalPopover({ ochiq: 'ochiq_o' })"
+      @click.outside="yopish()" @keydown.escape.window="yopish()"
+      @scroll.window.capture="skrollYopish($event)" @resize.window="yopish()">
     {% if satr.taqsimlangan %}
-    <button type="button" class="teacher-chip status ok" @click="ochiq_o = !ochiq_o">Taqsimlangan</button>
+    <button type="button" class="teacher-chip status ok" @click="ochishYopish($el)">Taqsimlangan</button>
     {% else %}
-    <button type="button" class="teacher-chip status warn" @click="ochiq_o = !ochiq_o">Taqsimlanmagan</button>
+    <button type="button" class="teacher-chip status warn" @click="ochishYopish($el)">Taqsimlanmagan</button>
     {% endif %}
-    <div class="popover" x-show="ochiq_o" x-transition.duration.180ms x-cloak>
-      {% for y in satr.yuklamalar %}
-      <div class="opt" style="cursor:default;">{{ y.tur_matni }}: {{ y.oqituvchi }}{% if y.guruh %} ({{ y.guruh.nomi }}){% endif %}</div>
-      {% empty %}
-      <div class="opt" style="cursor:default;">Hali hech kim taqsimlanmagan</div>
-      {% endfor %}
+    <div class="popover popover-fixed" :class="tepagaOchil && 'popover-up'" :style="posStyle" x-ref="popoverOyna" x-show="ochiq_o"
+         x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+         x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+         x-cloak>
+      <div class="popover-scroll-body">
+        {% for y in satr.yuklamalar %}
+        <div class="opt opt-readonly">{{ y.tur_matni }}: {{ y.oqituvchi }}{% if y.guruh %} ({{ y.guruh.nomi }}){% endif %}</div>
+        {% empty %}
+        <div class="opt opt-readonly">Hali hech kim taqsimlanmagan</div>
+        {% endfor %}
+      </div>
     </div>
   </td>
 </tr>

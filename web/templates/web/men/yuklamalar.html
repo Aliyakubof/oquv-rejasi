@@ -3,11 +3,17 @@
 {% block title %}Mening yuklamam{% endblock %}
 {% block content %}
 {% if not profil %}
-<div class="empty-state">Profil biriktirilmagan — ofis administratoriga murojaat qiling.</div>
+<div class="empty-state empty-state-rich">
+  <div class="empty-state-icon" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  </div>
+  <h3 class="empty-state-title">Profil biriktirilmagan</h3>
+  <p class="empty-state-desc">O'quv yuklamangizni ko'rish uchun ofis administratoriga murojaat qiling.</p>
+</div>
 {% else %}
 <div class="topbar">
   <div>
-    <div class="title"><span class="badge-major">{{ profil.kafedra.nomi }}</span>Mening yuklamam</div>
+    <div class="title topbar-title-flex">Mening yuklamam <span class="badge-major">{{ profil.kafedra.nomi }}</span></div>
   </div>
   <div class="controls">
     {% if yillar %}
@@ -23,7 +29,7 @@
 <div id="men-yuklama-jonli">
 <div class="stats" x-data data-jonli="men-statlar">
   <div class="stat"><div class="num">{{ jami_soat }}</div><div class="lbl">Jami yuklama soat</div></div>
-  <div class="stat"><div class="num">{{ profil.turi.min_soat }}</div><div class="lbl">Minimal norma ({{ profil.turi.nomi }})</div></div>
+  <div class="stat"><div class="num">{{ profil.turi.min_soat }}</div><div class="lbl">Minimal norma ({{ profil.turi.nomi|capfirst }})</div></div>
   <div class="stat {% if jami_soat < profil.turi.min_soat %}warn{% else %}ok{% endif %}">
     <div class="num">{% if jami_soat < profil.turi.min_soat %}{{ kamomad }}{% else %}0{% endif %}</div>
     <div class="lbl">{% if jami_soat < profil.turi.min_soat %}Kamomad ({{ jami_soat }} / {{ profil.turi.min_soat }}){% else %}Norma bajarildi{% endif %}</div>
@@ -41,21 +47,30 @@
 </div>
 
 {% if tur_jami %}
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" data-jonli="men-legend">
+<div class="tur-legend-row" data-jonli="men-legend">
   {% for nomi, soat in tur_jami %}
   <span class="tur-chip"><span class="tur-dot {% if 'Ma' in nomi %}tur-dot-maruza{% elif 'Amaliy' in nomi %}tur-dot-amaliyot{% elif 'Lab' in nomi %}tur-dot-lab{% elif 'Seminar' in nomi %}tur-dot-seminar{% elif 'Kurs' in nomi %}tur-dot-kurs{% endif %}"></span>{{ nomi }}: <strong>{{ soat }} soat</strong></span>
   {% endfor %}
 </div>
 {% endif %}
 
-<div x-data="{ qidiruv: '' }">
-  <div class="controls" style="margin-bottom:16px;">
-    <div class="search">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input type="text" placeholder="Fan nomi, kodi yoki guruh..." aria-label="Fan nomi, kodi yoki guruh" x-model="qidiruv">
+<div x-data="{
+  qidiruv: '',
+  mosSoni() {
+    const q = this.qidiruv.toLowerCase();
+    let n = 0;
+    this.$el.querySelectorAll('tbody tr.yuklama-qator').forEach(r => {
+      if (q === '' || (r.dataset.nomi || '').includes(q)) n++;
+    });
+    return n;
+  }
+}">
+  <div class="filter-toolbar">
+    <div class="filter-toolbar-left">
+      {% include "web/parts/_qidiruv.html" with model="qidiruv" placeholder="Fan nomi, kodi yoki guruh..." aria_label="Fan nomi, kodi yoki guruh" %}
     </div>
   </div>
-  <div class="table-wrap">
+  <div class="table-wrap cards">
     <table data-jonli="men-yuklama-jadval">
       <thead>
         <tr>
@@ -71,41 +86,41 @@
       </thead>
       <tbody>
         {% for yuklama in yuklamalar %}
-        <tr data-nomi="{{ yuklama.fan_semestr.variant.nomi|lower }} {{ yuklama.fan_semestr.variant.kodi|lower }} {% if yuklama.guruh %}{{ yuklama.guruh.nomi|lower }}{% endif %}"
+        <tr class="yuklama-qator" data-nomi="{{ yuklama.fan_semestr.variant.nomi|lower }} {{ yuklama.fan_semestr.variant.kodi|lower }} {% if yuklama.guruh %}{{ yuklama.guruh.nomi|lower }}{% endif %}"
             x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
-          <td>
+          <td data-label="Kod">
             {% if yuklama.fan_semestr.variant.kodi %}
             <span class="col-code">{{ yuklama.fan_semestr.variant.kodi }}</span>
             {% else %}
-            <span style="color:var(--text-muted);">—</span>
+            <span class="muted">—</span>
             {% endif %}
           </td>
-          <td>
-            <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
+          <td data-label="Fan nomi">
+            <button type="button" class="reja-link reja-link-btn"
                     data-modal-title="{{ yuklama.fan_semestr.variant.nomi }}"
                     data-modal-subtitle="{{ yuklama.fan_semestr.semestr }}-semestr · {{ yuklama.get_tur_display }}"
                     data-row-modal="Fan kodi::{{ yuklama.fan_semestr.variant.kodi|default:'—' }}||Fan nomi::{{ yuklama.fan_semestr.variant.nomi }}||Yo'nalish::{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }} — {{ yuklama.fan_semestr.variant.fan.reja.yonalish_nomi }}||Semestr::{{ yuklama.fan_semestr.semestr }}-semestr||Mashg'ulot turi::{{ yuklama.get_tur_display }}||Guruh / Talabalar::{% if yuklama.guruh %}{{ yuklama.guruh.nomi }}{% elif yuklama.talabalar_soni %}{{ yuklama.talabalar_soni }} talaba{% else %}Butun oqim{% endif %}||Yuklama soati::{{ yuklama.soat }} soat">
               <strong>{{ yuklama.fan_semestr.variant.nomi }}</strong>
             </button>
           </td>
-          <td class="col-center"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
-          <td class="col-center"><span class="hour-tag">{{ yuklama.fan_semestr.semestr }}-semestr</span></td>
-          <td class="col-center">
-            <span class="tur-chip"><span class="tur-dot"></span>{{ yuklama.get_tur_display }}</span>
+          <td class="col-center" data-label="Yo'nalish"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
+          <td class="col-center" data-label="Semestr"><span class="hour-tag">{{ yuklama.fan_semestr.semestr }}-semestr</span></td>
+          <td class="col-center" data-label="Mashg'ulot turi">
+            <span class="tur-chip"><span class="tur-dot {% if yuklama.tur == 'MARUZA' %}tur-dot-maruza{% elif yuklama.tur == 'AMALIYOT' %}tur-dot-amaliyot{% elif yuklama.tur == 'LABORATORIYA' %}tur-dot-lab{% elif yuklama.tur == 'SEMINAR' %}tur-dot-seminar{% elif yuklama.tur == 'KURS_ISHI' %}tur-dot-kurs{% endif %}"></span>{{ yuklama.get_tur_display }}</span>
           </td>
-          <td class="col-center">
+          <td class="col-center" data-label="Guruh / Talabalar">
             {% if yuklama.guruh %}<span class="code">{{ yuklama.guruh.nomi }}</span>
             {% elif yuklama.talabalar_soni %}{{ yuklama.talabalar_soni }} talaba
-            {% else %}<span style="color:var(--text-secondary);">Butun oqim</span>{% endif %}
+            {% else %}<span class="credits">Butun oqim</span>{% endif %}
           </td>
-          <td class="col-center"><span class="hour-tag ok">{{ yuklama.soat }} soat</span></td>
-          <td class="col-center">
+          <td class="col-center" data-label="Soat"><span class="hour-tag ok">{{ yuklama.soat }} soat</span></td>
+          <td class="col-center" data-label="O'quv dastur">
             {% if yuklama.dastur_korsatilsin %}
             <div id="dastur-durum-{{ yuklama.fan_semestr.variant_id }}">
               {% include "web/men/_dastur_durum.html" with variant=yuklama.fan_semestr.variant %}
             </div>
             {% else %}
-            <span style="color:var(--text-muted);">—</span>
+            <span class="muted">—</span>
             {% endif %}
           </td>
         </tr>
@@ -115,14 +130,34 @@
         </td></tr>
         {% endif %}
         {% empty %}
-        <tr><td colspan="8"><div class="empty-state">Bu o'quv yilida sizga yuklama taqsimlanmagan.</div></td></tr>
+        <tr><td colspan="8">
+          <div class="empty-state empty-state-rich">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <h3 class="empty-state-title">Bu o'quv yilida sizga yuklama taqsimlanmagan.</h3>
+            <p class="empty-state-desc">Kafedra mudiri yuklamalarni taqsimlaganidan so'ng darslaringiz shu yerda ko'rinadi.</p>
+          </div>
+        </td></tr>
         {% endfor %}
       </tbody>
       {% if yuklamalar %}
+      <tbody x-show="qidiruv !== '' && mosSoni() === 0" x-cloak>
+        <tr><td colspan="8">
+          <div class="empty-state empty-state-rich empty-state-filtered">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            </div>
+            <h3 class="empty-state-title">Qidiruv bo'yicha yuklama topilmadi</h3>
+            <p class="empty-state-desc">Fan nomi, kodi yoki guruh bo'yicha qidiruvni tozalab ko'ring.</p>
+            <button type="button" class="btn btn-sm" @click="qidiruv = ''">Qidiruvni tozalash</button>
+          </div>
+        </td></tr>
+      </tbody>
       <tfoot>
         <tr>
-          <td colspan="6" style="text-align:right;font-weight:700;padding-right:20px;">Jami:</td>
-          <td class="col-center"><span class="hour-tag ok" style="font-weight:700;">{{ jami_soat }} soat</span></td>
+          <td colspan="6" class="table-total-label">Jami:</td>
+          <td class="col-center" data-label="Jami soat"><span class="hour-tag ok table-total-hour">{{ jami_soat }} soat</span></td>
           <td></td>
         </tr>
       </tfoot>

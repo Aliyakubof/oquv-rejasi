@@ -1,48 +1,52 @@
 <div class="table-modal-backdrop" onclick="if(event.target===this) yopishTableModal('dastur-panel-{{ variant.pk }}')">
-<div class="table-modal-dialog taqsimot-panel" role="dialog" aria-modal="true">
+<div class="table-modal-dialog taqsimot-panel" role="dialog" aria-modal="true" aria-label="{{ variant.nomi }} tarixi">
   <div class="taqsimot-panel-head">
     <div>
       <div class="taqsimot-panel-title">
         {% if variant.kodi %}<span class="code" style="margin-right:6px;">{{ variant.kodi }}</span>{% endif %}
-        {{ variant.nomi }} — {{ t.oqituvchi }}
+        {{ variant.nomi }}{% if t %} — {{ t.oqituvchi }}{% endif %}
       </div>
-      <div class="credits" style="margin-top:3px;">Kafedra: {{ variant.kafedra.nomi|default:"—" }} · Yo'nalish: {{ variant.fan.reja.yonalish_kodi }}</div>
+      <div class="taqsimot-panel-sub">Kafedra: {{ variant.kafedra.nomi|default:"—" }} · Yo'nalish: {{ variant.fan.reja.yonalish_kodi }}</div>
     </div>
-    <button type="button" class="btn" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      <span>Yopish</span>
+    <button type="button" class="app-modal-close" aria-label="Yopish" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
   {% if xato %}
   <div class="form-errors">{{ xato }}</div>
   {% endif %}
   {% include "web/dastur/_tarix_royxati.html" with urinishlar=urinishlar fayl_url_nomi="office:dastur_fayl" %}
-  {% if t and t.holat == "KUTILMOQDA" %}
-  <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-    <form method="post" hx-post="{% url 'office:dastur_qabul' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-primary">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-        <span>Qabul qilish</span>
-      </button>
-    </form>
-    <form method="post" hx-post="{% url 'office:dastur_rad' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
-          data-modal-title="O'quv dasturini rad etish"
-          data-modal-subtitle="{{ variant.nomi }} — {{ t.oqituvchi }}"
-          data-modal-prompt="Rad etish sababi"
-          data-modal-placeholder="O'qituvchiga ko'rsatiladigan rad etish sababini yozing..."
-          data-modal-field="izoh"
-          data-modal-required="true"
-          data-modal-type="danger"
-          data-modal-btn="Rad etishni tasdiqlash">
-      {% csrf_token %}
-      <input type="hidden" name="izoh" value="">
-      <button type="submit" class="btn btn-danger">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        <span>Rad etish</span>
-      </button>
-    </form>
+  <div class="taqsimot-panel-foot tarix-panel-foot">
+    {% if t and t.holat == "KUTILMOQDA" %}
+    <div class="tarix-qaror-actions">
+      <form method="post" hx-post="{% url 'office:dastur_qabul' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Qabul qilish</span>
+        </button>
+      </form>
+      <form method="post" hx-post="{% url 'office:dastur_rad' t.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
+            data-modal-title="O'quv dasturini rad etish"
+            data-modal-subtitle="{{ variant.nomi }} — {{ t.oqituvchi }}"
+            data-modal-prompt="Rad etish sababi"
+            data-modal-placeholder="O'qituvchiga ko'rsatiladigan rad etish sababini yozing..."
+            data-modal-field="izoh"
+            data-modal-required="true"
+            data-modal-type="danger"
+            data-modal-btn="Rad etishni tasdiqlash">
+        {% csrf_token %}
+        <input type="hidden" name="izoh" value="">
+        <button type="submit" class="btn btn-ghost-danger btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <span>Rad etish</span>
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <span></span>
+    {% endif %}
+    <button type="button" class="btn btn-sm" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')">Yopish</button>
   </div>
-  {% endif %}
 </div>
 </div>

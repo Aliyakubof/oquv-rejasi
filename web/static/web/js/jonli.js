@@ -128,7 +128,10 @@
       ozgarishBor = true;
     }
 
-    if (ozgarishBor) indikatorniYiltirat();
+    if (ozgarishBor) {
+      indikatorniYiltirat();
+      window.dispatchEvent(new CustomEvent("jonli:yangilandi"));
+    }
     return hammasiYangilandi;
   }
 
@@ -152,7 +155,25 @@
         window.location.assign(kirishManzili());
         return;
       }
+      if (javob.status === 403) {
+        const xato = await javob.json().catch(() => null);
+        if (xato && xato.manzil) {
+          if (timerId) clearTimeout(timerId);
+          window.location.assign(xato.manzil);
+          return;
+        }
+      }
+      if (javob.redirected) {
+        if (timerId) clearTimeout(timerId);
+        window.location.assign(javob.url);
+        return;
+      }
       if (!javob.ok) {
+        joriyIntervalMs = Math.min(joriyIntervalMs * 2, MAX_INTERVAL_MS);
+        return;
+      }
+      const turi = javob.headers.get("content-type") || "";
+      if (!turi.includes("application/json")) {
         joriyIntervalMs = Math.min(joriyIntervalMs * 2, MAX_INTERVAL_MS);
         return;
       }
