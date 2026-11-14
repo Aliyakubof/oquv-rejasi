@@ -22,22 +22,26 @@ Shares the parent Alpine scope (qidiruv/faqat) for search and filtering.{% endco
   <tbody>
     {% for satr in fan_satrlari %}
     {% for fs in satr.fan_semestrlar %}
-    <tr data-nomi="{{ satr.variant.nomi|lower }} {{ satr.variant.kodi|lower }}"
+    <tr data-nomi="{% if satr.tanlanmagan %}tanlov fani variant tanlanmagan{% else %}{{ satr.variant.nomi|lower }} {{ satr.variant.kodi|lower }}{% endif %} {{ satr.kafedra.nomi|default:''|lower }} {{ satr.fan.reja.yonalish_kodi|lower }} {{ satr.fan.reja.yonalish_nomi|lower }}"
         data-biriktirilmagan="{% if satr.biriktirilmagan %}1{% else %}0{% endif %}"
         class="{% if satr.biriktirilmagan %}qator-biriktirilmagan{% endif %}"
         x-show="(!faqat || $el.dataset.biriktirilmagan === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))">
-      <td class="col-idx">{% if forloop.first %}{{ satr.fan.raqam }}{% endif %}</td>
-      <td class="col-code"><span class="code">{% if forloop.first %}{% if satr.tanlanmagan %}—{% else %}{{ satr.variant.kodi|default:"—" }}{% endif %}{% endif %}</span></td>
-      <td class="col-name">
+      <td class="col-idx{% if not forloop.first %} mobile-empty-cell{% endif %}" data-label="№">{% if forloop.first %}{{ satr.fan.raqam }}{% endif %}</td>
+      <td class="col-code{% if not forloop.first %} mobile-empty-cell{% endif %}" data-label="Kod">{% if forloop.first %}<span class="code">{% if satr.tanlanmagan %}—{% else %}{{ satr.variant.kodi|default:"—" }}{% endif %}</span>{% endif %}</td>
+      <td class="col-name{% if not forloop.first %} mobile-empty-cell{% endif %}" data-label="Fan">
         {% if forloop.first %}
-        {% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}
-        {% if satr.fan.turi == "MAJBURIY" %}<span class="tag tag-mand">MAJ</span>{% else %}<span class="tag tag-elec">TAN</span>{% endif %}
+        <div class="fan-meta-cell">
+          <div class="fan-meta-top">
+            <span>{% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}</span>
+            {% if satr.fan.turi == "MAJBURIY" %}<span class="tag tag-mand">MAJ</span>{% else %}<span class="tag tag-elec">TAN</span>{% endif %}
+          </div>
+        </div>
         {% endif %}
       </td>
-      <td>{% if forloop.first %}<span class="code" title="{{ satr.fan.reja }}">{{ satr.fan.reja.yonalish_kodi }}</span>{% endif %}</td>
-      <td><strong>S{{ fs.semestr }}</strong></td>
+      <td class="{% if not forloop.first %}mobile-empty-cell{% endif %}" data-label="Yo'nalish">{% if forloop.first %}<span class="code" title="{{ satr.fan.reja }}">{{ satr.fan.reja.yonalish_kodi }}</span>{% endif %}</td>
+      <td class="col-nowrap" data-label="Semestr"><strong>S{{ fs.semestr }}</strong></td>
       {% include "web/office/_soat_breakdown_hujayralari.html" with fs=fs guruhlar_soni=satr.fan.reja.guruhlar_soni %}
-      <td class="assign-cell">
+      <td class="assign-cell{% if not forloop.first %} mobile-empty-cell{% endif %}" data-label="Kafedra">
         {% if forloop.first %}
         {% include "web/parts/_kafedra_chip.html" with kafedra=satr.kafedra %}
         {% endif %}
@@ -45,7 +49,21 @@ Shares the parent Alpine scope (qidiruv/faqat) for search and filtering.{% endco
     </tr>
     {% endfor %}
     {% empty %}
-    <tr><td colspan="11"><div class="empty-state">Bu o'quv yilida fanlar topilmadi.</div></td></tr>
+    <tr><td colspan="11"><div class="empty-state empty-state-compact">Bu o'quv yilida fanlar topilmadi.</div></td></tr>
     {% endfor %}
   </tbody>
+  {% if fan_satrlari %}
+  <tbody x-show="(faqat || qidiruv !== '') && mosSemestrovkaSoni() === 0" x-cloak>
+    <tr><td colspan="11">
+      <div class="empty-state empty-state-rich empty-state-filtered">
+        <div class="empty-state-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </div>
+        <h3 class="empty-state-title">Qidiruv bo'yicha natija topilmadi</h3>
+        <p class="empty-state-desc">Filtrlarni tozalab, barcha fanlarni ko'ring.</p>
+        <button type="button" class="btn btn-sm" @click="qidiruv = ''; faqat = false">Filtrlarni tozalash</button>
+      </div>
+    </td></tr>
+  </tbody>
+  {% endif %}
 </table>

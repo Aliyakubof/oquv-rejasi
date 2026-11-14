@@ -11,12 +11,14 @@
     <div class="title">{{ sarlavha }}</div>
   </div>
 </div>
-<div class="card">
+<div class="card form-card">
   <form method="post">
     {% csrf_token %}
     {% include "web/parts/_form_maydonlari.html" %}
-    <button type="submit" class="btn btn-primary">Saqlash</button>
-    <a class="btn" href="{% url 'office:sozlamalar' %}">Bekor qilish</a>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Saqlash</button>
+      <a class="btn" href="{% url 'office:sozlamalar' %}">Bekor qilish</a>
+    </div>
   </form>
 </div>
 {% endblock %}

@@ -1,15 +1,26 @@
+<div class="tarix-list">
 {% for urinish in urinishlar %}
-<div style="border-top:1px solid var(--line);padding:10px 0;">
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <strong>{{ urinish.urinish_raqami }}-urinish</strong>
-    <span class="credits">{{ urinish.yuborilgan_vaqt|date:"d.m.Y H:i" }}</span>
-    {% if urinish.holat == "QABUL_QILINDI" %}<span class="tag tag-mand">QABUL QILINDI</span>
-    {% elif urinish.holat == "RAD_ETILDI" %}<span class="tag tag-rad">RAD ETILDI</span>
-    {% else %}<span class="tag tag-elec">KO'RIB CHIQILMOQDA</span>{% endif %}
-    <a class="btn" href="{% url fayl_url_nomi urinish.pk %}" hx-boost="false">Faylni ochish</a>
+  <div class="tarix-item {% if urinish.holat == 'QABUL_QILINDI' %}ok{% elif urinish.holat == 'RAD_ETILDI' %}danger{% else %}pending{% endif %}">
+    <div class="tarix-item-head">
+      <div class="tarix-item-meta">
+        <span class="badge-count">{{ urinish.urinish_raqami }}-urinish</span>
+        {% if urinish.holat == "QABUL_QILINDI" %}<span class="tag tag-mand">QABUL QILINDI</span>
+        {% elif urinish.holat == "RAD_ETILDI" %}<span class="tag tag-rad">RAD ETILDI</span>
+        {% else %}<span class="tag tag-elec">KO'RIB CHIQILMOQDA</span>{% endif %}
+      </div>
+      <div class="tarix-item-tools">
+        <span class="tarix-item-date">{{ urinish.yuborilgan_vaqt|date:"d.m.Y H:i" }}</span>
+        <a class="btn btn-sm" href="{% url fayl_url_nomi urinish.pk %}" hx-boost="false">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Faylni ochish</span>
+        </a>
+      </div>
+    </div>
+    {% if urinish.izoh %}
+    <div class="tarix-item-note">{{ urinish.izoh }}</div>
+    {% endif %}
   </div>
-  {% if urinish.izoh %}<div class="credits" style="margin-top:4px;">{{ urinish.izoh }}</div>{% endif %}
-</div>
 {% empty %}
-<div class="empty-state">Hali dastur topshirilmagan.</div>
+  <div class="empty-state empty-state-compact">Hali dastur topshirilmagan.</div>
 {% endfor %}
+</div>

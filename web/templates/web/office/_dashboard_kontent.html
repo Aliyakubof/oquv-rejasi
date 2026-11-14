@@ -1,15 +1,22 @@
 {% include "web/office/_statlar.html" %}
 {% include "web/office/_analitika.html" %}
-<div class="controls" style="justify-content:space-between;margin-bottom:10px;gap:12px;">
-  <div class="legend" style="margin:0;">
-    <span><span class="dot" style="background:var(--mand);"></span>Majburiy fan</span>
-    <span><span class="dot" style="background:var(--elec);"></span>Tanlov fani</span>
-    <span><span class="dot" style="background:var(--unassigned);"></span>Kafedraga biriktirilmagan</span>
+<div class="subtoolbar office-dash-actions">
+  <div class="legend legend-compact">
+    <span class="legend-pill"><span class="dot" style="background:var(--mand);"></span>Majburiy</span>
+    <span class="legend-pill"><span class="dot" style="background:var(--elec);"></span>Tanlov</span>
+    <span class="legend-pill"><span class="dot" style="background:var(--unassigned);"></span>Biriktirilmagan</span>
   </div>
-  <div class="controls" style="gap:8px;flex-wrap:wrap;">
-    <a class="btn btn-sm" href="{% url 'office:svod_excel' %}?yil={{ yil }}" hx-boost="false">Svod hisobot (.xlsx)</a>
+  <div class="office-dash-tools">
+    <a class="btn btn-sm" href="{% url 'office:svod_excel' %}?yil={{ yil }}" hx-boost="false">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Svod hisobot (.xlsx)</span>
+    </a>
     {% if manba_yillar %}
-    <form method="post" action="{% url 'office:taqsimot_nusxalash' %}" class="controls" style="gap:8px;">
+    <form method="post" action="{% url 'office:taqsimot_nusxalash' %}" class="copy-year-form"
+          data-modal-confirm="Tanlangan o'quv yilidagi fan-kafedra biriktiruvlari joriy yildagi hali biriktirilmagan fanlarga ko'chiriladi. Davom etasizmi?"
+          data-modal-title="Biriktiruvlarni ko'chirish"
+          data-modal-type="warning"
+          data-modal-btn="Ha, ko'chirish">
       {% csrf_token %}
       <input type="hidden" name="yil" value="{{ yil }}">
       <select name="manba_yil" aria-label="Manba o'quv yili">
@@ -17,7 +24,10 @@
         <option value="{{ my }}">{{ my }}/{{ my|add:1 }} dan ko'chirish</option>
         {% endfor %}
       </select>
-      <button type="submit" class="btn btn-sm">O'tgan yildan ko'chirish</button>
+      <button type="submit" class="btn btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>O'tgan yildan ko'chirish</span>
+      </button>
     </form>
     {% endif %}
   </div>

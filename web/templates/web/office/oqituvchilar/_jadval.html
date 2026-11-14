@@ -10,69 +10,117 @@
           <th>Lavozim</th>
           <th class="num">Minimal soat</th>
           <th class="num">Yuklama soat</th>
-          <th style="min-width:140px;">Qamrov</th>
-          <th></th>
+          <th class="col-qamrov">Qamrov</th>
+          <th class="col-center">Amallar</th>
         </tr>
       </thead>
       <tbody data-jonli="office-oqituvchilar-tbody">
         {% for holat in holatlar %}
         <tr>
           <td data-label="F.I.Sh">
-            <a href="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}" class="teacher-chip" style="text-decoration:none;color:inherit;" title="Yuklama varaqasini ko'rish">
+            <a href="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}" class="teacher-chip teacher-chip-link" title="Yuklama varaqasini ko'rish">
               <span class="avatar">{{ holat.oqituvchi|stringformat:"s"|bosh_harflar }}</span>
-              {{ holat.oqituvchi }}
+              <span class="chip-label">{{ holat.oqituvchi }}</span>
               {% if not holat.oqituvchi.foydalanuvchi.is_active %}<span class="tag tag-elec">FAOL EMAS</span>{% endif %}
             </a>
           </td>
           <td data-label="Telefon"><span class="code">{{ holat.oqituvchi.foydalanuvchi.telefon }}</span></td>
           <td data-label="Kafedra">{{ holat.oqituvchi.kafedra.nomi }}</td>
-          <td data-label="Lavozim">{{ holat.oqituvchi.turi.nomi }}</td>
-          <td class="num" data-label="Minimal soat">{{ holat.min_soat }}</td>
-          <td class="num" data-label="Yuklama soat">{{ holat.jami_soat }}</td>
+          <td data-label="Lavozim">{{ holat.oqituvchi.turi.nomi|capfirst }}</td>
+          <td class="num" data-label="Minimal soat"><span class="hour-tag">{{ holat.min_soat }} soat</span></td>
+          <td class="num" data-label="Yuklama soat"><span class="hour-tag accent">{{ holat.jami_soat }} soat</span></td>
           <td data-label="Qamrov">
             {% with f=holat.jami_soat|foiz:holat.min_soat %}
-            <div style="display:flex;align-items:center;gap:8px;">
-              <div class="progress" style="flex:1;" title="{{ f }}% ({% if holat.kamomad %}kamomad {{ holat.kamomad }} soat{% else %}to'ldi{% endif %})">
+            <div class="qamrov-cell">
+              <div class="progress" title="{{ f }}% ({% if holat.kamomad %}kamomad {{ holat.kamomad }} soat{% else %}to'ldi{% endif %})">
                 <div class="fill {% if holat.kamomad %}warn{% endif %}" data-width="{{ f }}"></div>
               </div>
-              <span class="credits num" style="min-width:34px;text-align:right;">{{ f }}%</span>
+              <span class="qamrov-pct">{{ f }}%</span>
             </div>
             {% endwith %}
           </td>
-          <td style="white-space:nowrap;">
-            <button type="button" class="btn"
-                    data-modal-title="{{ holat.oqituvchi }}"
-                    data-modal-subtitle="{{ holat.oqituvchi.kafedra.nomi }} · {{ holat.oqituvchi.turi.nomi }}"
-                    data-modal-url="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}"
-                    data-modal-url-label="1-shakl yuklama varaqasi"
-                    data-modal-edit-url="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}"
-                    data-row-modal="F.I.Sh::{{ holat.oqituvchi }}||Telefon::{{ holat.oqituvchi.foydalanuvchi.telefon }}||Kafedra::{{ holat.oqituvchi.kafedra.nomi }}||Lavozim::{{ holat.oqituvchi.turi.nomi }}||Minimal norma::{{ holat.min_soat }} soat||Joriy yuklama::{{ holat.jami_soat }} soat||Kamomad::{{ holat.kamomad }} soat||Qoplanish::{{ holat.jami_soat|foiz:holat.min_soat }}%">
-              Ko'rish
-            </button>
-            <a class="btn" href="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}">Yuklama</a>
-            <a class="btn" href="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}">Tahrirlash</a>
-            <form method="post" action="{% url 'office:oqituvchi_vaqtinchalik_parol' holat.oqituvchi.pk %}" style="display:inline"
-                  data-modal-title="Vaqtinchalik parol yaratish"
-                  data-modal-subtitle="{{ holat.oqituvchi }} ({{ holat.oqituvchi.foydalanuvchi.telefon }})"
-                  data-modal-confirm="O'qituvchi uchun yangi bir martalik parol yaratilsinmi? Eski parol o'z kuchini yo'qotadi va kirganda yangi parol o'rnatish so'raladi."
-                  data-modal-type="warning"
-                  data-modal-btn="Parol yaratish">
-              {% csrf_token %}
-              <button type="submit" class="btn">Parolni tiklash</button>
-            </form>
-            <form method="post" action="{% url 'office:oqituvchi_ochirish' holat.oqituvchi.pk %}" style="display:inline"
-                  data-modal-title="O'qituvchini o'chirish"
-                  data-modal-subtitle="{{ holat.oqituvchi }} ({{ holat.oqituvchi.kafedra.nomi }})"
-                  data-modal-confirm="{{ holat.oqituvchi }} hisobini o'chirasizmi? Agar o'qituvchida faol yuklama bo'lsa, ma'lumotlar saqlanib hisob faolsizlantiriladi."
-                  data-modal-type="danger"
-                  data-modal-btn="Ha, o'chirish">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-danger">O'chirish</button>
-            </form>
+          <td class="col-center col-nowrap" data-label="Amallar">
+            <div class="row-actions row-actions-center">
+              <a class="btn btn-sm" href="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}">Yuklama</a>
+              <div class="action-dropdown"
+                   :class="ochiq && 'dropdown-ochiq'"
+                   x-data="amalMenyu()"
+                   @click.outside="yopish()"
+                   @keydown.escape.window="yopish()"
+                   @scroll.window.capture="skrollYopish($event)"
+                   @resize.window="yopish()"
+                   @action-menu:yopish.window="yopish()">
+                <button type="button" class="btn-dots" :class="ochiq && 'active'" @click="ochish($el)" title="Boshqa amallar" aria-label="Boshqa amallar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="5" r="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <circle cx="12" cy="19" r="2"/>
+                  </svg>
+                </button>
+                <div class="action-menu action-menu-fixed"
+                     x-ref="menyuOyna"
+                     :class="tepagaOchil && 'popover-up'"
+                     x-show="ochiq"
+                     x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
+                     x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
+                     x-cloak
+                     :style="'top:' + pos.top + '; left:' + pos.left + ';'">
+                  <button type="button" class="action-item" @click="ochiq = false"
+                          data-modal-title="{{ holat.oqituvchi }}"
+                          data-modal-subtitle="{{ holat.oqituvchi.kafedra.nomi }} · {{ holat.oqituvchi.turi.nomi|capfirst }}"
+                          data-modal-url="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}"
+                          data-modal-url-label="1-shakl yuklama varaqasi"
+                          data-modal-edit-url="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}"
+                          data-row-modal="F.I.Sh::{{ holat.oqituvchi }}||Telefon::{{ holat.oqituvchi.foydalanuvchi.telefon }}||Kafedra::{{ holat.oqituvchi.kafedra.nomi }}||Lavozim::{{ holat.oqituvchi.turi.nomi|capfirst }}||Minimal norma::{{ holat.min_soat }} soat||Joriy yuklama::{{ holat.jami_soat }} soat||Kamomad::{{ holat.kamomad }} soat||Qoplanish::{{ holat.jami_soat|foiz:holat.min_soat }}%">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <div class="action-text"><span class="action-title">Ko'rish</span></div>
+                  </button>
+                  <a class="action-item" href="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <div class="action-text"><span class="action-title">Tahrirlash</span></div>
+                  </a>
+                  <form method="post" action="{% url 'office:oqituvchi_vaqtinchalik_parol' holat.oqituvchi.pk %}"
+                        data-modal-title="Vaqtinchalik parol yaratish"
+                        data-modal-subtitle="{{ holat.oqituvchi }} ({{ holat.oqituvchi.foydalanuvchi.telefon }})"
+                        data-modal-confirm="O'qituvchi uchun yangi bir martalik parol yaratilsinmi? Eski parol o'z kuchini yo'qotadi va kirganda yangi parol o'rnatish so'raladi."
+                        data-modal-type="warning"
+                        data-modal-btn="Parol yaratish">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="action-item" @click="ochiq = false">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <div class="action-text"><span class="action-title">Parolni tiklash</span></div>
+                    </button>
+                  </form>
+                  <div class="action-divider"></div>
+                  <form method="post" action="{% url 'office:oqituvchi_ochirish' holat.oqituvchi.pk %}"
+                        data-modal-title="O'qituvchini o'chirish"
+                        data-modal-subtitle="{{ holat.oqituvchi }} ({{ holat.oqituvchi.kafedra.nomi }})"
+                        data-modal-confirm="{{ holat.oqituvchi }} hisobini o'chirasizmi? Agar o'qituvchida faol yuklama bo'lsa, ma'lumotlar saqlanib hisob faolsizlantiriladi."
+                        data-modal-type="danger"
+                        data-modal-btn="Ha, o'chirish">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="action-item action-item-danger" @click="ochiq = false">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <div class="action-text"><span class="action-title">O'chirish</span></div>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8"><div class="empty-state">O'qituvchilar topilmadi.</div></td></tr>
+        <tr><td colspan="8">
+          <div class="empty-state empty-state-rich">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h3 class="empty-state-title">O'qituvchilar topilmadi</h3>
+            <p class="empty-state-desc">Qidiruv yoki filtr shartini o'zgartiring yoxud yangi o'qituvchi qo'shing.</p>
+          </div>
+        </td></tr>
         {% endfor %}
       </tbody>
     </table>

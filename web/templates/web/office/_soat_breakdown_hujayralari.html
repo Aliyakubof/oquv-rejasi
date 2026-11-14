@@ -2,18 +2,18 @@
 {% comment %}Five per-semester hour cells: curriculum hours, with per-group demand
 (amaliyot/lab/seminar × guruhlar_soni) surfaced in the tooltip. Expects `fs`
 (FanSemestr) and `guruhlar_soni`.{% endcomment %}
-<td class="sem-cell">
+<td class="sem-cell" data-label="Ma'ruza">
   {% if fs.maruza_soat %}<div class="sem-fill" title="Ma'ruza — butun oqimga">{{ fs.maruza_soat }}</div>{% else %}<div class="sem-empty"></div>{% endif %}
 </td>
-<td class="sem-cell">
+<td class="sem-cell" data-label="Amaliyot">
   {% if fs.amaliyot_soat %}<div class="sem-fill" title="Amaliyot{% with d=fs.amaliyot_soat|kopaytir:guruhlar_soni %}{% if d %} — × {{ guruhlar_soni }} guruh = {{ d }}{% endif %}{% endwith %}">{{ fs.amaliyot_soat }}</div>{% else %}<div class="sem-empty"></div>{% endif %}
 </td>
-<td class="sem-cell">
+<td class="sem-cell" data-label="Laboratoriya">
   {% if fs.laboratoriya_soat %}<div class="sem-fill" title="Laboratoriya{% with d=fs.laboratoriya_soat|kopaytir:guruhlar_soni %}{% if d %} — × {{ guruhlar_soni }} guruh = {{ d }}{% endif %}{% endwith %}">{{ fs.laboratoriya_soat }}</div>{% else %}<div class="sem-empty"></div>{% endif %}
 </td>
-<td class="sem-cell">
+<td class="sem-cell" data-label="Seminar">
   {% if fs.seminar_soat %}<div class="sem-fill" title="Seminar{% with d=fs.seminar_soat|kopaytir:guruhlar_soni %}{% if d %} — × {{ guruhlar_soni }} guruh = {{ d }}{% endif %}{% endwith %}">{{ fs.seminar_soat }}</div>{% else %}<div class="sem-empty"></div>{% endif %}
 </td>
-<td class="sem-cell">
+<td class="sem-cell" data-label="Kurs ishi">
   {% if fs.kurs_ishi_bor %}<div class="sem-fill ok" title="Kurs ishi bor"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>{% else %}<div class="sem-empty"></div>{% endif %}
 </td>

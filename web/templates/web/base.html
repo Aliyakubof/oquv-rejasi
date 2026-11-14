@@ -7,12 +7,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="htmx-config" content='{"historyCacheSize": 0}'>
   <title>{% block title %}O'quv yuklamasi{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a2a6e'/%3E%3Cpath d='M8 9.5A2.5 2.5 0 0 1 10.5 7H24v16H10.5A2.5 2.5 0 0 0 8 25V9.5z' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linejoin='round'/%3E%3Cpath d='M12 12h8M12 16h5' stroke='%23ffffff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
   <meta name="login-url" content="{% url 'kirish' %}">
-  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=55">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=59">
   <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=6">
   <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
   <script>
@@ -27,6 +28,78 @@
         ochiq: false,
         q: '',
       }));
+      Alpine.data('jadvalPopover', (sozlamalar = {}) => {
+        const ochiqKalit = sozlamalar.ochiq || 'ochiq';
+        const qKalit = sozlamalar.q || 'q';
+        return {
+          [ochiqKalit]: false,
+          [qKalit]: '',
+          tepagaOchil: false,
+          posStyle: {},
+          mosSoni() {
+            const royxat = this.$refs.royxat;
+            if (!royxat) return 0;
+            const kalit = (this[qKalit] || '').trim().toLowerCase();
+            let soni = 0;
+            for (const el of royxat.querySelectorAll('[data-nomi]')) {
+              if (!kalit || (el.dataset.nomi || '').includes(kalit)) soni += 1;
+            }
+            return soni;
+          },
+          joylash(tugmaEl) {
+            const el = tugmaEl || this.$el.querySelector('button.teacher-chip') || this.$el;
+            const popoverEl = this.$refs.popoverOyna;
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const pastBosh = window.innerHeight - rect.bottom - 12;
+            const tepaBosh = rect.top - 12;
+            const yuqoriga = pastBosh < 270 && tepaBosh > pastBosh;
+            this.tepagaOchil = yuqoriga;
+            const kenglik = Math.min((popoverEl && popoverEl.offsetWidth) || 268, window.innerWidth - 20);
+            const left = Math.max(10, Math.min(rect.right - kenglik, window.innerWidth - kenglik - 10));
+            const maxH = Math.max(140, Math.min(320, yuqoriga ? tepaBosh : pastBosh));
+            this.posStyle = yuqoriga
+              ? {
+                  left: Math.round(left) + 'px',
+                  bottom: Math.round(Math.max(10, window.innerHeight - rect.top + 6)) + 'px',
+                  top: 'auto',
+                  maxHeight: Math.round(maxH) + 'px',
+                }
+              : {
+                  left: Math.round(left) + 'px',
+                  top: Math.round(Math.max(10, rect.bottom + 6)) + 'px',
+                  bottom: 'auto',
+                  maxHeight: Math.round(maxH) + 'px',
+                };
+          },
+          ochishYopish(tugmaEl) {
+            const holat = !this[ochiqKalit];
+            if (holat) {
+              this.$el.closest('.table-wrap')?.classList.add('anim-tugadi');
+              this.joylash(tugmaEl);
+            } else {
+              this.tepagaOchil = false;
+            }
+            this[ochiqKalit] = holat;
+            if (holat) {
+              this.$nextTick(() => {
+                this.joylash(tugmaEl);
+                this.$refs.qidiruvInput?.focus();
+              });
+            }
+          },
+          yopish() {
+            this[ochiqKalit] = false;
+            this.tepagaOchil = false;
+          },
+          skrollYopish(e) {
+            if (!this[ochiqKalit]) return;
+            const maqsad = e?.target;
+            if (maqsad instanceof Element && maqsad.closest('.popover-fixed')) return;
+            this.yopish();
+          },
+        };
+      });
       Alpine.data('jadvalQidiruv', () => ({
         qidiruv: '',
         mos(el) {
@@ -35,6 +108,73 @@
           return matn.includes(this.qidiruv.toLowerCase());
         }
       }));
+      Alpine.data('amalMenyu', () => ({
+        ochiq: false,
+        tepagaOchil: false,
+        pos: { top: '0px', left: '0px' },
+        _tugma: null,
+        joylash(btn) {
+          const el = btn || this._tugma;
+          if (!el) return;
+          const menyu = this.$refs.menyuOyna;
+          const rect = el.getBoundingClientRect();
+          const menuW = Math.min((menyu && menyu.offsetWidth) || 240, window.innerWidth - 20);
+          const menuH = Math.min((menyu && menyu.offsetHeight) || 240, window.innerHeight - 20);
+          const l = Math.max(10, Math.min(rect.right - menuW, window.innerWidth - menuW - 10));
+          const pastBosh = window.innerHeight - rect.bottom - 10;
+          const tepaBosh = rect.top - 10;
+          const yuqoriga = pastBosh < menuH && tepaBosh > pastBosh;
+          this.tepagaOchil = yuqoriga;
+          const t = yuqoriga
+            ? Math.max(10, rect.top - menuH - 6)
+            : Math.max(10, Math.min(rect.bottom + 6, window.innerHeight - menuH - 10));
+          this.pos = { top: Math.round(t) + 'px', left: Math.round(l) + 'px' };
+        },
+        ochish(btn) {
+          if (this.ochiq) { this.yopish(); return; }
+          this._tugma = btn;
+          window.dispatchEvent(new CustomEvent('action-menu:yopish'));
+          this.$el.closest('.table-wrap')?.classList.add('anim-tugadi');
+          this.joylash(btn);
+          this.ochiq = true;
+          this.$nextTick(() => {
+            if (this.ochiq) this.joylash(btn);
+          });
+        },
+        yopish() {
+          this.ochiq = false;
+          this.tepagaOchil = false;
+        },
+        skrollYopish(e) {
+          if (!this.ochiq) return;
+          const maqsad = e?.target;
+          if (maqsad instanceof Element && maqsad.closest('.action-menu-fixed')) return;
+          this.yopish();
+        },
+      }));
+      window.nusxaOlish = async (matn) => {
+        if (!matn) return false;
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(matn);
+            return true;
+          } catch {}
+        }
+        const area = document.createElement('textarea');
+        area.value = matn;
+        area.setAttribute('readonly', '');
+        area.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+        document.body.appendChild(area);
+        area.select();
+        let ok = false;
+        try {
+          ok = document.execCommand('copy');
+        } catch {
+          ok = false;
+        }
+        area.remove();
+        return ok;
+      };
       Alpine.data('korinishModal', (boshlangich) => ({
         ochiq: false,
         saqlanmoqda: false,
@@ -371,8 +511,13 @@
         return;
       }
 
+      if (a.hasAttribute('download')) {
+        a.setAttribute('href', href);
+        return;
+      }
+
       e.preventDefault();
-      const yuklabOlish = a.hasAttribute('download') || /(_excel|_zip|\.xlsx|\.docx|\.pdf|\.zip|shakl1-docx)(\?|$)/i.test(href);
+      const yuklabOlish = /(\/(excel|zip|shakl1-docx|shakl1-zip|namuna|parollar|fayl|dastur)\/?|_excel|_zip|\.(xlsx|docx|pdf|zip))(\?|$)/i.test(href);
       if (!yuklabOlish) {
         PageLoader.show(3500, 150);
       }
@@ -713,6 +858,7 @@
     document.addEventListener('click', (e) => {
       const viewBtn = e.target.closest('[data-row-modal]');
       if (viewBtn) {
+        window.dispatchEvent(new CustomEvent('action-menu:yopish'));
         e.preventDefault();
         e.stopPropagation();
         const title = viewBtn.dataset.modalTitle || "Batafsil ma'lumot";
@@ -745,6 +891,7 @@
       const form = btn.closest('form[data-modal-confirm], form[data-modal-prompt]');
       if (!form || form.dataset.modalConfirmed === 'true') return;
 
+      window.dispatchEvent(new CustomEvent('action-menu:yopish'));
       e.preventDefault();
       e.stopImmediatePropagation();
 
@@ -826,6 +973,27 @@
       const tozalash = () => wave.remove();
       wave.addEventListener('animationend', tozalash, { once: true });
       setTimeout(tozalash, 650);
+    });
+
+    // ================= 4. O'zbekcha fayl tanlagich (.file-picker) holati =================
+    const yangilashFaylNomi = (input) => {
+      const wrap = input.closest('.file-picker');
+      const label = wrap && wrap.querySelector('.file-picker-name');
+      if (!wrap || !label) return;
+      const fayl = input.files && input.files[0];
+      label.textContent = fayl ? fayl.name : (label.dataset.empty || 'Fayl tanlanmagan');
+      wrap.classList.toggle('has-file', Boolean(fayl));
+    };
+
+    document.addEventListener('change', (e) => {
+      const input = e.target.closest('.file-picker input[type="file"]');
+      if (input) yangilashFaylNomi(input);
+    });
+
+    document.addEventListener('reset', (e) => {
+      const forma = e.target;
+      if (!forma || !forma.querySelectorAll) return;
+      setTimeout(() => forma.querySelectorAll('.file-picker input[type="file"]').forEach(yangilashFaylNomi), 0);
     });
   </script>
   <script src="{% static 'web/js/alpine.min.js' %}" defer></script>

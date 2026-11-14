@@ -56,7 +56,7 @@
         <button type="button" class="search-clear" x-show="qText !== ''" x-cloak
                 @click="qText = ''; $nextTick(() => $el.closest('form').requestSubmit())"
                 aria-label="Qidiruvni tozalash" title="Tozalash">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <label class="chip-btn chip-toggle {% if faqat_kamomad %}active{% endif %}" :class="faolKamomad && 'active'">
@@ -93,7 +93,7 @@
             </a>
           </td>
           <td class="col-center" data-label="Telefon"><span class="code">{{ holat.oqituvchi.foydalanuvchi.telefon }}</span></td>
-          <td data-label="Lavozim" style="color:var(--text-secondary);">{{ holat.oqituvchi.turi.nomi }}</td>
+          <td data-label="Lavozim" style="color:var(--text-secondary);">{{ holat.oqituvchi.turi.nomi|capfirst }}</td>
           <td class="col-center" data-label="Minimal soat">
             <span class="hour-tag">{{ holat.min_soat }} soat</span>
           </td>

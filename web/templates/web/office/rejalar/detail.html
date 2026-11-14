@@ -1,7 +1,23 @@
 {% extends "web/base.html" %}
 {% block title %}{{ reja }}{% endblock %}
 {% block content %}
-<div x-data="{ tab: '{{ tab|default:'jadval'|escapejs }}', qidiruv: '', faqat: false }">
+<div x-data="{
+  tab: '{{ tab|default:'jadval'|escapejs }}',
+  sem: '{{ tanlangan_semestr|default:''|escapejs }}',
+  qidiruv: '',
+  faqat: false,
+  mosSoni() {
+    const q = this.qidiruv.toLowerCase();
+    const faqat = this.faqat;
+    let soni = 0;
+    this.$root.querySelectorAll('tbody[data-jonli=reja-jadval-tbody] tr[data-nomi]').forEach((tr) => {
+      if ((!faqat || tr.dataset.biriktirilmagan === '1') && (q === '' || (tr.dataset.nomi || '').includes(q))) {
+        soni += 1;
+      }
+    });
+    return soni;
+  }
+}">
 <nav class="breadcrumb" aria-label="Breadcrumb">
   <a href="{% url 'office:reja_list' %}">O'quv rejalar</a>
   <span class="sep">/</span>
@@ -12,10 +28,18 @@
     <div class="title"><span class="badge-major">{{ reja.yonalish_kodi }}</span>{{ reja.yonalish_nomi }}</div>
   </div>
   <div class="controls">
-    <button type="button" class="chip-btn" :class="tab === 'jadval' && 'active'" @click="tab = 'jadval'; history.replaceState(null, '', '?tab=jadval')">Jadval</button>
-    <button type="button" class="chip-btn" :class="tab === 'semestr' && 'active'" @click="tab = 'semestr'; history.replaceState(null, '', '?tab=semestr')">Semestr bo'yicha</button>
-    <button type="button" class="chip-btn" :class="tab === 'semestrovka' && 'active'" @click="tab = 'semestrovka'; history.replaceState(null, '', '?tab=semestrovka')">Semestrovka</button>
-    <a class="btn btn-primary" href="{% url 'office:reja_tahrir' reja.pk %}">Tahrirlash</a>
+    <a class="btn btn-primary" href="{% url 'office:reja_tahrir' reja.pk %}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      <span>Tahrirlash</span>
+    </a>
+  </div>
+</div>
+
+<div class="subtoolbar">
+  <div class="segmented-tabs" role="tablist" aria-label="Reja bo'limlari">
+    <button type="button" class="seg-tab" role="tab" :aria-selected="tab === 'jadval'" :class="tab === 'jadval' && 'active'" @click="tab = 'jadval'; history.replaceState(null, '', '?tab=jadval')">Jadval</button>
+    <button type="button" class="seg-tab" role="tab" :aria-selected="tab === 'semestr'" :class="tab === 'semestr' && 'active'" @click="tab = 'semestr'; history.replaceState(null, '', sem ? '?tab=semestr&sem=' + encodeURIComponent(sem) : '?tab=semestr')">Semestr bo'yicha</button>
+    <button type="button" class="seg-tab" role="tab" :aria-selected="tab === 'semestrovka'" :class="tab === 'semestrovka' && 'active'" @click="tab = 'semestrovka'; history.replaceState(null, '', '?tab=semestrovka')">Semestrovka</button>
   </div>
 </div>
 
@@ -24,22 +48,31 @@
   <div class="stat"><div class="num">{{ reja.talabalar_soni|default:"—" }}</div><div class="lbl">Talabalar soni</div></div>
   <div class="stat">
     <div class="num">{{ reja.guruhlar_soni|default:"—" }}</div>
-    <div class="lbl">Guruhlar{% if reja.guruhlar.all %}: {% for g in reja.guruhlar.all %}{{ g.nomi }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}</div>
+    <div class="lbl" title="{% for g in reja.guruhlar.all %}{{ g.nomi }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+      Guruhlar{% if reja.guruhlar.all %}: <span class="stat-guruh-inline stat-guruh-clamp" title="{% for g in reja.guruhlar.all %}{{ g.nomi }}{% if not forloop.last %}, {% endif %}{% endfor %}">{% for g in reja.guruhlar.all %}{{ g.nomi }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% endif %}
+    </div>
   </div>
   {% include "web/parts/_biriktirilmagan_statlar.html" %}
 </div>
 
-<div class="legend">
-  <span><span class="dot" style="background:var(--accent);"></span>Semestrdagi haftalik soat</span>
-  <span><span class="dot" style="background:var(--unassigned);"></span>Kafedraga biriktirilmagan</span>
+<div class="legend" x-show="tab === 'jadval'">
+  <span class="legend-pill"><span class="dot" style="background:var(--accent);"></span>Semestrdagi haftalik soat</span>
+  <span class="legend-pill"><span class="dot" style="background:var(--unassigned);"></span>Kafedraga biriktirilmagan</span>
 </div>
 
-<div class="controls" style="margin-bottom:10px;" x-show="tab === 'jadval'">
-  {% include "web/parts/_qidiruv.html" with placeholder="Fan nomi yoki kodi" aria_label="Fan nomi yoki kodi" %}
-  <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
+<div class="filter-toolbar" x-show="tab === 'jadval'">
+  <div class="filter-toolbar-left">
+    {% include "web/parts/_qidiruv.html" with placeholder="Fan nomi yoki kodi..." aria_label="Fan nomi yoki kodi" %}
+    <button type="button" class="chip-btn chip-toggle" :class="faqat && 'active'" @click="faqat = !faqat">
+      <span class="chip-check-box" aria-hidden="true">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </span>
+      <span>Faqat biriktirilmagan</span>
+    </button>
+  </div>
 </div>
 
-<div class="table-wrap" x-show="tab === 'jadval'"
+<div class="table-wrap cards" x-show="tab === 'jadval'"
      x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
   <table>
     <thead>
@@ -76,9 +109,23 @@
       {% include "web/office/rejalar/_semestrovka_qatori.html" with guruh_flag="tanlov" %}
       {% endfor %}
     </tbody>
+    {% if majburiy_satrlar or tanlov_satrlar %}
+    <tbody x-show="(faqat || qidiruv !== '') && mosSoni() === 0" x-cloak>
+      <tr><td colspan="{{ semestr_raqamlari|length|add:5 }}">
+        <div class="empty-state empty-state-rich empty-state-filtered">
+          <div class="empty-state-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          </div>
+          <h3 class="empty-state-title">Qidiruv bo'yicha fan topilmadi</h3>
+          <p class="empty-state-desc">Filtrlarni tozalab, barcha fanlarni qayta ko'ring.</p>
+          <button type="button" class="btn btn-sm" @click="qidiruv = ''; faqat = false">Filtrlarni tozalash</button>
+        </div>
+      </td></tr>
+    </tbody>
+    {% endif %}
   </table>
 </div>
-<div class="table-wrap" x-show="tab === 'semestrovka'" x-cloak data-jonli="reja-semestrovka"
+<div class="table-wrap cards" x-show="tab === 'semestrovka'" x-cloak data-jonli="reja-semestrovka"
      x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
   {% include "web/office/rejalar/_semestrovka_breakdown.html" %}
 </div>

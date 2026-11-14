@@ -5,36 +5,50 @@
   <div>
     <div class="title">Dastur topshiriqlari</div>
   </div>
-  <div class="controls">
-    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;"
-          hx-get="{% url 'office:dastur_topshirishlar' %}" hx-trigger="change from:select"
-          hx-target="#dasturlar-jonli" hx-select="#dasturlar-jonli" hx-indicator="#htmx-yuklanish"
-          hx-swap="outerHTML" hx-push-url="true">
-      <select name="kafedra" aria-label="Kafedra" onchange="if(!window.htmx) this.form.submit()">
-        <option value="">Barcha kafedralar</option>
-        {% for k in kafedralar %}
-        <option value="{{ k.pk }}" {% if k.pk == kafedra_id %}selected{% endif %}>{{ k.nomi }}</option>
-        {% endfor %}
-      </select>
-      <select name="holat" aria-label="Holat" onchange="if(!window.htmx) this.form.submit()">
-        <option value="">Barcha topshirilganlar</option>
-        <option value="KUTILMOQDA" {% if holat == "KUTILMOQDA" %}selected{% endif %}>Ko'rib chiqilmoqda</option>
-        <option value="QABUL_QILINDI" {% if holat == "QABUL_QILINDI" %}selected{% endif %}>Qabul qilindi</option>
-        <option value="RAD_ETILDI" {% if holat == "RAD_ETILDI" %}selected{% endif %}>Rad etildi</option>
-        <option value="TOPSHIRILMAGAN" {% if holat == "TOPSHIRILMAGAN" %}selected{% endif %}>Hali topshirilmagan ({{ topshirilmagan_soni }})</option>
-      </select>
-    </form>
-  </div>
 </div>
-<div id="dasturlar-jonli" x-data="{ qidiruv: '' }">
-  <div class="controls" style="margin-bottom:10px;">
-    <div class="search">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input type="text" placeholder="Fan yoki o'qituvchi" aria-label="Fan yoki o'qituvchi" x-model="qidiruv">
+<div id="dasturlar-jonli" x-data="{
+  qidiruv: '',
+  mosSoni() {
+    const q = this.qidiruv.toLowerCase();
+    let soni = 0;
+    this.$root.querySelectorAll('tbody[data-jonli=office-dasturlar-tbody] tr[data-nomi]').forEach((tr) => {
+      if (q === '' || (tr.dataset.nomi || '').includes(q)) soni += 1;
+    });
+    return soni;
+  }
+}">
+  <div class="filter-toolbar">
+    <div class="filter-toolbar-left">
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" placeholder="Fan yoki o'qituvchi..." aria-label="Fan yoki o'qituvchi" x-model="qidiruv">
+        <button type="button" class="search-clear" x-show="qidiruv.length > 0" x-cloak @click="qidiruv = ''" aria-label="Qidiruvni tozalash" title="Tozalash">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form method="get" class="filter-toolbar-selects"
+            hx-get="{% url 'office:dastur_topshirishlar' %}" hx-trigger="change from:select"
+            hx-target="#dasturlar-jonli" hx-select="#dasturlar-jonli" hx-indicator="#htmx-yuklanish"
+            hx-swap="outerHTML" hx-push-url="true">
+        <select name="kafedra" aria-label="Kafedra" onchange="if(!window.htmx) this.form.submit()">
+          <option value="">Barcha kafedralar</option>
+          {% for k in kafedralar %}
+          <option value="{{ k.pk }}" {% if k.pk == kafedra_id %}selected{% endif %}>{{ k.nomi }}</option>
+          {% endfor %}
+        </select>
+        <select name="holat" aria-label="Holat" onchange="if(!window.htmx) this.form.submit()">
+          <option value="">Barcha topshirilganlar</option>
+          <option value="KUTILMOQDA" {% if holat == "KUTILMOQDA" %}selected{% endif %}>Ko'rib chiqilmoqda</option>
+          <option value="QABUL_QILINDI" {% if holat == "QABUL_QILINDI" %}selected{% endif %}>Qabul qilindi</option>
+          <option value="RAD_ETILDI" {% if holat == "RAD_ETILDI" %}selected{% endif %}>Rad etildi</option>
+          <option value="TOPSHIRILMAGAN" {% if holat == "TOPSHIRILMAGAN" %}selected{% endif %}>Hali topshirilmagan ({{ topshirilmagan_soni }})</option>
+        </select>
+      </form>
     </div>
     {% if topshirilmagan_soni and holat != "TOPSHIRILMAGAN" %}
-    <a class="chip-btn" href="?holat=TOPSHIRILMAGAN{% if kafedra_id %}&kafedra={{ kafedra_id }}{% endif %}">
-      Hali topshirilmagan fanlar: <strong>{{ topshirilmagan_soni }} ta</strong>
+    <a class="chip-btn chip-alert" href="?holat=TOPSHIRILMAGAN{% if kafedra_id %}&kafedra={{ kafedra_id }}{% endif %}">
+      <span>Hali topshirilmagan:</span>
+      <strong>{{ topshirilmagan_soni }} ta</strong>
     </a>
     {% endif %}
   </div>
@@ -47,26 +61,30 @@
           <th>O'qituvchi</th>
           <th>Yuborilgan vaqt</th>
           <th>Holat</th>
-          <th></th>
+          <th class="col-center">Amallar</th>
         </tr>
       </thead>
       <tbody data-jonli="office-dasturlar-tbody">
         {% if holat == "TOPSHIRILMAGAN" %}
           {% for td in topshirilmaganlar %}
-          <tr data-nomi="{{ td.variant.nomi|lower }} {{ td.oqituvchi|stringformat:'s'|lower }}"
+          <tr data-nomi="{{ td.variant.nomi|lower }} {{ td.variant.kodi|lower }} {{ td.oqituvchi|stringformat:'s'|lower }}"
               x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())"
               class="qator-biriktirilmagan">
             <td data-label="Fan">
-              <span class="code">{{ td.variant.kodi|default:"" }}</span>
-              <strong>{{ td.variant.nomi }}</strong>
-              <span class="credits">· {{ td.variant.fan.reja.yonalish_kodi }}</span>
+              <div class="fan-meta-cell">
+                <div class="fan-meta-top">
+                  {% if td.variant.kodi %}<span class="code">{{ td.variant.kodi }}</span>{% endif %}
+                  <strong>{{ td.variant.nomi }}</strong>
+                </div>
+                <div class="fan-meta-sub">{{ td.variant.fan.reja.yonalish_kodi }} · {{ td.variant.fan.reja.yonalish_nomi }}</div>
+              </div>
             </td>
             <td data-label="Kafedra">{{ td.variant.kafedra.nomi|default:"—" }}</td>
             <td data-label="O'qituvchi">{{ td.oqituvchi }}</td>
-            <td data-label="Yuborilgan vaqt">—</td>
+            <td data-label="Yuborilgan vaqt"><span class="muted">—</span></td>
             <td data-label="Holat"><span class="tag tag-rad">TOPSHIRILMAGAN</span></td>
-            <td>
-              <button type="button" class="btn"
+            <td class="col-center col-nowrap" data-label="Amallar">
+              <button type="button" class="btn btn-sm"
                       data-modal-title="{{ td.variant.nomi }}"
                       data-modal-subtitle="O'quv dasturi hali topshirilmagan"
                       data-row-modal="Fan kodi::{{ td.variant.kodi|default:'—' }}||Fan nomi::{{ td.variant.nomi }}||Yo'nalish::{{ td.variant.fan.reja.yonalish_kodi }} — {{ td.variant.fan.reja.yonalish_nomi }}||Kafedra::{{ td.variant.kafedra.nomi|default:'—' }}||Ma'ruza o'qituvchisi::{{ td.oqituvchi }}||Holati::Topshirilmagan">
@@ -75,7 +93,15 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="6"><div class="empty-state">Barcha ma'ruza o'qituvchilari dastur topshirgan.</div></td></tr>
+          <tr><td colspan="6">
+            <div class="empty-state empty-state-rich">
+              <div class="empty-state-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <h3 class="empty-state-title">Topshirilmagan dasturlar qolmagan</h3>
+              <p class="empty-state-desc">Barcha ma'ruza o'qituvchilari o'z fan dasturlarini yuklab bo'lgan.</p>
+            </div>
+          </td></tr>
           {% endfor %}
         {% else %}
           {% for t in topshirishlar %}
@@ -84,10 +110,32 @@
             <div id="dastur-panel-{{ t.variant_id }}"></div>
           </td></tr>
           {% empty %}
-          <tr><td colspan="6"><div class="empty-state">Hozircha dastur topshirilmagan.</div></td></tr>
+          <tr><td colspan="6">
+            <div class="empty-state empty-state-rich">
+              <div class="empty-state-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <h3 class="empty-state-title">Hozircha dastur topshirilmagan</h3>
+              <p class="empty-state-desc">Tanlangan kafedra yoki holat bo'yicha yuborilgan o'quv dasturlari mavjud emas.</p>
+            </div>
+          </td></tr>
           {% endfor %}
         {% endif %}
       </tbody>
+      {% if holat == "TOPSHIRILMAGAN" and topshirilmaganlar or holat != "TOPSHIRILMAGAN" and topshirishlar %}
+      <tbody x-show="qidiruv !== '' && mosSoni() === 0" x-cloak>
+        <tr><td colspan="6">
+          <div class="empty-state empty-state-rich empty-state-filtered">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            </div>
+            <h3 class="empty-state-title">Qidiruv bo'yicha dastur topilmadi</h3>
+            <p class="empty-state-desc">Qidiruv so'zini tozalab qayta urinib ko'ring.</p>
+            <button type="button" class="btn btn-sm" @click="qidiruv = ''">Qidiruvni tozalash</button>
+          </div>
+        </td></tr>
+      </tbody>
+      {% endif %}
     </table>
   </div>
 </div>

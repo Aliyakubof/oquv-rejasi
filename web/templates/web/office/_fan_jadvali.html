@@ -2,6 +2,7 @@
   qidiruv: '',
   faqat: false,
   semestrovka: false,
+  oobSikl: 0,
   tanlanganlar: [],
   tanlanganKafedra: '',
   belgilash(e, id) {
@@ -12,11 +13,15 @@
     }
   },
   korinadiganIdlar() {
+    void this.oobSikl;
+    const q = this.qidiruv.toLowerCase();
+    const faqat = this.faqat;
     const idlar = [];
-    this.$root.querySelectorAll('tbody[data-jonli=office-fan-tbody] tr').forEach((tr) => {
-      if (tr.style.display === 'none') return;
-      const cb = tr.querySelector('.row-check[data-variant-id]');
-      if (cb) idlar.push(cb.dataset.variantId);
+    this.$root.querySelectorAll('tbody[data-jonli=office-fan-tbody] tr[data-nomi]').forEach((tr) => {
+      if ((!faqat || tr.dataset.biriktirilmagan === '1') && (q === '' || (tr.dataset.nomi || '').includes(q))) {
+        const cb = tr.querySelector('.row-check[data-variant-id]');
+        if (cb) idlar.push(cb.dataset.variantId);
+      }
     });
     return idlar;
   },
@@ -32,21 +37,53 @@
       const ochirish = new Set(idlar);
       this.tanlanganlar = this.tanlanganlar.filter((id) => !ochirish.has(id));
     }
+  },
+  _sanaMos(selektor) {
+    void this.oobSikl;
+    const q = this.qidiruv.toLowerCase();
+    const faqat = this.faqat;
+    let soni = 0;
+    this.$root.querySelectorAll(selektor).forEach((tr) => {
+      if ((!faqat || tr.dataset.biriktirilmagan === '1') && (q === '' || (tr.dataset.nomi || '').includes(q))) {
+        soni += 1;
+      }
+    });
+    return soni;
+  },
+  mosSoni() {
+    return this._sanaMos('tbody[data-jonli=office-fan-tbody] tr[data-nomi]');
+  },
+  mosSemestrovkaSoni() {
+    return this._sanaMos('[data-jonli=office-fan-semestrovka] tbody tr[data-nomi]');
   }
-}">
-  <div class="controls" style="margin-bottom:10px;">
-    {% include "web/parts/_qidiruv.html" with placeholder="Fan, kod, kafedra yoki yo'nalish" aria_label="Fan, kod, kafedra yoki yo'nalish" %}
-    <button type="button" class="chip-btn" :class="faqat && 'active'" @click="faqat = !faqat">Faqat biriktirilmagan</button>
-    <button type="button" class="chip-btn" :class="semestrovka && 'active'" @click="semestrovka = !semestrovka">Semestrovka</button>
+}" @htmx:after-settle.window="oobSikl++" @jonli:yangilandi.window="oobSikl++">
+  <div class="filter-toolbar">
+    <div class="filter-toolbar-left">
+      {% include "web/parts/_qidiruv.html" with placeholder="Fan, kod, kafedra yoki yo'nalish..." aria_label="Fan, kod, kafedra yoki yo'nalish" %}
+      <button type="button" class="chip-btn chip-toggle" :class="faqat && 'active'" @click="faqat = !faqat">
+        <span class="chip-check-box" aria-hidden="true">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </span>
+        <span>Faqat biriktirilmagan</span>
+      </button>
+    </div>
+    <div class="segmented-tabs" role="tablist" aria-label="Jadval ko'rinishi">
+      <button type="button" class="seg-tab" role="tab" :aria-selected="!semestrovka" :class="!semestrovka && 'active'"
+        @click="semestrovka = false">Umumiy jadval</button>
+      <button type="button" class="seg-tab" role="tab" :aria-selected="semestrovka" :class="semestrovka && 'active'"
+        @click="semestrovka = true">Semestrovka</button>
+    </div>
   </div>
-  <div class="bulk-bar" x-show="tanlanganlar.length > 0 && !semestrovka"
-       x-transition:enter="anim-bulk-enter" x-transition:enter-start="anim-bulk-start" x-transition:enter-end="anim-bulk-end"
-       x-transition:leave="anim-bulk-leave" x-transition:leave-start="anim-bulk-end" x-transition:leave-end="anim-bulk-start"
-       x-cloak @keydown.escape.window="tanlanganlar = []; tanlanganKafedra = ''">
+  <div class="bulk-bar" x-show="tanlanganlar.length > 0 && !semestrovka" x-transition:enter="anim-bulk-enter"
+    x-transition:enter-start="anim-bulk-start" x-transition:enter-end="anim-bulk-end"
+    x-transition:leave="anim-bulk-leave" x-transition:leave-start="anim-bulk-end"
+    x-transition:leave-end="anim-bulk-start" x-cloak @keydown.escape.window="tanlanganlar = []; tanlanganKafedra = ''">
     <form method="post" action="{% url 'office:ommaviy_kafedra_biriktirish' %}"
-          hx-post="{% url 'office:ommaviy_kafedra_biriktirish' %}"
-          hx-target="#kontent" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
-          class="bulk-bar-form">
+      hx-post="{% url 'office:ommaviy_kafedra_biriktirish' %}" hx-target="#kontent" hx-swap="innerHTML"
+      hx-indicator="#htmx-yuklanish" class="bulk-bar-form">
       {% csrf_token %}
       <input type="hidden" name="yil" value="{{ yil }}">
       <input type="hidden" name="kafedra" :value="tanlanganKafedra === '__bekor__' ? '' : tanlanganKafedra">
@@ -67,14 +104,14 @@
       <button type="button" class="btn btn-sm" @click="tanlanganlar = []; tanlanganKafedra = ''">Bekor qilish</button>
     </form>
   </div>
-  <div class="table-wrap" x-show="!semestrovka"
-       x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
+  <div class="table-wrap cards" x-show="!semestrovka" x-transition:enter="anim-tab-enter"
+    x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
     <table>
       <thead>
         <tr>
           <th class="col-check">
             <input type="checkbox" class="row-check" aria-label="Ko'rinadigan barcha fanlarni tanlash"
-                   :checked="hammasiTanlangan()" @change="hammasiniBelgilash($event)">
+              :checked="hammasiTanlangan()" @change="hammasiniBelgilash($event)">
           </th>
           <th class="col-idx">№</th>
           <th class="col-code">Kod</th>
@@ -94,13 +131,37 @@
         {% for satr in fan_satrlari %}
         {% include "web/office/_fan_qatori.html" %}
         {% empty %}
-        <tr><td colspan="13"><div class="empty-state">Bu o'quv yilida fanlar topilmadi.</div></td></tr>
+        <tr>
+          <td colspan="13">
+            <div class="empty-state empty-state-compact">Bu o'quv yilida fanlar topilmadi.</div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
+      {% if fan_satrlari %}
+      <tbody x-show="(faqat || qidiruv !== '') && mosSoni() === 0" x-cloak>
+        <tr>
+          <td colspan="13">
+            <div class="empty-state empty-state-rich empty-state-filtered">
+              <div class="empty-state-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M21 21l-4.3-4.3" />
+                </svg>
+              </div>
+              <h3 class="empty-state-title">Qidiruv bo'yicha fan topilmadi</h3>
+              <p class="empty-state-desc">Filtrlarni tozalab, barcha fanlarni qayta ko'ring.</p>
+              <button type="button" class="btn btn-sm" @click="qidiruv = ''; faqat = false">Filtrlarni tozalash</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+      {% endif %}
     </table>
   </div>
-  <div class="table-wrap" x-show="semestrovka" x-cloak data-jonli="office-fan-semestrovka"
-       x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
+  <div class="table-wrap cards" x-show="semestrovka" x-cloak data-jonli="office-fan-semestrovka"
+    x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
     {% include "web/office/_fan_semestrovka.html" %}
   </div>
 </div>

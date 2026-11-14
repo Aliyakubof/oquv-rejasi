@@ -1,27 +1,10 @@
 {% with joriy=variant.dastur_topshirishlari.all.0 %}
 <div class="dastur-durum-cell"
-     x-data="{
-       ochiq: false,
-       pos: { top: '0px', left: '0px' },
-       ochish(btn) {
-         if (this.ochiq) {
-           this.ochiq = false;
-           return;
-         }
-         const rect = btn.getBoundingClientRect();
-         const menuW = 240;
-         let l = rect.right - menuW;
-         if (l < 10) l = 10;
-         let t = rect.bottom + 6;
-         if (t + 160 > window.innerHeight) {
-           t = Math.max(10, rect.top - 150);
-         }
-         this.pos = { top: Math.round(t) + 'px', left: Math.round(l) + 'px' };
-         this.ochiq = true;
-       }
-     }"
-     @scroll.window.capture="ochiq = false"
-     @resize.window="ochiq = false">
+     x-data="amalMenyu()"
+     @keydown.escape.window="yopish()"
+     @scroll.window.capture="skrollYopish($event)"
+     @resize.window="yopish()"
+     @action-menu:yopish.window="yopish()">
   {# Status badge — clicking opens the panel #}
   <button type="button" class="status-btn"
           hx-get="{% url 'men:dastur_tarixi' variant.pk %}"
@@ -56,7 +39,7 @@
   </button>
 
   {# 3-dots action menu #}
-  <div class="action-dropdown" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
+  <div class="action-dropdown" :class="ochiq && 'dropdown-ochiq'" @click.outside="yopish()">
     <button type="button" class="btn-dots" :class="ochiq && 'active'" @click="ochish($el)" title="Amallar" aria-label="Amallar">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
         <circle cx="12" cy="5" r="2"/>
@@ -66,6 +49,8 @@
     </button>
 
     <div class="action-menu action-menu-fixed"
+         x-ref="menyuOyna"
+         :class="tepagaOchil && 'popover-up'"
          x-show="ochiq"
          x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
          x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"

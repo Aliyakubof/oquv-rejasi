@@ -440,17 +440,30 @@ input[type="password"]:focus {
   box-shadow: 0 2px 8px rgba(26, 42, 110, 0.28);
 }
 
+.chip-btn.active .group-count {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .soat-input {
-  width: 56px;
+  width: 62px;
   padding: 6px 8px;
   border: 1px solid var(--input-border);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   text-align: center;
   color: var(--ink);
   background: var(--input-bg);
+  -moz-appearance: textfield;
+  appearance: textfield;
   transition: border-color 0.24s ease, box-shadow 0.24s ease, background-color 0.24s ease;
+}
+
+.soat-input::-webkit-inner-spin-button,
+.soat-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .soat-input:focus {
@@ -469,7 +482,7 @@ input[type="password"]:focus {
 }
 
 .stats.wide {
-  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
 }
 
 .stat {
@@ -937,6 +950,16 @@ table a,
   transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease, background-color 0.22s ease, box-shadow 0.26s ease;
 }
 
+.teacher-chip .chip-label {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
 .teacher-chip:hover {
   border-color: var(--ink);
   background: #f8fafc;
@@ -1228,7 +1251,7 @@ button.teacher-chip {
 }
 
 .cell-relative.popover-ochiq {
-  z-index: 35;
+  z-index: 60;
 }
 
 .cell-relative .popover {
@@ -1818,12 +1841,31 @@ tfoot td {
 
   .navbar-actions {
     display: none;
+    position: relative;
     flex: none;
     width: 100%;
     flex-wrap: wrap;
     justify-content: space-between;
     padding: 8px 0 4px;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .navbar-actions .user-menu,
+  .navbar-actions .nav-notif-wrap {
+    position: static;
+  }
+
+  .navbar-actions .menu-panel,
+  .navbar-actions .nav-notif-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 8px);
+    width: auto;
+    max-width: 100%;
+    max-height: min(65vh, 460px);
+    z-index: 90;
+    transform-origin: top center;
   }
 
   .navbar-actions.ochiq {
@@ -1896,7 +1938,7 @@ tfoot td {
   margin-bottom: 6px;
 }
 
-.menu-parol-link {
+.menu-item.menu-parol-link {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1905,9 +1947,24 @@ tfoot td {
   color: var(--text-main);
 }
 
-.menu-parol-link:hover {
+.menu-item.menu-parol-link svg {
+  flex-shrink: 0;
+  opacity: 0.78;
+}
+
+.menu-item.menu-parol-link:hover {
   color: var(--ink);
   background: #f1f5f9;
+}
+
+.menu-item.menu-parol-link.active {
+  background: #eff6ff;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.menu-item.menu-parol-link.active svg {
+  opacity: 1;
 }
 
 .menu-ism {
@@ -3453,15 +3510,15 @@ body.auth-body .app {
 
 /* Lesson Type Breakdown Columns */
 .analitika-turlar-table .at-col-name {
-  width: 34%;
+  width: 31%;
 }
 
 .analitika-turlar-table .at-col-bar {
-  width: 30%;
+  width: 42%;
 }
 
 .analitika-turlar-table .at-col-hours {
-  width: 22%;
+  width: 15%;
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -3473,7 +3530,7 @@ body.auth-body .app {
 }
 
 .analitika-turlar-table .at-col-pct {
-  width: 14%;
+  width: 12%;
   text-align: right;
   white-space: nowrap;
 }
@@ -3528,7 +3585,7 @@ body.auth-body .app {
 }
 
 .tur-progress-track {
-  height: 5px;
+  height: 7px;
   border-radius: 9999px;
   background: #eef2f7;
   overflow: hidden;
@@ -3670,11 +3727,50 @@ body.auth-body .app {
 
 @media (max-width: 640px) {
   .analitika-card {
-    padding: 18px 16px;
+    padding: 16px 14px;
   }
 
-  .analitika-turlar-table .at-col-bar {
+  .analitika-panel-head {
+    flex-wrap: wrap;
+    padding: 11px 12px;
+  }
+
+  .analitika-table thead th,
+  .analitika-table tbody td,
+  .analitika-table-foot td {
+    padding: 9px 10px;
+  }
+
+  .analitika-turlar-table .at-col-bar,
+  .analitika-turlar-table .at-foot-note {
     display: none;
+  }
+
+  .analitika-turlar-table .at-col-name {
+    width: auto;
+  }
+
+  .analitika-turlar-table .at-col-hours,
+  .analitika-turlar-table .at-col-pct {
+    width: 1%;
+  }
+
+  .analitika-kafedra-table .ak-col-name {
+    width: auto;
+  }
+
+  .analitika-kafedra-table .ak-col-progress {
+    width: 30%;
+    min-width: 78px;
+  }
+
+  .analitika-kafedra-table .ak-col-status {
+    width: 1%;
+  }
+
+  .ak-hours-top {
+    flex-wrap: wrap;
+    gap: 2px 6px;
   }
 }
 
@@ -3706,6 +3802,8 @@ body.auth-body .app {
   font-size: 12.5px;
   border: 1px solid #e2e8f0;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .hour-tag.ok {
@@ -3859,8 +3957,10 @@ body.auth-body .app {
 
 .action-menu.action-menu-fixed {
   position: fixed !important;
-  z-index: 999999 !important;
+  z-index: 99980 !important;
   margin: 0 !important;
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
 }
 
 .action-item {
@@ -4231,6 +4331,435 @@ tr.panel-row>td {
   color: var(--mand);
 }
 
+/* ================= Office UI Components & Shared Polish ================= */
+.popover.popover-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+  transform-origin: bottom center;
+}
+
+.popover .opt.opt-readonly {
+  cursor: default;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.popover .opt.opt-readonly:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.popover-empty-hint {
+  padding: 8px 10px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.form-error-hint {
+  color: var(--unassigned);
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+
+.office-dash-actions {
+  gap: 12px;
+}
+
+.legend.legend-compact {
+  margin: 0;
+  gap: 8px;
+}
+
+.office-dash-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.table-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #f8fafc;
+}
+
+.table-action-bar.foot-bar {
+  justify-content: flex-end;
+  border-bottom: 0;
+  border-top: 1px solid var(--line);
+}
+
+.table-action-hint {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.stat-guruh-inline {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.office-filter-shell {
+  display: block;
+}
+
+.filter-toolbar-selects {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.active-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.chip-btn.chip-alert {
+  background: var(--unassigned-soft);
+  border-color: var(--unassigned-border);
+  color: var(--unassigned);
+}
+
+.chip-btn.chip-alert:hover {
+  background: #fee2e2;
+  border-color: var(--unassigned);
+}
+
+.teacher-chip-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.col-qamrov {
+  min-width: 145px;
+}
+
+.row-actions-center {
+  justify-content: center;
+}
+
+.audit-vaqt {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.audit-ip {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.temp-pass-card {
+  margin-bottom: 14px;
+  border-color: var(--accent-border, var(--line-strong));
+  background: #eff6ff;
+}
+
+.temp-pass-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.temp-pass-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.temp-pass-meta {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.temp-pass-code {
+  font-weight: 700;
+  user-select: all;
+  letter-spacing: 0.03em;
+}
+
+.temp-pass-note {
+  color: var(--text-muted);
+}
+
+.alert-box {
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.alert-box.danger {
+  background: var(--unassigned-soft);
+  border: 1px solid var(--unassigned-border);
+  color: var(--unassigned);
+}
+
+.alert-box-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.alert-box-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.import-result-card {
+  margin-top: 16px;
+}
+
+.import-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.import-result-head h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.import-result-meta {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Dastur tarixi paneli & urinishlar */
+.tarix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px;
+}
+
+.tarix-item {
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #ffffff;
+}
+
+.tarix-item.ok {
+  border-left-color: var(--mand);
+}
+
+.tarix-item.danger {
+  border-left-color: var(--unassigned);
+}
+
+.tarix-item.pending {
+  border-left-color: var(--accent);
+}
+
+.tarix-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tarix-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tarix-item-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tarix-item-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tarix-item-note {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.tarix-panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+  background: #f8fafc;
+}
+
+.tarix-qaror-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.empty-state-compact {
+  padding: 20px 14px;
+}
+
+/* Sozlamalar sahifasi */
+.settings-card {
+  margin-bottom: 24px;
+  max-width: 760px;
+}
+
+.settings-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.settings-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.settings-card-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.settings-inline-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.settings-inline-field {
+  flex: 1;
+  min-width: 260px;
+}
+
+.settings-inline-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.section-topbar {
+  margin-top: 22px;
+}
+
+.section-heading {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+}
+
+.section-table-wrap {
+  margin-bottom: 26px;
+}
+
+.sozlamalar-tools-bar {
+  margin-bottom: 12px;
+}
+
+.sozlamalar-import-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.file-input-compact,
+.form-field input[type="file"] {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  max-width: 260px;
+}
+
+.form-field input[type="file"] {
+  max-width: 100%;
+  padding: 6px 8px;
+}
+
+.file-input-compact::file-selector-button,
+.form-field input[type="file"]::file-selector-button {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
+  border-radius: 7px;
+  padding: 5px 10px;
+  margin-right: 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.file-input-compact::file-selector-button:hover,
+.form-field input[type="file"]::file-selector-button:hover {
+  background: #f1f5f9;
+  border-color: var(--line-strong);
+}
+
+.soha-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .file-input-compact {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .soha-cell {
+    justify-content: flex-end;
+  }
+
+  .table-action-bar,
+  .tarix-panel-foot {
+    padding: 12px;
+  }
+}
+
 .legend-pill {
   display: inline-flex;
   align-items: center;
@@ -4444,8 +4973,15 @@ tr.panel-row>td {
   }
 }
 
-.table-wrap:has(.popover-ochiq) {
+.table-wrap:has(.panel-row .popover-ochiq) {
   overflow: visible;
+}
+
+body:not(.is-page-loading) .table-wrap.anim-tugadi,
+body:not(.is-page-loading) .table-wrap:has(.table-modal-backdrop),
+body:not(.is-page-loading) .table-wrap.anim-tugadi tbody tr:not(.panel-row):not(.group-row) {
+  animation: none;
+  transform: none;
 }
 
 .search-clear {
@@ -4758,6 +5294,24 @@ td.col-check {
 
   .onb-segmented-3 {
     grid-template-columns: 1fr;
+    gap: 6px;
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+
+  .onb-segmented-3 .onb-seg-btn {
+    background: #f8fafc;
+    border: 1px solid var(--line);
+    justify-content: flex-start;
+    text-align: left;
+    padding: 10px 14px;
+  }
+
+  .onb-segmented-3 .onb-seg-btn.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #ffffff;
   }
 }
 
@@ -4801,6 +5355,7 @@ body.ui-font-yirik .stats.wide {
 }
 
 @media (max-width: 640px) {
+
   body.ui-font-yirik .stats,
   body.ui-font-yirik .stats.wide {
     grid-template-columns: 1fr;
@@ -4962,9 +5517,29 @@ body.ui-font-yirik .audit-filter-form .search input,
 body.ui-font-yirik .audit-filter-form .btn,
 body.ui-font-yirik .copy-year-form select,
 body.ui-font-yirik .bulk-select,
-body.ui-font-yirik .kurs-ishi-form select {
+body.ui-font-yirik .kurs-ishi-form select,
+body.ui-font-yirik .filter-toolbar select,
+body.ui-font-yirik .file-input-compact {
   height: auto;
   min-height: 40px;
+}
+
+body.ui-font-yirik .audit-vaqt,
+body.ui-font-yirik .table-action-hint,
+body.ui-font-yirik .temp-pass-meta,
+body.ui-font-yirik .settings-card-desc,
+body.ui-font-yirik .tarix-item-date,
+body.ui-font-yirik .tarix-item-note {
+  font-size: 13.5px;
+}
+
+body.ui-font-yirik .temp-pass-title,
+body.ui-font-yirik .settings-card-title {
+  font-size: 16px;
+}
+
+body.ui-font-yirik .section-heading {
+  font-size: 19px;
 }
 
 body.ui-font-yirik .soat-input {
@@ -5046,6 +5621,7 @@ body.ui-font-yirik .navbar-actions {
 
   body.ui-font-yirik .navbar-actions {
     display: none;
+    position: relative;
     flex: none;
     width: 100%;
     flex-wrap: wrap;
@@ -5054,17 +5630,27 @@ body.ui-font-yirik .navbar-actions {
     border-top: 1px solid rgba(255, 255, 255, 0.12);
   }
 
+  body.ui-font-yirik .navbar-actions .user-menu,
+  body.ui-font-yirik .navbar-actions .nav-notif-wrap {
+    position: static;
+  }
+
+  body.ui-font-yirik .navbar-actions .menu-panel,
+  body.ui-font-yirik .navbar-actions .nav-notif-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 8px);
+    width: auto;
+    max-width: 100%;
+    max-height: min(65vh, 460px);
+    z-index: 90;
+    transform-origin: top center;
+  }
+
   body.ui-font-yirik .navbar-actions.ochiq {
     display: flex;
     animation: drawer-ochilish 0.38s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  body.ui-font-yirik .nav-notif-menu {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    top: 66px;
-    width: auto;
   }
 }
 
@@ -5185,6 +5771,7 @@ body.ui-font-juda_yirik .stats.wide {
 }
 
 @media (max-width: 640px) {
+
   body.ui-font-juda_yirik .stats,
   body.ui-font-juda_yirik .stats.wide {
     grid-template-columns: 1fr;
@@ -5373,9 +5960,29 @@ body.ui-font-juda_yirik .audit-filter-form .search input,
 body.ui-font-juda_yirik .audit-filter-form .btn,
 body.ui-font-juda_yirik .copy-year-form select,
 body.ui-font-juda_yirik .bulk-select,
-body.ui-font-juda_yirik .kurs-ishi-form select {
+body.ui-font-juda_yirik .kurs-ishi-form select,
+body.ui-font-juda_yirik .filter-toolbar select,
+body.ui-font-juda_yirik .file-input-compact {
   height: auto;
   min-height: 42px;
+}
+
+body.ui-font-juda_yirik .audit-vaqt,
+body.ui-font-juda_yirik .table-action-hint,
+body.ui-font-juda_yirik .temp-pass-meta,
+body.ui-font-juda_yirik .settings-card-desc,
+body.ui-font-juda_yirik .tarix-item-date,
+body.ui-font-juda_yirik .tarix-item-note {
+  font-size: 14.5px;
+}
+
+body.ui-font-juda_yirik .temp-pass-title,
+body.ui-font-juda_yirik .settings-card-title {
+  font-size: 17px;
+}
+
+body.ui-font-juda_yirik .section-heading {
+  font-size: 20px;
 }
 
 body.ui-font-juda_yirik .soat-input {
@@ -5463,6 +6070,7 @@ body.ui-font-juda_yirik .navbar-actions {
 
   body.ui-font-juda_yirik .navbar-actions {
     display: none;
+    position: relative;
     flex: none;
     width: 100%;
     flex-wrap: wrap;
@@ -5471,17 +6079,27 @@ body.ui-font-juda_yirik .navbar-actions {
     border-top: 1px solid rgba(255, 255, 255, 0.12);
   }
 
+  body.ui-font-juda_yirik .navbar-actions .user-menu,
+  body.ui-font-juda_yirik .navbar-actions .nav-notif-wrap {
+    position: static;
+  }
+
+  body.ui-font-juda_yirik .navbar-actions .menu-panel,
+  body.ui-font-juda_yirik .navbar-actions .nav-notif-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 8px);
+    width: auto;
+    max-width: 100%;
+    max-height: min(65vh, 460px);
+    z-index: 90;
+    transform-origin: top center;
+  }
+
   body.ui-font-juda_yirik .navbar-actions.ochiq {
     display: flex;
     animation: drawer-ochilish 0.38s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  body.ui-font-juda_yirik .nav-notif-menu {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    top: 68px;
-    width: auto;
   }
 }
 
@@ -5669,9 +6287,27 @@ body.ui-kontrast .kafedra-status-card {
 }
 
 body.ui-kontrast .analitika-panel-head,
-body.ui-kontrast .analitika-table-foot td {
+body.ui-kontrast .analitika-table-foot td,
+body.ui-kontrast .table-action-bar,
+body.ui-kontrast .tarix-panel-foot,
+body.ui-kontrast .app-modal-footer,
+body.ui-kontrast .modal-meta-box {
   background: #eef2ff;
-  border-color: #94a3b8;
+  border-color: #64748b;
+}
+
+body.ui-kontrast .modal-detail-list,
+body.ui-kontrast .tarix-item {
+  border: 1.5px solid #64748b;
+}
+
+body.ui-kontrast .modal-detail-row {
+  border-bottom-color: #cbd5e1;
+}
+
+body.ui-kontrast .temp-pass-card {
+  background: #eff6ff;
+  border-color: #1d4ed8;
 }
 
 body.ui-kontrast .analitika-heading,
@@ -5679,7 +6315,11 @@ body.ui-kontrast .analitika-panel-title,
 body.ui-kontrast .analitika-metric-val,
 body.ui-kontrast .ak-kaf-title,
 body.ui-kontrast .ak-hours-top strong,
-body.ui-kontrast .analitika-table td {
+body.ui-kontrast .analitika-table td,
+body.ui-kontrast .audit-vaqt,
+body.ui-kontrast .modal-detail-key,
+body.ui-kontrast .table-action-hint,
+body.ui-kontrast .settings-card-desc {
   color: #090d16;
 }
 
@@ -5843,7 +6483,8 @@ body.ui-kontrast span.col-code {
 
 body.ui-kontrast .popover .opt:hover,
 body.ui-kontrast .action-item:hover,
-body.ui-kontrast .menu-item:hover {
+body.ui-kontrast .menu-item:hover,
+body.ui-kontrast .menu-item.menu-parol-link.active {
   background: #e2e8f0;
   color: #090d16;
 }
@@ -6205,15 +6846,7 @@ body.ui-keng *::after {
   border: 1px solid #fecaca;
 }
 
-@media (max-width: 960px) {
-  .nav-notif-menu {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    top: 62px;
-    width: auto;
-  }
-}
+/* Mobile navbar popoverlari yuqorida .navbar-actions ostiga joylashadi */
 
 /* ================= Kafedra, Form, Modal va Hisobot UI/UX Yangilanishlari ================= */
 .stats-compact {
@@ -6641,6 +7274,16 @@ body.ui-keng *::after {
   transform-origin: bottom left;
 }
 
+.popover.popover-kafedra.popover-right {
+  left: auto;
+  right: 0;
+  transform-origin: top right;
+}
+
+.popover.popover-kafedra.popover-up.popover-right {
+  transform-origin: bottom right;
+}
+
 .popover-bulk-head {
   font-size: 11.5px;
   font-weight: 700;
@@ -6666,6 +7309,7 @@ body.ui-keng *::after {
 
 .popover-input-box input {
   width: 100%;
+  margin-bottom: 0;
   padding-right: 30px;
 }
 
@@ -6689,6 +7333,56 @@ body.ui-keng *::after {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.popover-scroll-body > form {
+  margin: 0;
+}
+
+.popover.popover-fixed {
+  position: fixed;
+  z-index: 9999;
+  margin: 0;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  width: 268px;
+  max-width: calc(100vw - 20px);
+  max-height: 320px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top right;
+}
+
+.popover.popover-fixed.popover-up {
+  top: auto;
+  right: auto;
+  transform-origin: bottom right;
+}
+
+.popover.popover-fixed .popover-search-wrap {
+  flex-shrink: 0;
+}
+
+.popover.popover-fixed .popover-scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.popover.popover-fixed > .opt.clear,
+.popover.popover-fixed > form {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.taqsimot-qism:has(.popover-ochiq),
+.guruh-slot-card:has(.popover-ochiq),
+.guruh-slot-card.popover-ochiq {
+  position: relative;
+  z-index: 50;
 }
 
 /* Form Sahifalari (Oqituvchi qo'shish / tahrirlash) */
@@ -6850,24 +7544,44 @@ body.ui-keng *::after {
 
   .table-wrap.cards tfoot tr {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
     background: #f8fafc;
     border: 1px solid var(--line);
     border-radius: 12px;
     padding: 10px 14px;
-    margin-top: 4px;
+    margin-top: 6px;
   }
 
   .table-wrap.cards tfoot td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     border: 0;
-    padding: 4px 6px;
-    text-align: left;
+    border-bottom: 1px solid #e9eef5;
+    padding: 7px 0;
+    text-align: right;
+  }
+
+  .table-wrap.cards tfoot td:first-child:not([data-label]) {
+    justify-content: flex-start;
+    text-align: left !important;
+    padding: 2px 0 8px !important;
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+
+  .table-wrap.cards tfoot td:last-child {
+    border-bottom: 0;
+    padding-bottom: 2px;
   }
 
   .table-wrap.cards tfoot td[data-label]::before {
-    margin-right: 6px;
+    margin-right: auto;
+    color: var(--text-muted);
+    font-weight: 500;
   }
 }
 
@@ -7594,4 +8308,566 @@ tr.htmx-added>td {
 
 .htmx-added:not(tr):not(.table-modal-backdrop) {
   animation: ui-fade-slide-up 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Shared men/bildirishnoma yordamchilari */
+.tur-legend-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.table-total-label {
+  text-align: right;
+  font-weight: 700;
+  padding-right: 20px;
+}
+.table-total-hour {
+  font-weight: 700;
+}
+.notif-title {
+  font-weight: 500;
+  color: var(--ink);
+}
+.notif-title-unread {
+  font-weight: 700;
+}
+.notif-body {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+body.ui-font-yirik .notif-body {
+  font-size: 14px;
+}
+body.ui-font-juda_yirik .notif-body {
+  font-size: 15.5px;
+}
+
+/* ================= O'zbekcha fayl tanlagich (.file-picker) ================= */
+.file-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid var(--input-border);
+  border-radius: 9px;
+  background: var(--input-bg);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.file-picker:hover {
+  background: #ffffff;
+  border-color: var(--line-strong);
+}
+
+.file-picker:has(.file-picker-input:focus-visible),
+.file-picker:focus-within {
+  outline: none;
+  background: #ffffff;
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 3px var(--input-focus-ring);
+}
+
+.file-picker-compact {
+  min-height: 36px;
+  width: auto;
+  max-width: 320px;
+  padding: 4px 10px 4px 4px;
+  gap: 8px;
+}
+
+.file-picker-input,
+.file-picker input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.file-picker-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  pointer-events: none;
+}
+
+.file-picker-compact .file-picker-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.file-picker-name {
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+  pointer-events: none;
+}
+
+.file-picker.has-file .file-picker-name {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+body.ui-font-yirik .file-picker-btn {
+  font-size: 13.5px;
+  padding: 7px 14px;
+}
+
+body.ui-font-yirik .file-picker-name {
+  font-size: 14px;
+}
+
+body.ui-font-juda_yirik .file-picker-btn {
+  font-size: 15px;
+  padding: 8px 16px;
+}
+
+body.ui-font-juda_yirik .file-picker-name {
+  font-size: 15.5px;
+}
+
+body.ui-kontrast .file-picker {
+  border-color: #64748b;
+  background: #ffffff;
+}
+
+body.ui-kontrast .file-picker-btn {
+  border-color: #0f172a;
+  color: #090d16;
+}
+
+/* ================= Muvozanatli forma va profil sahifalari ================= */
+.form-shell {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.form-shell .form-card,
+.form-shell .form-field {
+  max-width: none;
+}
+
+.form-shell .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.parol-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.parol-layout .form-card {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+}
+
+.parol-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.parol-card-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+.telegram-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.telegram-form-field {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.telegram-form-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.telegram-form-field input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ================= Jadval hujayra va KPI yaxshilanishlari ================= */
+.cell-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  max-width: 100%;
+}
+
+.cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cell-stack-main {
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.cell-stack-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.stat-guruh-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.35;
+}
+
+.table-shakl1 th,
+.table-shakl1 td {
+  vertical-align: middle;
+  padding: 9px 8px;
+}
+
+.table-shakl1 th.col-yonalish,
+.table-shakl1 th.col-kurs,
+.table-shakl1 th.col-sem {
+  white-space: nowrap;
+}
+
+.table-shakl1 td[data-label="Yo'nalish"] .code {
+  white-space: normal;
+  display: inline-block;
+  max-width: 195px;
+  text-align: center;
+  line-height: 1.35;
+}
+
+body.ui-font-yirik .soat-input {
+  width: 68px;
+}
+
+body.ui-font-juda_yirik .soat-input {
+  width: 76px;
+}
+
+/* ================= Mobil 640px yakuniy moslashuvlar ================= */
+@media (max-width: 640px) {
+  .stats.wide > .stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .topbar .controls {
+    width: 100%;
+  }
+
+  .search {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .search input,
+  .search input[type="text"] {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .filter-toolbar-left,
+  .filter-toolbar-selects {
+    width: 100%;
+  }
+
+  .filter-toolbar-selects > select {
+    flex: 1 1 150px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .audit-filter-form {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .audit-filter-form .search,
+  .audit-filter-form select,
+  .audit-filter-form button,
+  .audit-filter-form a {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .seg-tab {
+    padding: 7px 11px;
+    font-size: 12.5px;
+  }
+
+  .file-picker-compact {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .parol-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .telegram-form > button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .form-shell .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Mobil jadval kartochkalari tekisligi va kengligi */
+  .table-wrap.cards table,
+  .table-wrap.cards tbody,
+  .table-wrap.cards tfoot {
+    display: block;
+    width: 100%;
+  }
+
+  .table-wrap.cards td,
+  .table-wrap.cards td.col-idx,
+  .table-wrap.cards td.col-check,
+  .table-wrap.cards td.col-code,
+  .table-wrap.cards td.col-name,
+  .table-wrap.cards td.col-num,
+  .table-wrap.cards td.col-kafedra,
+  .table-wrap.cards td.col-oqituvchi,
+  .table-wrap.cards td.sem-cell,
+  .table-wrap.cards td.assign-cell,
+  .table-wrap.cards td.credits {
+    position: static !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
+    text-align: right;
+  }
+
+  .table-wrap.cards td[data-label]::before {
+    flex-shrink: 0;
+    margin-right: auto;
+    text-align: left;
+    padding-right: 10px;
+  }
+
+  .table-wrap.cards tbody tr.group-row {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    padding: 0;
+  }
+
+  .table-wrap.cards tbody tr.group-row td {
+    display: block;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 0;
+  }
+
+  .table-wrap.cards tbody tr.group-row td .group-row-inner {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .table-wrap.cards td .sem-fill,
+  .table-wrap.cards td .tag,
+  .table-wrap.cards td input.soat-input {
+    margin: 0;
+  }
+
+  .table-wrap.cards td .sem-empty {
+    margin: 0 0 0 auto;
+  }
+
+  .table-wrap.cards td .sem-dash {
+    width: auto;
+    text-align: right;
+  }
+
+  .table-wrap.cards td .teacher-chip,
+  .table-wrap.cards td .teacher-chip.empty {
+    width: auto;
+    max-width: min(260px, 66%);
+  }
+
+  .table-wrap.cards td .cell-val {
+    max-width: 68%;
+    justify-content: flex-end;
+    text-align: right;
+  }
+
+  .table-wrap.cards td .cell-stack {
+    align-items: flex-end;
+    text-align: right;
+    max-width: 68%;
+  }
+
+  .table-wrap.cards td .fan-meta-cell {
+    align-items: flex-end;
+    text-align: right;
+    max-width: 68%;
+  }
+
+  .table-wrap.cards td .fan-meta-top,
+  .table-wrap.cards td .fan-nomi-wrap {
+    justify-content: flex-end;
+    text-align: right;
+  }
+
+  .table-wrap.cards td .fan-nomi-wrap {
+    max-width: 68%;
+  }
+
+  .table-wrap.cards td:empty,
+  .table-wrap.cards td.mobile-empty-cell,
+  .table-wrap.cards tfoot td:empty {
+    display: none;
+  }
+
+  .table-wrap.cards td input[type="checkbox"].row-check {
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .table-wrap.cards td .qamrov-cell {
+    margin-left: auto;
+  }
+
+  /* Taqsimlash va Dastur modallari mobil ko'rinishda */
+  .table-modal-backdrop {
+    padding: 10px;
+  }
+
+  .table-modal-dialog,
+  .table-modal-dialog.table-modal-lg,
+  .table-modal-dialog.taqsimot-panel {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 20px);
+    padding: 16px 14px 22px;
+    border-radius: 14px;
+    scrollbar-width: thin;
+  }
+
+  .taqsimot-panel-head {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .taqsimot-panel-head > :first-child {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .taqsimot-panel-head .btn,
+  .taqsimot-panel-head .app-modal-close {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .taqsimot-qism {
+    padding: 14px 12px;
+  }
+
+  .guruh-slot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guruh-slot-card.popover-ochiq {
+    position: relative;
+    z-index: 60;
+  }
+
+  .popover.popover-kafedra,
+  .popover.popover-kafedra.popover-right {
+    left: 0;
+    right: 0;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    transform-origin: top center;
+  }
+
+  .kurs-ishi-form select,
+  .kurs-ishi-form .soat-input {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* ================= Bosma (Print) tozaligi ================= */
+@media print {
+  .skip-link,
+  .filter-toolbar,
+  .toast-container,
+  .empty-state-filtered,
+  .app-modal-overlay,
+  #korinish-sozlash-modal,
+  .bulk-bar,
+  .chip-group,
+  .nav-notif-menu,
+  .menu-panel,
+  .popover,
+  .btn-modal-view,
+  .print-hide {
+    display: none !important;
+  }
 }

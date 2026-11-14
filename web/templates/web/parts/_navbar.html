@@ -76,7 +76,9 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         <span>Ko'rinish</span>
       </button>
-      <a class="nav-link {% if request.resolver_match.view_name == 'parol_ozgartirish' %}active{% endif %}" href="{% url 'parol_ozgartirish' %}">Parol</a>
+      {% if not debug_rejim %}
+        <a class="nav-link {% if request.resolver_match.view_name == 'parol_ozgartirish' %}active{% endif %}" href="{% url 'parol_ozgartirish' %}">Parol</a>
+      {% endif %}
       <form method="post" action="{% url 'chiqish' %}" hx-boost="false" onsubmit="try{sessionStorage.removeItem('site_visited')}catch(_e){}">
         {% csrf_token %}
         <button type="submit" class="logout-btn">Chiqish</button>

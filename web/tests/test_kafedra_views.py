@@ -62,6 +62,19 @@ class TaqsimotPanelTests(KafedraAsosTest):
         self.assertContains(javob, "Ma&#x27;ruza")
         self.assertContains(javob, self.guruhlar[0].nomi)
 
+    def test_popover_kamomadli_oqituvchi_teglari_butun_chiqadi(self) -> None:
+        from plans.tests.factories import make_oqituvchi
+
+        oqit = make_oqituvchi(kafedra=self.fs.variant.kafedra)
+        self.assertGreater(oqit.turi.min_soat, 0)
+        javob = self.client.get(reverse("kafedra:taqsimot_panel", args=[self.fs.pk]))
+        self.assertEqual(javob.status_code, 200)
+        self.assertNotContains(javob, "{{")
+        self.assertNotContains(javob, "}}")
+        self.assertContains(javob, f"0 / {oqit.turi.min_soat}")
+        self.assertContains(javob, "popover-empty-hint")
+        self.assertContains(javob, "($el.dataset.ism || '').includes(q.toLowerCase())")
+
     def test_begona_fs_404(self) -> None:
         begona_kafedra = Department.objects.create(nomi="Begona")
         begona = make_fan(self.reja, raqam="1.99", kafedra=begona_kafedra)

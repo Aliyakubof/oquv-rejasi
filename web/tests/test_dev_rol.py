@@ -29,6 +29,7 @@ class DebugOchiqTests(TestCase):
         login(self.client, office_admin_yarat())
         javob = self.client.get(reverse("office:dashboard"))
         self.assertNotContains(javob, "user-avatar")
+        self.assertContains(javob, f'href="{reverse("parol_ozgartirish")}">Parol</a>')
 
 
 @override_settings(DEBUG=True)
@@ -57,6 +58,11 @@ class RolAlmashtirishTests(TestCase):
     def test_navbarda_almashtirgich_bor(self) -> None:
         javob = self.client.get(reverse("office:dashboard"))
         self.assertContains(javob, "user-avatar")
+        self.assertContains(javob, "menu-parol-link")
+        self.assertContains(javob, "Parolni o'zgartirish")
+        self.assertNotContains(
+            javob, f'href="{reverse("parol_ozgartirish")}">Parol</a>'
+        )
 
     def test_mudirga_otib_kafedrani_ocha_oladi(self) -> None:
         """Impersonation, unlike flipping rol, lands on a working /kafedra/ page."""

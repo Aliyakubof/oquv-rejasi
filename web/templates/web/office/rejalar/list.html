@@ -12,9 +12,21 @@
     </a>
   </div>
 </div>
-<div x-data="{ qidiruv: '' }">
-  <div class="controls" style="margin-bottom:10px;">
-    {% include "web/parts/_qidiruv.html" with placeholder="Kod yoki yo'nalish" aria_label="Kod yoki yo'nalish" %}
+<div x-data="{
+  qidiruv: '',
+  mosSoni() {
+    const q = this.qidiruv.toLowerCase();
+    let soni = 0;
+    this.$root.querySelectorAll('tbody[data-jonli=rejalar-tbody] tr[data-nomi]').forEach((tr) => {
+      if (q === '' || (tr.dataset.nomi || '').includes(q)) soni += 1;
+    });
+    return soni;
+  }
+}">
+  <div class="filter-toolbar">
+    <div class="filter-toolbar-left">
+      {% include "web/parts/_qidiruv.html" with placeholder="Kod yoki yo'nalish..." aria_label="Kod yoki yo'nalish" %}
+    </div>
   </div>
   <div class="table-wrap narrow cards">
     <table>
@@ -27,54 +39,79 @@
           <th class="num">Talabalar</th>
           <th class="num">Guruhlar</th>
           <th>Import vaqti</th>
-          <th></th>
+          <th class="col-center">Amallar</th>
         </tr>
       </thead>
       <tbody data-jonli="rejalar-tbody">
         {% for reja in rejalar %}
-        <tr data-nomi="{{ reja.yonalish_nomi|lower }} {{ reja.yonalish_kodi|lower }}"
+        <tr data-nomi="{{ reja.yonalish_nomi|lower }} {{ reja.yonalish_kodi|lower }} {{ reja.boshlanish_yili }}"
             x-show="qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase())">
           <td data-label="Kod"><span class="code">{{ reja.yonalish_kodi }}</span></td>
           <td data-label="Yo'nalish">
             <a class="reja-link" href="{% url 'office:reja_detail' reja.pk %}" title="{{ reja.yonalish_nomi }}">
               <span class="truncate">{{ reja.yonalish_nomi }}</span>
-              <svg class="reja-link-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="reja-link-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M5 12h14"></path>
                 <path d="m12 5 7 7-7 7"></path>
               </svg>
             </a>
           </td>
-          <td data-label="Boshlanish yili">{{ reja.boshlanish_yili }}</td>
+          <td data-label="Boshlanish yili"><span class="hour-tag muted">{{ reja.boshlanish_yili }}/{{ reja.boshlanish_yili|add:1 }}</span></td>
           <td data-label="Ta'lim shakli">{{ reja.talim_shakli|default:"—" }}</td>
-          <td class="num" data-label="Talabalar">{{ reja.talabalar_soni|default:"—" }}</td>
-          <td class="num" data-label="Guruhlar">{{ reja.guruhlar_soni|default:"—" }}</td>
-          <td data-label="Import vaqti">{{ reja.import_vaqti|date:"d.m.Y H:i"|default:"—" }}</td>
-          <td style="white-space:nowrap;">
-            <button type="button" class="btn"
-                    data-modal-title="{{ reja.yonalish_kodi }} — {{ reja.yonalish_nomi }}"
-                    data-modal-subtitle="O'quv reja ma'lumotlari"
-                    data-modal-url="{% url 'office:reja_detail' reja.pk %}"
-                    data-modal-url-label="Reja jadvalini ochish"
-                    data-modal-edit-url="{% url 'office:reja_tahrir' reja.pk %}"
-                    data-row-modal="Yo'nalish kodi::{{ reja.yonalish_kodi }}||Yo'nalish nomi::{{ reja.yonalish_nomi }}||Boshlanish yili::{{ reja.boshlanish_yili }}/{{ reja.boshlanish_yili|add:1 }}||Ta'lim shakli::{{ reja.talim_shakli|default:'—' }}||Talabalar soni::{{ reja.talabalar_soni|default:'—' }}||Guruhlar soni::{{ reja.guruhlar_soni|default:'—' }}||Import vaqti::{{ reja.import_vaqti|date:'d.m.Y H:i'|default:'—' }}">
-              Ko'rish
-            </button>
-            <a class="btn" href="{% url 'office:reja_tahrir' reja.pk %}">Tahrirlash</a>
-            <form method="post" action="{% url 'office:reja_ochirish' reja.pk %}" style="display:inline"
-                  data-modal-title="O'quv rejani o'chirish"
-                  data-modal-subtitle="{{ reja.yonalish_kodi }} ({{ reja.boshlanish_yili }})"
-                  data-modal-confirm="{{ reja.yonalish_kodi }} — {{ reja.yonalish_nomi }} ({{ reja.boshlanish_yili }}) o'quv rejasini va unga tegishli fanlarni o'chirasizmi?"
-                  data-modal-type="danger"
-                  data-modal-btn="Ha, o'chirish">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-danger">O'chirish</button>
-            </form>
+          <td class="num" data-label="Talabalar"><span class="badge-count">{% if reja.talabalar_soni is not None %}{{ reja.talabalar_soni }}{% else %}—{% endif %}</span></td>
+          <td class="num" data-label="Guruhlar"><span class="badge-count">{% if reja.guruhlar_soni is not None %}{{ reja.guruhlar_soni }}{% else %}—{% endif %}</span></td>
+          <td data-label="Import vaqti"><span class="audit-vaqt">{{ reja.import_vaqti|date:"d.m.Y H:i"|default:"—" }}</span></td>
+          <td class="col-nowrap" data-label="Amallar">
+            <div class="row-actions">
+              <button type="button" class="btn btn-sm"
+                      data-modal-title="{{ reja.yonalish_kodi }} — {{ reja.yonalish_nomi }}"
+                      data-modal-subtitle="O'quv reja ma'lumotlari"
+                      data-modal-url="{% url 'office:reja_detail' reja.pk %}"
+                      data-modal-url-label="Reja jadvalini ochish"
+                      data-modal-edit-url="{% url 'office:reja_tahrir' reja.pk %}"
+                      data-row-modal="Yo'nalish kodi::{{ reja.yonalish_kodi }}||Yo'nalish nomi::{{ reja.yonalish_nomi }}||Boshlanish yili::{{ reja.boshlanish_yili }}/{{ reja.boshlanish_yili|add:1 }}||Ta'lim shakli::{{ reja.talim_shakli|default:'—' }}||Talabalar soni::{{ reja.talabalar_soni|default:'—' }}||Guruhlar soni::{{ reja.guruhlar_soni|default:'—' }}||Import vaqti::{{ reja.import_vaqti|date:'d.m.Y H:i'|default:'—' }}">
+                Ko'rish
+              </button>
+              <a class="btn btn-sm" href="{% url 'office:reja_tahrir' reja.pk %}">Tahrirlash</a>
+              <form method="post" action="{% url 'office:reja_ochirish' reja.pk %}" style="display:inline"
+                    data-modal-title="O'quv rejani o'chirish"
+                    data-modal-subtitle="{{ reja.yonalish_kodi }} ({{ reja.boshlanish_yili }})"
+                    data-modal-confirm="{{ reja.yonalish_kodi }} — {{ reja.yonalish_nomi }} ({{ reja.boshlanish_yili }}) o'quv rejasini va unga tegishli fanlarni o'chirasizmi?"
+                    data-modal-type="danger"
+                    data-modal-btn="Ha, o'chirish">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost-danger btn-sm">O'chirish</button>
+              </form>
+            </div>
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8"><div class="empty-state">Hozircha reja import qilinmagan.</div></td></tr>
+        <tr><td colspan="8">
+          <div class="empty-state empty-state-rich">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <h3 class="empty-state-title">Hozircha reja import qilinmagan</h3>
+            <p class="empty-state-desc">Yangi o'quv reja (.xlsx) faylini yuklash orqali ish boshlang.</p>
+            <a class="btn btn-primary btn-sm" href="{% url 'office:reja_yangi' %}">Yangi reja</a>
+          </div>
+        </td></tr>
         {% endfor %}
       </tbody>
+      {% if rejalar %}
+      <tbody x-show="qidiruv !== '' && mosSoni() === 0" x-cloak>
+        <tr><td colspan="8">
+          <div class="empty-state empty-state-rich empty-state-filtered">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            </div>
+            <h3 class="empty-state-title">Qidiruv bo'yicha reja topilmadi</h3>
+            <p class="empty-state-desc">Qidiruv matnini tozalab qayta urinib ko'ring.</p>
+            <button type="button" class="btn btn-sm" @click="qidiruv = ''">Qidiruvni tozalash</button>
+          </div>
+        </td></tr>
+      </tbody>
+      {% endif %}
     </table>
   </div>
 </div>

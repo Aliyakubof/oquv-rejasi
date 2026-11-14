@@ -1,10 +1,10 @@
 {% load ui %}
 <tr id="fan-{{ satr.fan.pk }}"
     class="{% if satr.biriktirilmagan %}qator-biriktirilmagan{% endif %}"
-    data-nomi="{{ satr.variant.nomi|lower }} {{ satr.variant.kodi|lower }} {{ satr.kafedra.nomi|default:''|lower }} {{ satr.fan.reja.yonalish_kodi|lower }}"
+    data-nomi="{% if satr.tanlanmagan %}tanlov fani variant tanlanmagan{% else %}{{ satr.variant.nomi|lower }} {{ satr.variant.kodi|lower }}{% endif %} {{ satr.kafedra.nomi|default:''|lower }} {{ satr.fan.reja.yonalish_kodi|lower }} {{ satr.fan.reja.yonalish_nomi|lower }}"
     data-biriktirilmagan="{% if satr.biriktirilmagan %}1{% else %}0{% endif %}"
     x-show="(!faqat || $el.dataset.biriktirilmagan === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))">
-  <td class="col-check">
+  <td class="col-check" data-label="Tanlash">
     {% if not satr.tanlanmagan %}
     <input type="checkbox" class="row-check" data-variant-id="{{ satr.variant.pk }}"
            aria-label="Fanni tanlash: {{ satr.variant.nomi }}"
@@ -12,69 +12,84 @@
            @change="belgilash($event, '{{ satr.variant.pk }}')">
     {% endif %}
   </td>
-  <td class="col-idx">{{ satr.fan.raqam }}</td>
-  <td class="col-code"><span class="code">{% if satr.tanlanmagan %}—{% else %}{{ satr.variant.kodi|default:"—" }}{% endif %}</span></td>
-  <td class="col-name">
-    <button type="button" class="reja-link" style="background:none;border:0;padding:0;text-align:left;"
-            data-modal-title="{% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}"
-            data-modal-subtitle="{{ satr.fan.reja.yonalish_kodi }} — {{ satr.fan.reja.yonalish_nomi }}"
-            data-modal-url="{% url 'office:reja_detail' satr.fan.reja_id %}"
-            data-modal-url-label="O'quv rejani ochish"
-            data-row-modal="Tartib raqami::{{ satr.fan.raqam }}||Fan kodi::{% if satr.tanlanmagan %}—{% else %}{{ satr.variant.kodi|default:'—' }}{% endif %}||Fan nomi::{% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}||Fan turi::{{ satr.fan.get_turi_display }}||Yo'nalish::{{ satr.fan.reja.yonalish_kodi }} — {{ satr.fan.reja.yonalish_nomi }}||Ma'ruza::{{ satr.tur_soatlari.MARUZA|default:0 }} soat||Amaliyot::{{ satr.tur_soatlari.AMALIYOT|default:0 }} soat||Laboratoriya::{{ satr.tur_soatlari.LABORATORIYA|default:0 }} soat||Seminar::{{ satr.tur_soatlari.SEMINAR|default:0 }} soat||Kurs ishi::{{ satr.tur_soatlari.KURS_ISHI|default:0 }} soat||Jami talab::{{ satr.jami_soat }} soat||Taqsimlangan::{{ satr.taqsimlangan_soat }} soat||Kafedra::{{ satr.kafedra.nomi|default:'Biriktirilmagan' }}">
-      {% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}
-    </button>
-    {% if satr.fan.turi == "MAJBURIY" %}<span class="tag tag-mand">MAJ</span>{% else %}<span class="tag tag-elec">TAN</span>{% endif %}
+  <td class="col-idx" data-label="№">{{ satr.fan.raqam }}</td>
+  <td class="col-code" data-label="Kod"><span class="code">{% if satr.tanlanmagan %}—{% else %}{{ satr.variant.kodi|default:"—" }}{% endif %}</span></td>
+  <td class="col-name" data-label="Fan">
+    <div class="fan-meta-cell">
+      <div class="fan-meta-top">
+        <button type="button" class="reja-link reja-link-btn"
+                data-modal-title="{% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}"
+                data-modal-subtitle="{{ satr.fan.reja.yonalish_kodi }} — {{ satr.fan.reja.yonalish_nomi }}"
+                data-modal-url="{% url 'office:reja_detail' satr.fan.reja_id %}"
+                data-modal-url-label="O'quv rejani ochish"
+                data-row-modal="Tartib raqami::{{ satr.fan.raqam }}||Fan kodi::{% if satr.tanlanmagan %}—{% else %}{{ satr.variant.kodi|default:'—' }}{% endif %}||Fan nomi::{% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}||Fan turi::{{ satr.fan.get_turi_display }}||Yo'nalish::{{ satr.fan.reja.yonalish_kodi }} — {{ satr.fan.reja.yonalish_nomi }}||Ma'ruza::{{ satr.tur_soatlari.MARUZA|default:0 }} soat||Amaliyot::{{ satr.tur_soatlari.AMALIYOT|default:0 }} soat||Laboratoriya::{{ satr.tur_soatlari.LABORATORIYA|default:0 }} soat||Seminar::{{ satr.tur_soatlari.SEMINAR|default:0 }} soat||Kurs ishi::{{ satr.tur_soatlari.KURS_ISHI|default:0 }} soat||Jami talab::{{ satr.jami_soat }} soat||Taqsimlangan::{{ satr.taqsimlangan_soat }} soat||Kafedra::{{ satr.kafedra.nomi|default:'Biriktirilmagan' }}">
+          {% if satr.tanlanmagan %}Tanlov fani (variant tanlanmagan){% else %}{{ satr.variant.nomi }}{% endif %}
+        </button>
+        {% if satr.fan.turi == "MAJBURIY" %}<span class="tag tag-mand">MAJ</span>{% else %}<span class="tag tag-elec">TAN</span>{% endif %}
+      </div>
+    </div>
   </td>
-  <td><span class="code" title="{{ satr.fan.reja }}">{{ satr.fan.reja.yonalish_kodi }}</span></td>
-  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.MARUZA %}
-  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.AMALIYOT %}
-  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.LABORATORIYA %}
-  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.SEMINAR %}
-  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.KURS_ISHI %}
-  <td class="num"><strong>{{ satr.jami_soat }}</strong></td>
-  <td class="num">
+  <td data-label="Yo'nalish"><span class="code" title="{{ satr.fan.reja }}">{{ satr.fan.reja.yonalish_kodi }}</span></td>
+  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.MARUZA label="Ma'ruza" %}
+  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.AMALIYOT label="Amaliyot" %}
+  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.LABORATORIYA label="Laboratoriya" %}
+  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.SEMINAR label="Seminar" %}
+  {% include "web/office/_soat_katak.html" with soat=satr.tur_soatlari.KURS_ISHI label="Kurs ishi" %}
+  <td class="num" data-label="Jami"><strong>{{ satr.jami_soat }}</strong></td>
+  <td class="num" data-label="Taqsimlangan">
     <span class="soat-holat {% if satr.jami_soat > 0 and satr.taqsimlangan_soat >= satr.jami_soat %}ok{% elif satr.taqsimlangan_soat > 0 %}warn{% else %}muted{% endif %}">{{ satr.taqsimlangan_soat }}</span>
   </td>
-  <td class="assign-cell cell-relative" :class="ochiq && 'popover-ochiq'" x-data="{ ochiq: false, q: '' }" x-effect="if (ochiq) $nextTick(() => $refs.qidiruvInput?.focus())" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
-    {% if xato %}<div class="hint" style="color:var(--unassigned);margin:0 0 4px;">{{ xato }}</div>{% endif %}
+  <td class="assign-cell cell-relative" data-label="Kafedra" :class="ochiq && 'popover-ochiq'" x-data="jadvalPopover()"
+      @click.outside="yopish()" @keydown.escape.window="yopish()"
+      @scroll.window.capture="skrollYopish($event)" @resize.window="yopish()">
+    {% if xato %}<div class="hint form-error-hint">{{ xato }}</div>{% endif %}
     {% if satr.tanlanmagan %}
-    <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">Variant tanlanmagan</button>
-    <div class="popover" x-show="ochiq"
+    <button type="button" class="teacher-chip empty" @click="ochishYopish($el)">Variant tanlanmagan</button>
+    <div class="popover popover-fixed" :class="tepagaOchil && 'popover-up'" :style="posStyle" x-ref="popoverOyna" x-show="ochiq"
          x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
          x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
          x-cloak>
-      {% for v in satr.fan.variantlar.all %}
-      <button type="button" class="opt"
-              hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}" hx-indicator="#htmx-yuklanish"
-              hx-vals='{"variant": {{ v.pk }}, "yil": {{ yil }}}'
-              hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">{{ v.nomi }}</button>
-      {% endfor %}
+      <div class="popover-scroll-body">
+        {% for v in satr.fan.variantlar.all %}
+        <button type="button" class="opt"
+                hx-post="{% url 'office:variant_tanlash' satr.fan.pk %}" hx-indicator="#htmx-yuklanish"
+                hx-vals='{"variant": {{ v.pk }}, "yil": {{ yil }}}'
+                hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">{{ v.nomi }}</button>
+        {% endfor %}
+      </div>
     </div>
     {% else %}
     {% if satr.kafedra %}
-    <button type="button" class="teacher-chip" @click="ochiq = !ochiq">
+    <button type="button" class="teacher-chip" @click="ochishYopish($el)">
       <span class="avatar">{{ satr.kafedra.nomi|bosh_harflar }}</span>{{ satr.kafedra.nomi }}
     </button>
     {% else %}
-    <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <button type="button" class="teacher-chip empty" @click="ochishYopish($el)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       <span>Kafedra biriktirish</span>
     </button>
     {% endif %}
-    <div class="popover" x-show="ochiq"
+    <div class="popover popover-fixed" :class="tepagaOchil && 'popover-up'" :style="posStyle" x-ref="popoverOyna" x-show="ochiq"
          x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
          x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
          x-cloak>
-      <input type="text" placeholder="Kafedra qidirish" x-model="q" x-ref="qidiruvInput">
-      {% for k in kafedralar %}
-      <button type="button" class="opt"
-              x-show="q === '' || $el.textContent.toLowerCase().includes(q.toLowerCase())"
-              hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}" hx-indicator="#htmx-yuklanish"
-              hx-vals='{"kafedra": {{ k.pk }}, "yil": {{ yil }}}'
-              hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">
-        <span class="avatar">{{ k.nomi|bosh_harflar }}</span>{{ k.nomi }}
-      </button>
-      {% endfor %}
+      {% if kafedralar %}{% include "web/parts/_popover_qidiruv.html" with placeholder="Kafedra qidirish" model="q" %}{% endif %}
+      <div class="popover-scroll-body" x-ref="royxat">
+        {% for k in kafedralar %}
+        <button type="button" class="opt" data-nomi="{{ k.nomi|lower }}"
+                x-show="q.trim() === '' || $el.dataset.nomi.includes(q.trim().toLowerCase())"
+                hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}" hx-indicator="#htmx-yuklanish"
+                hx-vals='{"kafedra": {{ k.pk }}, "yil": {{ yil }}}'
+                hx-target="#fan-{{ satr.fan.pk }}" hx-swap="outerHTML">
+          <span class="avatar">{{ k.nomi|bosh_harflar }}</span>{{ k.nomi }}
+        </button>
+        {% empty %}
+        <div class="hint popover-empty-hint">Kafedra mavjud emas</div>
+        {% endfor %}
+        {% if kafedralar %}
+        <div class="hint popover-empty-hint" x-show="q.trim() !== '' && mosSoni() === 0" x-cloak>Mos kafedra topilmadi</div>
+        {% endif %}
+      </div>
       {% if satr.kafedra %}
       <button type="button" class="opt clear"
               hx-post="{% url 'office:kafedra_biriktirish' satr.variant.pk %}" hx-indicator="#htmx-yuklanish"
