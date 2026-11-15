@@ -40,6 +40,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
+# Development/CI muhiti uchun: pip install -r requirements-dev.txt
 ```
 
 ## 4. Database
@@ -70,12 +71,15 @@ HEMIS_API_KEY=replace-with-a-long-random-api-key
 SESSION_COOKIE_SECURE=False
 CSRF_COOKIE_SECURE=False
 SECURE_SSL_REDIRECT=False
+SECURE_HSTS_SECONDS=0
+TRUST_X_FORWARDED_FOR=True
+TRUSTED_PROXY_IPS=127.0.0.1,::1
 DATABASE_URL=postgres://oquv_reja:replace-with-a-strong-password@localhost:5432/oquv_reja
 EOF
 chmod 600 .env
 ```
 
-> **Note:** `SESSION_COOKIE_SECURE=False`, `CSRF_COOKIE_SECURE=False`, and `SECURE_SSL_REDIRECT=False` are needed while serving over plain HTTP (`http://YOUR_VPS_IP:8080`). Remove those three lines once HTTPS/TLS is enabled in section 10 so `settings.py` enforces secure cookies and SSL redirect by default.
+> **Note:** `SESSION_COOKIE_SECURE=False`, `CSRF_COOKIE_SECURE=False`, `SECURE_SSL_REDIRECT=False`, and `SECURE_HSTS_SECONDS=0` are needed while serving over plain HTTP (`http://YOUR_VPS_IP:8080`). Remove those lines once HTTPS/TLS is enabled in section 10 so `settings.py` enforces secure cookies, HSTS, and SSL redirect by default. `TRUST_X_FORWARDED_FOR=True` and `TRUSTED_PROXY_IPS=127.0.0.1,::1` ensure Django reads the real client IP passed by local Nginx for login rate limiting and audit logs.
 
 `CSRF_TRUSTED_ORIGINS` must include the full scheme + host + port you're
 serving from (`http://YOUR_VPS_IP:8080`, not just the bare IP) — Django
@@ -155,7 +159,7 @@ server {
     # Behind local Nginx, set TRUST_X_FORWARDED_FOR=True and TRUSTED_PROXY_IPS=127.0.0.1,::1 in .env
     location / {
         proxy_pass http://127.0.0.1:8001;
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
