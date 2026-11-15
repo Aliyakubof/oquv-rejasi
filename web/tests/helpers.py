@@ -1,11 +1,11 @@
-"""Role-aware user builders and login helpers for web view tests."""
+"""Veb ko'rinish testlari uchun rollarga mos foydalanuvchi va kirish yordamchilari."""
 
 from itertools import count
 
 from django.test import Client
 
 from accounts.models import Department, Foydalanuvchi, Rol
-from plans.tests.factories import make_oqituvchi
+from plans.tests.factories import oqituvchi_yasa
 
 _raqam = count(1)
 
@@ -23,13 +23,13 @@ def foydalanuvchi_yarat(rol: str) -> Foydalanuvchi:
     )
 
 
-def office_admin_yarat() -> Foydalanuvchi:
+def ofis_admin_yarat() -> Foydalanuvchi:
     return foydalanuvchi_yarat(Rol.OFFICE_ADMIN)
 
 
 def mudir_yarat(kafedra: Department | None = None) -> Foydalanuvchi:
-    """A DEPARTMENT_ADMIN with a profile set as their kafedra's mudir."""
-    profil = make_oqituvchi(kafedra=kafedra)
+    """Kafedra mudiri sifatida biriktirilgan profilga ega DEPARTMENT_ADMIN yaratadi."""
+    profil = oqituvchi_yasa(kafedra=kafedra)
     foydalanuvchi = profil.foydalanuvchi
     foydalanuvchi.rol = Rol.DEPARTMENT_ADMIN
     foydalanuvchi.save(update_fields=["rol"])
@@ -39,8 +39,8 @@ def mudir_yarat(kafedra: Department | None = None) -> Foydalanuvchi:
 
 
 def oqituvchi_yarat(kafedra: Department | None = None) -> Foydalanuvchi:
-    return make_oqituvchi(kafedra=kafedra).foydalanuvchi
+    return oqituvchi_yasa(kafedra=kafedra).foydalanuvchi
 
 
-def login(client: Client, foydalanuvchi: Foydalanuvchi) -> None:
+def tizimga_kir(client: Client, foydalanuvchi: Foydalanuvchi) -> None:
     client.force_login(foydalanuvchi)

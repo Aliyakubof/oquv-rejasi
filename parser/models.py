@@ -1,123 +1,126 @@
-"""Typed data model shared between the parser (producer) and formatter/future
-serializers (consumers).
+"""Parser va formatlovchi (hamda kelajakdagi serializerlar) o'rtasidagi
+umumiy ma'lumot modellari.
 
-Numbers stay `int | None` (parsing concern); rendering to strings lives in the
-formatter. These types make the producer↔consumer contract explicit and give
-`dataclasses.asdict` a clean future JSON/DB path.
+Sonlar bu yerda `int | None` holida turadi — matnga aylantirish bilan
+formatlovchi shug'ullanadi. Shu dataclasslar tufayli parser natijasini
+JSON yoki bazaga saqlash ham ancha oson.
 """
 
 from dataclasses import dataclass, field
 from typing import NamedTuple
 
 
-class ParseError(Exception):
-    """The sheet's structure couldn't be reliably detected.
+class TahlilXatosi(Exception):
+    """Varaq tuzilmasini ishonchli aniqlab bo'lmaganda ko'tariladi.
 
-    Raised instead of falling back to a guessed column/row position — a wrong
-    guess produces numbers that look plausible but are silently wrong.
+    Taxminiy ustun yoki qator raqamiga tayanib ketishdan ko'ra xato bergan
+    ma'qul — aks holda ko'rinishi to'g'ri, lekin mazmuni xato raqamlar chiqadi.
     """
 
 
-class ColumnLayout(NamedTuple):
-    """0-based column indices for one curriculum sheet, detected dynamically.
+class UstunJoyi(NamedTuple):
+    """Bitta o'quv reja varag'idagi 0-dan boshlanadigan ustun indekslari.
 
-    `lab`, `seminar`, and `course_proj` are None when the sheet has no header
-    for that hour type (map §4.3: not every file carries all five subcategory
-    columns) — the course still parses, with 0 hours for that type.
+    Ba'zi fayllarda laboratoriya, seminar yoki kurs ishi ustunlari bo'lmasligi
+    mumkin — shunday holatda ular None bo'ladi va fan 0 soat bilan o'qilaveradi.
     """
 
-    num: int
-    code: int
-    name: int
-    hours: int
-    classroom: int
-    lecture: int
-    practice: int
-    lab: int | None
+    raqam: int
+    kod: int
+    nom: int
+    soat: int
+    auditoriya: int
+    maruza: int
+    amaliyot: int
+    laboratoriya: int | None
     seminar: int | None
-    course_proj: int | None
+    kurs_ishi: int | None
 
     @property
-    def breakdown(self) -> tuple[int, int, int, int | None, int | None, int | None]:
-        """The six hour-breakdown column indices, in canonical field order."""
+    def taqsimot(
+        self,
+    ) -> tuple[int, int, int, int | None, int | None, int | None]:
+        """Auditoriya va soat turlari ustunlarining tartibli ro'yxati."""
         return (
-            self.classroom,
-            self.lecture,
-            self.practice,
-            self.lab,
+            self.auditoriya,
+            self.maruza,
+            self.amaliyot,
+            self.laboratoriya,
             self.seminar,
-            self.course_proj,
+            self.kurs_ishi,
         )
 
 
-def derived_credits(hours: int | None) -> int | None:
-    """Credits implied by total hours (1 credit = 30 hours)."""
-    return None if hours is None else hours // 30
+def hisoblangan_kredit(soat: int | None) -> int | None:
+    """Umumiy soatdan kelib chiqadigan kredit (1 kredit = 30 soat)."""
+    return None if soat is None else soat // 30
 
 
 @dataclass
-class Course:
-    """One mandatory (majburiy) course with its full hour breakdown."""
+class MajburiyFan:
+    """Bitta majburiy fan va uning barcha soat taqsimoti."""
 
-    num: str
-    code: str
-    name: str
-    hours: int | None
-    classroom: int
-    lecture: int
-    practice: int
-    lab: int
+    raqam: str
+    kod: str
+    nom: str
+    soat: int | None
+    auditoriya: int
+    maruza: int
+    amaliyot: int
+    laboratoriya: int
     seminar: int
-    course_proj: int
-    semester_credits: dict[int, int] = field(default_factory=dict)
-    semester_weekly_hours: dict[int, int] = field(default_factory=dict)
+    kurs_ishi: int
+    semestr_kreditlari: dict[int, int] = field(default_factory=dict)
+    semestr_haftalik_soatlar: dict[int, int] = field(default_factory=dict)
 
     @property
-    def derived_credits(self) -> int | None:
-        return derived_credits(self.hours)
+    def kredit(self) -> int | None:
+        return hisoblangan_kredit(self.soat)
 
 
 @dataclass
-class Alternative:
-    """One course option offered within a selective slot."""
+class TanlovVarianti:
+    """Tanlov fani ichidagi bitta muqobil fan varianti."""
 
-    code: str
-    name: str
-    classroom: int
-    lecture: int
-    practice: int
-    lab: int
+    kod: str
+    nom: str
+    auditoriya: int
+    maruza: int
+    amaliyot: int
+    laboratoriya: int
     seminar: int
-    course_proj: int
+    kurs_ishi: int
 
 
 @dataclass
-class SelectiveSlot:
-    """One selective (tanlov) slot: shared hours/credits plus its alternatives."""
+class TanlovFani:
+    """Bitta tanlov bloki: umumiy soat/kreditlar va uning variantlari."""
 
-    num: str
-    hours: int | None
-    semester_credits: dict[int, int] = field(default_factory=dict)
-    semester_weekly_hours: dict[int, int] = field(default_factory=dict)
-    alternatives: list[Alternative] = field(default_factory=list)
+    raqam: str
+    soat: int | None
+    semestr_kreditlari: dict[int, int] = field(default_factory=dict)
+    semestr_haftalik_soatlar: dict[int, int] = field(default_factory=dict)
+    variantlar: list[TanlovVarianti] = field(default_factory=list)
 
     @property
-    def derived_credits(self) -> int | None:
-        return derived_credits(self.hours)
+    def kredit(self) -> int | None:
+        return hisoblangan_kredit(self.soat)
 
 
 @dataclass
-class ParseResult:
-    """Everything extracted from one workbook, plus the warnings collected
-    along the way. Structural failures raise ParseError instead of landing
-    here — a ParseResult is always safe to use."""
+class TahlilNatijasi:
+    """Bitta Excel kitobidan yig'ilgan hamma ma'lumot va ogohlantirishlar.
 
-    direction_code: str
-    direction_name: str
-    start_year: str
-    degree: str
-    duration_years: float
-    edu_type: str
-    core: list[Course]
-    slots: list[SelectiveSlot]
-    warnings: list[str] = field(default_factory=list)
+    Jiddiy tuzilma xatolari TahlilXatosi bo'lib ko'tariladi, shuning uchun
+    TahlilNatijasi qo'lingizga tushdimi — demak bemalol ishlatish mumkin.
+    """
+
+    yonalish_kodi: str
+    yonalish_nomi: str
+    boshlanish_yili: str
+    daraja: str
+    davomiylik_yil: float
+    talim_shakli: str
+    majburiy_fanlar: list[MajburiyFan]
+    tanlov_fanlar: list[TanlovFani]
+    ogohlantirishlar: list[str] = field(default_factory=list)

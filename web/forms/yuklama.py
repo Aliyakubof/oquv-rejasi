@@ -1,8 +1,7 @@
-"""Delegation forms: each maps one Yuklama shape onto model validation.
+"""Yuklama taqsimlash formalari: har biri bitta Yuklama shaklini modelga bog'laydi.
 
-ModelForm._post_clean runs Yuklama.full_clean(), so every model rule
-(variant selected, hours exist, guruh belongs to the reja, kurs-ishi
-capacity, DB shape constraints) surfaces as a form error.
+ModelForm._post_clean() ichida Yuklama.full_clean() ishga tushadi — shu sababli
+model cheklovlari DB IntegrityError ga aylanib ketmasdan forma xatosiga tushadi.
 """
 
 from django import forms
@@ -32,9 +31,8 @@ class YuklamaAsosForm(forms.ModelForm):
         )
 
     def _get_validation_exclusions(self) -> set[str]:
-        # fan_semestr/tur are set programmatically; keep them in full_clean so
-        # the shape constraints (uniq_guruh_yuklama, chk_yuklama_shakl) raise
-        # form errors instead of DB IntegrityError.
+        # fan_semestr/tur dasturdan qo'yiladi; full_clean da qolsin —
+        # shunda uniq_guruh_yuklama / chk_yuklama_shakl DB xatosiga tushmaydi.
         return super()._get_validation_exclusions() - {
             "fan_semestr",
             "tur",

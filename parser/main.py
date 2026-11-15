@@ -2,103 +2,105 @@ import argparse
 import sys
 from pathlib import Path
 
-from parser.formatter import build_markdown
-from parser.models import ParseError
-from parser.parser import parse_workbook, to_pascal_case
+from parser.formatter import markdown_yarat
+from parser.models import TahlilXatosi
+from parser.parser import kitobni_tahlil_qil, pascal_korinishiga
 
-SOURCES_DIR = Path("sources")
-OUTPUT_DIR = Path("output")
+MANBA_PAPKA = Path("sources")
+CHIQISH_PAPKA = Path("output")
 
 
-def output_stem(
-    xlsx_path: Path, direction_code: str, direction_name: str, start_year: str
+def chiqish_fayl_nomi(
+    xlsx_yoli: Path, yonalish_kodi: str, yonalish_nomi: str, boshlanish_yili: str
 ) -> str:
-    """Build the output filename stem from the program direction (falling back
-    to the source filename), suffixed with the start year when known."""
-    if direction_name:
-        stem = (
-            f"{to_pascal_case(direction_name)}_{direction_code}"
-            if direction_code
-            else to_pascal_case(direction_name)
+    """Yo'nalish nomidan fayl nomini yasaydi; bo'lmasa asl fayl nomini oladi."""
+    if yonalish_nomi:
+        asos = (
+            f"{pascal_korinishiga(yonalish_nomi)}_{yonalish_kodi}"
+            if yonalish_kodi
+            else pascal_korinishiga(yonalish_nomi)
         )
     else:
-        stem = xlsx_path.stem
-    return f"{stem}_{start_year}" if start_year else stem
+        asos = xlsx_yoli.stem
+    return f"{asos}_{boshlanish_yili}" if boshlanish_yili else asos
 
 
-def process_file(xlsx_path: Path) -> bool:
+def faylni_qayta_ishla(xlsx_yoli: Path) -> bool:
     try:
-        result = parse_workbook(xlsx_path)
-    except (ParseError, OSError) as exc:
-        print(f"  ERROR: {xlsx_path.name}: {exc}", file=sys.stderr)
+        natija = kitobni_tahlil_qil(xlsx_yoli)
+    except (TahlilXatosi, OSError) as exc:
+        print(f"  XATO: {xlsx_yoli.name}: {exc}", file=sys.stderr)
         return False
 
-    title = result.direction_name or xlsx_path.stem
-    OUTPUT_DIR.mkdir(exist_ok=True)
-    stem = output_stem(
-        xlsx_path, result.direction_code, result.direction_name, result.start_year
+    sarlavha = natija.yonalish_nomi or xlsx_yoli.stem
+    CHIQISH_PAPKA.mkdir(exist_ok=True)
+    asos = chiqish_fayl_nomi(
+        xlsx_yoli, natija.yonalish_kodi, natija.yonalish_nomi, natija.boshlanish_yili
     )
-    out_path = OUTPUT_DIR / (stem + ".md")
-    out_path.write_text(
-        build_markdown(
-            title,
-            result.start_year,
-            result.degree,
-            f"{result.duration_years:g} yil",
-            result.edu_type,
-            result.core,
-            result.slots,
+    chiqish_yoli = CHIQISH_PAPKA / (asos + ".md")
+    chiqish_yoli.write_text(
+        markdown_yarat(
+            sarlavha,
+            natija.boshlanish_yili,
+            natija.daraja,
+            f"{natija.davomiylik_yil:g} yil",
+            natija.talim_shakli,
+            natija.majburiy_fanlar,
+            natija.tanlov_fanlar,
         ),
         encoding="utf-8",
     )
     print(
-        f"  {xlsx_path.name} -> {out_path}"
-        f"  ({len(result.core)} core, {len(result.slots)} selective slots)"
+        f"  {xlsx_yoli.name} -> {chiqish_yoli}"
+        f"  ({len(natija.majburiy_fanlar)} majburiy, "
+        f"{len(natija.tanlov_fanlar)} tanlov blok)"
     )
-    for warning in result.warnings:
-        print(f"    WARNING: {warning}")
+    for ogohlantirish in natija.ogohlantirishlar:
+        print(f"    OGOHLANTIRISH: {ogohlantirish}")
     return True
 
 
-def main() -> int:
-    # Windows consoles often default to cp1252, which can't encode every
-    # character in these Uzbek-language warnings (apostrophe variants, etc).
-    for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(errors="replace")
+def asosiy() -> int:
+    # Windows konsoli ko'pincha cp1252 da ishlaydi, o'zbekcha tutuq belgilar
+    # chiqqanda yiqilib qolmasligi uchun oqimlarni yumshoq moslaymiz.
+    for oqim in (sys.stdout, sys.stderr):
+        if hasattr(oqim, "reconfigure"):
+            oqim.reconfigure(errors="replace")
 
-    arg_parser = argparse.ArgumentParser(description="Parse oquv reja Excel files.")
-    arg_parser.add_argument(
-        "files",
+    cli = argparse.ArgumentParser(
+        description="O'quv reja Excel (.xlsx) fayllarini tahlil qilish."
+    )
+    cli.add_argument(
+        "fayllar",
         nargs="*",
         type=Path,
-        help="One or more .xlsx files to parse. Defaults to all files in sources/.",
+        help="Tahlil qilinadigan .xlsx fayllar (bo'sh qolsa sources/ dan oladi).",
     )
-    args = arg_parser.parse_args()
+    argumentlar = cli.parse_args()
 
     xato_bor = False
-    if args.files:
-        xlsx_files = []
-        for p in args.files:
-            if not p.exists():
-                print(f"ERROR: file not found: {p}", file=sys.stderr)
+    if argumentlar.fayllar:
+        xlsx_fayllar = []
+        for yol in argumentlar.fayllar:
+            if not yol.exists():
+                print(f"XATO: fayl topilmadi: {yol}", file=sys.stderr)
                 xato_bor = True
             else:
-                xlsx_files.append(p)
+                xlsx_fayllar.append(yol)
     else:
-        xlsx_files = sorted(
-            f for f in SOURCES_DIR.glob("*.xlsx") if not f.name.startswith("~$")
+        xlsx_fayllar = sorted(
+            f for f in MANBA_PAPKA.glob("*.xlsx") if not f.name.startswith("~$")
         )
 
-    if not xlsx_files:
+    if not xlsx_fayllar:
         if not xato_bor:
-            print("No .xlsx files found.")
+            print(".xlsx fayllar topilmadi.")
         return 1 if xato_bor else 0
-    for xlsx_path in xlsx_files:
-        if not process_file(xlsx_path):
+    for xlsx_yoli in xlsx_fayllar:
+        if not faylni_qayta_ishla(xlsx_yoli):
             xato_bor = True
     return 1 if xato_bor else 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(asosiy())

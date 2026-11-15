@@ -1,4 +1,4 @@
-"""Demand, allocation and workload calculations over the plans schema."""
+"""O'quv reja sxemasi bo'yicha soat talabi, taqsimot va yuklama hisob-kitoblari."""
 
 from dataclasses import dataclass
 
@@ -31,7 +31,7 @@ JONLI_EPOCH_KALITI = "jonli_holat_epoch"
 
 
 def keshni_tozala(**_kwargs: object) -> None:
-    """Bump epoch and clear the cached live-polling version hash."""
+    """Jonli yangilanish hisoblagichini oshiradi va keshdagi versiyani tozalaydi."""
     if not cache.add(JONLI_EPOCH_KALITI, 1, timeout=None):
         try:
             cache.incr(JONLI_EPOCH_KALITI)
@@ -42,11 +42,11 @@ def keshni_tozala(**_kwargs: object) -> None:
 
 @dataclass(frozen=True)
 class TalabSatri:
-    """Demand vs allocation for one (fan-semester, hour type) line."""
+    """Bitta (fan-semestr, soat turi) bo'yicha talab va taqsimot qatori."""
 
     fan_semestr: FanSemestr
     tur: str
-    talab_soat: int | None  # None until talabalar/guruhlar soni is entered
+    talab_soat: int | None  # Talaba/guruhlar soni kiritilmaguncha None bo'ladi
     taqsimlangan_soat: int
 
     @property
@@ -58,7 +58,7 @@ class TalabSatri:
 
 @dataclass(frozen=True)
 class YuklamaHolati:
-    """One teacher's annual standing against the position minimum."""
+    """Bitta o'qituvchining lavozim normasiga nisbatan yillik yuklama holati."""
 
     oqituvchi: OqituvchiProfil
     jami_soat: int
@@ -71,10 +71,10 @@ class YuklamaHolati:
 
 @transaction.atomic
 def guruhlarni_sinxronlash(reja: OquvReja) -> list[Guruh]:
-    """Grow/shrink named groups to match guruhlar_soni.
+    """Guruhlarni `guruhlar_soni` ga moslab qo'shadi yoki ortiqchasini o'chiradi.
 
-    Surplus groups carrying yuklamalar are kept — deleting them would orphan
-    real delegation work; the admin sees them until assignments move.
+    Yuklamasi bor ortiqcha guruhlar o'chirilmaydi — aks holda taqsimlangan
+    soatlar yetim qoladi; admin ularni yuklamani ko'chirguncha ko'rib turadi.
     """
     soni = reja.guruhlar_soni or 0
     prefiks = reja.guruh_prefiksi or reja.yonalish_kodi
@@ -99,8 +99,7 @@ def guruhlarni_sinxronlash(reja: OquvReja) -> list[Guruh]:
 
 
 def fan_semestr_talabi(fs: FanSemestr, reja: OquvReja) -> dict[str, int | None]:
-    """Hour demand per type: lecture x1, per-group types x groups, kurs ishi
-    2h x students. Types with no hours are omitted."""
+    """Soat turlari bo'yicha talab: ma'ruza x1, guruhli x guruh, kurs ishi 2x talaba."""
     talab: dict[str, int | None] = {}
     if fs.maruza_soat:
         talab[SoatTuri.MARUZA] = fs.maruza_soat
@@ -145,7 +144,7 @@ def kafedra_taqsimoti(kafedra: Department, akademik_yil: int) -> list[TalabSatri
 
 
 def ofis_taqsimoti(akademik_yil: int) -> list[TalabSatri]:
-    """Institution-wide demand vs allocation for one academic year."""
+    """Tanlangan o'quv yili uchun butun OTM bo'yicha talab va taqsimot."""
     return _talab_satrlari(FanSemestr.objects.effektiv().akademik_yilda(akademik_yil))
 
 
@@ -167,7 +166,7 @@ def _talab_satrlari(semestrlar: FanSemestrQuerySet) -> list[TalabSatri]:
 def taqsimlangan_soatlar(
     semestrlar: FanSemestrQuerySet,
 ) -> dict[tuple[int, str], int]:
-    """Allocated hours grouped by (fan_semestr, tur); reused by dashboards."""
+    """(fan_semestr, tur) bo'yicha taqsimlangan soatlar; dashboardlarda ishlatiladi."""
     qatorlar = (
         Yuklama.objects.filter(fan_semestr__in=semestrlar)
         .values("fan_semestr_id", "tur")
@@ -204,7 +203,7 @@ def yuklama_kamomadi(
     kafedra: Department | None = None,
     q: str = "",
 ) -> list[YuklamaHolati]:
-    """Active teachers plus inactive teachers who hold hours in this academic year."""
+    """Faol hamda joriy o'quv yilida darsi bor nofaol o'qituvchilar."""
     yuklama_qs = Yuklama.objects.akademik_yilda(akademik_yil)
     if kafedra is not None:
         yuklama_qs = yuklama_qs.filter(oqituvchi__kafedra=kafedra)
@@ -227,7 +226,7 @@ def yuklama_kamomadi(
 
 @dataclass(frozen=True)
 class SemestrTahrir:
-    """One office edit to a FanSemestr's classroom-hour split."""
+    """FanSemestr dars soatlari taqsimotiga ofis tomonidan kiritilgan bitta tahrir."""
 
     fan_semestr_id: int
     maruza_soat: int
@@ -242,7 +241,7 @@ _TAHRIR_MAYDONLARI = AUDITORIYA_MAYDONLARI
 
 @transaction.atomic
 def semestrovka_yangilash(reja: OquvReja, tahrirlar: list[SemestrTahrir]) -> None:
-    """Persist office edits to a reja's per-semester hour split."""
+    """Rejadagi semestrlar kesimidagi soat o'zgarishlarini bazaga saqlaydi."""
     idlar = [t.fan_semestr_id for t in tahrirlar]
     kaf_idlar = set(
         FanSemestr.objects.filter(
@@ -382,7 +381,7 @@ def _semestr_ozgardimi(fs: FanSemestr, tahrir: SemestrTahrir) -> bool:
 def _band_soatni_himoyalash(
     yuklamalar: list[Yuklama], yangi: dict[str, int], kurs_ishi_bor: bool
 ) -> None:
-    """Refuse edits that would strip hours a teacher is already delegated."""
+    """O'qituvchiga taqsimlab bo'lingan soatlarni o'chiradigan tahrirni rad etadi."""
     band_turlar = {y.tur for y in yuklamalar}
     for tur in _TAHRIR_MAYDONLARI:
         if yangi[tur] == 0 and tur in band_turlar:
@@ -440,7 +439,7 @@ def _qulflangan_juftliklarni_tekshir(juftliklar: set[tuple[int, int]]) -> None:
 
 @transaction.atomic
 def variantni_tanlash(fan: Fan, variant: FanVariant) -> None:
-    """Office head picks the taught alternative of a selective slot."""
+    """Ofis admini tanlov bloki ichidan o'tiladigan aniq fanni tanlaydi."""
     kaf_idlar = set(
         FanVariant.objects.filter(fan_id=fan.pk, kafedra__isnull=False).values_list(
             "kafedra_id", flat=True
@@ -477,7 +476,7 @@ def variantni_tanlash(fan: Fan, variant: FanVariant) -> None:
 
 @transaction.atomic
 def kafedraga_biriktirish(variant: FanVariant, kafedra: Department | None) -> None:
-    """Office head delegates (or re-delegates) a course to a department."""
+    """Ofis fanni bitta kafedraga biriktiradi (yoki boshqa kafedraga o'tkazadi)."""
     eski_kaf_id = (
         FanVariant.objects.filter(pk=variant.pk)
         .values_list("kafedra_id", flat=True)
@@ -517,7 +516,7 @@ def kafedraga_biriktirish(variant: FanVariant, kafedra: Department | None) -> No
 def kafedraga_ommaviy_biriktirish(
     variant_idlar: list[int], kafedra: Department | None
 ) -> int:
-    """Assign (or clear) one department across multiple selected FanVariant rows."""
+    """Bir nechta FanVariant qatorini bitta kafedraga biriktiradi (yoki yechadi)."""
     noyob_idlar = sorted(set(variant_idlar))
     if not noyob_idlar:
         return 0
@@ -583,7 +582,7 @@ def _ommaviy_biriktirish_qolla(
 
 
 def eng_kop_kurs_ishi_talabasi(reja: OquvReja) -> int:
-    """Return the highest assigned KURS_ISHI student count in any semester of reja."""
+    """Rejadagi istalgan semestrda kurs ishiga biriktirilgan eng ko'p talaba soni."""
     return (
         Yuklama.objects.filter(
             fan_semestr__variant__fan__reja=reja,
@@ -599,7 +598,7 @@ def eng_kop_kurs_ishi_talabasi(reja: OquvReja) -> int:
 
 
 def eng_katta_band_guruh(reja: OquvReja) -> int:
-    """Return the highest group number in `reja` that holds any Yuklama."""
+    """Rejadagi Yuklamasi bor eng katta tartib raqamli guruhni qaytaradi."""
     return (
         Yuklama.objects.filter(
             fan_semestr__variant__fan__reja=reja,
@@ -613,7 +612,7 @@ def eng_katta_band_guruh(reja: OquvReja) -> int:
 
 
 def reja_qulflanganmi(reja: OquvReja) -> bool:
-    """Return True if any department teaching a course in `reja` is locked."""
+    """Rejadagi biror kafedra yuklamani tasdiqqa yuborgan bo'lsa True qaytaradi."""
     fslar = (
         FanSemestr.objects.reja_uchun(reja)
         .filter(variant__kafedra__isnull=False)
@@ -640,14 +639,14 @@ def reja_qulflanganmi(reja: OquvReja) -> bool:
 def kafedra_tasdiq_oqish(
     kafedra: Department, akademik_yil: int
 ) -> KafedraYuklamaTasdiq | None:
-    """Return the existing approval record without writing to the database."""
+    """Bazaga yozmasdan mavjud tasdiq yozuvini o'qib beradi."""
     return KafedraYuklamaTasdiq.objects.filter(
         kafedra=kafedra, akademik_yil=akademik_yil
     ).first()
 
 
 def tasdiq_qulflanganmi(tasdiq: KafedraYuklamaTasdiq | None) -> bool:
-    """Return True if an approval record locks teacher workload modifications."""
+    """Tasdiq holati o'qituvchi yuklamasini o'zgartirishni qulflagan bo'lsa True."""
     return tasdiq is not None and tasdiq.holat in (
         KafedraTasdiqHolati.TASDIQDA,
         KafedraTasdiqHolati.TASDIQLANGAN,
@@ -657,7 +656,7 @@ def tasdiq_qulflanganmi(tasdiq: KafedraYuklamaTasdiq | None) -> bool:
 def kafedra_tasdiq_holati(
     kafedra: Department, akademik_yil: int
 ) -> KafedraYuklamaTasdiq:
-    """Return or initialize the approval record for a department-year."""
+    """Kafedra va o'quv yili uchun tasdiq yozuvini topadi yoki yangi yaratadi."""
     tasdiq, _ = KafedraYuklamaTasdiq.objects.get_or_create(
         kafedra=kafedra,
         akademik_yil=akademik_yil,
@@ -667,7 +666,7 @@ def kafedra_tasdiq_holati(
 
 
 def kafedra_yuklama_qulflanganmi(kafedra: Department, akademik_yil: int) -> bool:
-    """Check if the department's workload is locked against teacher modifications."""
+    """Kafedra yuklamasi tahrirlashdan qulflanganmi yo'qmi tekshiradi."""
     return tasdiq_qulflanganmi(kafedra_tasdiq_oqish(kafedra, akademik_yil))
 
 
@@ -675,7 +674,7 @@ def kafedra_yuklama_qulflanganmi(kafedra: Department, akademik_yil: int) -> bool
 def yuklamani_tasdiqqa_yuborish(
     kafedra: Department, akademik_yil: int, izoh: str = ""
 ) -> KafedraYuklamaTasdiq:
-    """Submit department workload to office administration for review."""
+    """Kafedra yuklamasini o'quv bo'limi tasdig'iga yuboradi."""
     Department.objects.select_for_update().filter(pk=kafedra.pk).first()
     tasdiq = kafedra_tasdiq_holati(kafedra, akademik_yil)
     tasdiq = KafedraYuklamaTasdiq.objects.select_for_update().get(pk=tasdiq.pk)
@@ -699,7 +698,7 @@ def yuklamani_tasdiqlash(
     admin: Foydalanuvchi,
     izoh: str = "",
 ) -> KafedraYuklamaTasdiq:
-    """Office administrator approves and locks department workload."""
+    """Ofis admini kafedraning yillik yuklamasini tasdiqlaydi va qulflaydi."""
     Department.objects.select_for_update().filter(pk=kafedra.pk).first()
     tasdiq = kafedra_tasdiq_holati(kafedra, akademik_yil)
     tasdiq = KafedraYuklamaTasdiq.objects.select_for_update().get(pk=tasdiq.pk)
@@ -758,7 +757,7 @@ def _guruh_yuklamalarini_yarat(
 def guruhlarga_ommaviy_taqsimlash(
     fs: FanSemestr, oqituvchi: OqituvchiProfil, tur: str
 ) -> list[Yuklama]:
-    """Assign `oqituvchi` to all unassigned groups of `fs` for `tur`."""
+    """`fs` ning `tur` bo'yicha hali bo'sh guruhlarini `oqituvchi` ga biriktiradi."""
     if not tur or tur not in PER_GURUH_TURLAR:
         raise ValidationError("O'qituvchi yoki mashg'ulot turi tanlanmadi.")
     if not oqituvchi.foydalanuvchi.is_active:
@@ -786,7 +785,7 @@ def yuklamani_qaytarish(
     admin: Foydalanuvchi,
     izoh: str = "",
 ) -> KafedraYuklamaTasdiq:
-    """Office administrator returns department workload for corrections."""
+    """Ofis admini kafedra yuklamasini qayta ko'rib chiqish uchun orqaga qaytaradi."""
     Department.objects.select_for_update().filter(pk=kafedra.pk).first()
     tasdiq = kafedra_tasdiq_holati(kafedra, akademik_yil)
     tasdiq = KafedraYuklamaTasdiq.objects.select_for_update().get(pk=tasdiq.pk)

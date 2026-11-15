@@ -1,4 +1,4 @@
-"""Printable coverage report and Excel export for one kafedra's teachers."""
+"""Kafedra o'qituvchilari uchun bosma hisobot va Excel eksport."""
 
 from django.http import FileResponse, HttpRequest, HttpResponse
 from django.views import View

@@ -4,22 +4,22 @@ from django.test import TestCase
 
 from plans.models import Fan, FanTuri, SoatTuri, Yuklama
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_guruh,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    guruh_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
 
 
 class YuklamaSoatTest(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.reja = make_reja()
-        cls.fan = make_fan(cls.reja)
-        cls.fs = make_fan_semestr(cls.fan.tanlangan_variant, kurs_ishi_bor=True)
-        cls.guruh = make_guruh(cls.reja)
-        cls.oqituvchi = make_oqituvchi()
+        cls.reja = reja_yasa()
+        cls.fan = fan_yasa(cls.reja)
+        cls.fs = fan_semestr_yasa(cls.fan.tanlangan_variant, kurs_ishi_bor=True)
+        cls.guruh = guruh_yasa(cls.reja)
+        cls.oqituvchi = oqituvchi_yasa()
 
     def test_maruza_soat_butun_oqimga_bir_marta(self) -> None:
         yuklama = Yuklama.objects.create(
@@ -49,12 +49,12 @@ class YuklamaSoatTest(TestCase):
 class YuklamaConstraintTest(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.reja = make_reja()
-        cls.fan = make_fan(cls.reja)
-        cls.fs = make_fan_semestr(cls.fan.tanlangan_variant, kurs_ishi_bor=True)
-        cls.guruh = make_guruh(cls.reja)
-        cls.oqituvchi = make_oqituvchi()
-        cls.boshqa_oqituvchi = make_oqituvchi()
+        cls.reja = reja_yasa()
+        cls.fan = fan_yasa(cls.reja)
+        cls.fs = fan_semestr_yasa(cls.fan.tanlangan_variant, kurs_ishi_bor=True)
+        cls.guruh = guruh_yasa(cls.reja)
+        cls.oqituvchi = oqituvchi_yasa()
+        cls.boshqa_oqituvchi = oqituvchi_yasa()
 
     def test_ikkinchi_maruza_yuklamasi_taqiqlanadi(self) -> None:
         Yuklama.objects.create(
@@ -121,17 +121,17 @@ class YuklamaConstraintTest(TestCase):
 class YuklamaCleanTest(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.reja = make_reja()
-        cls.fan = make_fan(cls.reja, seminar_soat=0)
-        cls.fs = make_fan_semestr(
+        cls.reja = reja_yasa()
+        cls.fan = fan_yasa(cls.reja, seminar_soat=0)
+        cls.fs = fan_semestr_yasa(
             cls.fan.tanlangan_variant, seminar_soat=0, kurs_ishi_bor=True
         )
-        cls.guruh = make_guruh(cls.reja)
-        cls.oqituvchi = make_oqituvchi()
+        cls.guruh = guruh_yasa(cls.reja)
+        cls.oqituvchi = oqituvchi_yasa()
 
     def test_boshqa_reja_guruhi_rad_etiladi(self) -> None:
-        boshqa_reja = make_reja(yonalish_kodi="60610200", yonalish_nomi="AT")
-        begona_guruh = make_guruh(boshqa_reja)
+        boshqa_reja = reja_yasa(yonalish_kodi="60610200", yonalish_nomi="AT")
+        begona_guruh = guruh_yasa(boshqa_reja)
         yuklama = Yuklama(
             fan_semestr=self.fs,
             tur=SoatTuri.AMALIYOT,
@@ -143,8 +143,8 @@ class YuklamaCleanTest(TestCase):
         self.assertIn("guruh", ctx.exception.message_dict)
 
     def test_tanlanmagan_variant_rad_etiladi(self) -> None:
-        tanlov_fan = make_fan(self.reja, raqam="2.01", turi=FanTuri.TANLOV)
-        fs = make_fan_semestr(tanlov_fan.variantlar.first())
+        tanlov_fan = fan_yasa(self.reja, raqam="2.01", turi=FanTuri.TANLOV)
+        fs = fan_semestr_yasa(tanlov_fan.variantlar.first())
         yuklama = Yuklama(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=self.oqituvchi)
         with self.assertRaises(ValidationError) as ctx:
             yuklama.full_clean()
@@ -171,7 +171,7 @@ class YuklamaCleanTest(TestCase):
         yuklama = Yuklama(
             fan_semestr=self.fs,
             tur=SoatTuri.KURS_ISHI,
-            oqituvchi=make_oqituvchi(),
+            oqituvchi=oqituvchi_yasa(),
             talabalar_soni=26,  # 50 + 26 > 75
         )
         with self.assertRaises(ValidationError) as ctx:
@@ -188,7 +188,7 @@ class YuklamaCleanTest(TestCase):
         yuklama = Yuklama(
             fan_semestr=self.fs,
             tur=SoatTuri.KURS_ISHI,
-            oqituvchi=make_oqituvchi(),
+            oqituvchi=oqituvchi_yasa(),
             talabalar_soni=25,
         )
         yuklama.full_clean()
@@ -196,13 +196,13 @@ class YuklamaCleanTest(TestCase):
 
 class FanTest(TestCase):
     def test_kredit_har_ottiz_soatga_bir(self) -> None:
-        fan = make_fan(make_reja(), jami_soat=120)
+        fan = fan_yasa(reja_yasa(), jami_soat=120)
         self.assertEqual(fan.kredit, 4)
 
     def test_begona_variant_tanlanmaydi(self) -> None:
-        reja = make_reja()
-        fan = make_fan(reja, raqam="1.01")
-        boshqa_fan = make_fan(reja, raqam="1.02")
+        reja = reja_yasa()
+        fan = fan_yasa(reja, raqam="1.01")
+        boshqa_fan = fan_yasa(reja, raqam="1.02")
         fan.tanlangan_variant = boshqa_fan.tanlangan_variant
         with self.assertRaises(ValidationError):
             fan.full_clean()
@@ -214,9 +214,9 @@ class YuklamaKafedraCleanTest(TestCase):
 
         kaf1 = Department.objects.create(nomi="Birinchi")
         kaf2 = Department.objects.create(nomi="Ikkinchi")
-        fan = make_fan(make_reja(), kafedra=kaf1)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        oqit2 = make_oqituvchi(kafedra=kaf2)
+        fan = fan_yasa(reja_yasa(), kafedra=kaf1)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        oqit2 = oqituvchi_yasa(kafedra=kaf2)
         yuklama = Yuklama(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=oqit2)
         with self.assertRaises(ValidationError) as ctx:
             yuklama.full_clean()
@@ -226,22 +226,22 @@ class YuklamaKafedraCleanTest(TestCase):
 class FanSemestrTest(TestCase):
     def test_oquv_va_akademik_yil(self) -> None:
         # DI2024, 3-semestr: 2-kurs, 2025/2026 akademik yil.
-        fan = make_fan(make_reja(boshlanish_yili=2024))
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=3)
+        fan = fan_yasa(reja_yasa(boshlanish_yili=2024))
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=3)
         self.assertEqual(fs.oquv_yili, 2)
         self.assertEqual(fs.akademik_yil, 2025)
 
     def test_kurs_ishi_soati_maydondan_olinmaydi(self) -> None:
-        fan = make_fan(make_reja())
-        fs = make_fan_semestr(fan.tanlangan_variant)
+        fan = fan_yasa(reja_yasa())
+        fs = fan_semestr_yasa(fan.tanlangan_variant)
         with self.assertRaises(ValueError):
             fs.tur_soat(SoatTuri.KURS_ISHI)
 
 
 class FanBegonaVariantTest(TestCase):
     def test_ikkita_reja_fanlari_mustaqil(self) -> None:
-        reja = make_reja()
-        boshqa_reja = make_reja(yonalish_kodi="60610200", yonalish_nomi="AT")
-        make_fan(reja, raqam="1.01")
-        make_fan(boshqa_reja, raqam="1.01")
+        reja = reja_yasa()
+        boshqa_reja = reja_yasa(yonalish_kodi="60610200", yonalish_nomi="AT")
+        fan_yasa(reja, raqam="1.01")
+        fan_yasa(boshqa_reja, raqam="1.01")
         self.assertEqual(Fan.objects.filter(raqam="1.01").count(), 2)

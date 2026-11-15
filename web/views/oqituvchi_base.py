@@ -1,4 +1,4 @@
-"""Shared base views and helpers for teacher CRUD across office and kafedra."""
+"""Ofis va kafedra uchun o'qituvchi CRUD umumiy asos ko'rinishlari."""
 
 from django.contrib import messages
 from django.forms import Form
@@ -23,7 +23,7 @@ from plans.shakl1 import (
 def oqituvchi_yuklama_konteksti(
     profil: OqituvchiProfil, sorov_yil: str | None, *, orqaga_url: str
 ) -> dict[str, object]:
-    """Shared workload sheet context for a single teacher."""
+    """Bitta o'qituvchining yuklama varag'i uchun umumiy kontekst."""
     yillar, yil = yilni_tanlash(sorov_yil)
     yil = yil or dashboard.joriy_akademik_yil()
     yuklamalar = oqituvchi_yuklamalari(profil, yil)

@@ -7,22 +7,22 @@ from plans.dashboard import joriy_akademik_yil
 from plans.dastur.topshirish import dastur_rad_etish, dastur_topshirish
 from plans.models import SoatTuri, TopshirishHolati, Yuklama
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
-from web.tests.helpers import login, office_admin_yarat, oqituvchi_yarat
+from web.tests.helpers import ofis_admin_yarat, oqituvchi_yarat, tizimga_kir
 
 
 class DasturTopshirishlarViewTests(TestCase):
     def setUp(self) -> None:
         kafedra = Department.objects.create(nomi="Matematika")
-        reja = make_reja(boshlanish_yili=joriy_akademik_yil())
-        fan = make_fan(reja, kafedra=kafedra)
+        reja = reja_yasa(boshlanish_yili=joriy_akademik_yil())
+        fan = fan_yasa(reja, kafedra=kafedra)
         self.variant = fan.tanlangan_variant
-        fs = make_fan_semestr(self.variant, semestr=1)
-        self.egasi = make_oqituvchi(kafedra=kafedra)
+        fs = fan_semestr_yasa(self.variant, semestr=1)
+        self.egasi = oqituvchi_yasa(kafedra=kafedra)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=self.egasi
         )
@@ -31,17 +31,17 @@ class DasturTopshirishlarViewTests(TestCase):
         )
 
     def test_oqituvchi_kira_olmaydi(self) -> None:
-        login(self.client, oqituvchi_yarat())
+        tizimga_kir(self.client, oqituvchi_yarat())
         javob = self.client.get(reverse("office:dastur_topshirishlar"))
         self.assertEqual(javob.status_code, 302)
 
     def test_admin_royxatni_koradi(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.get(reverse("office:dastur_topshirishlar"))
         self.assertContains(javob, self.egasi.foydalanuvchi.first_name)
 
     def test_royxat_bir_variant_uchun_bitta_qator(self) -> None:
-        admin = office_admin_yarat()
+        admin = ofis_admin_yarat()
         dastur_rad_etish(self.topshirish, admin, "To'liq emas")
         dastur_rad_etish(
             dastur_topshirish(
@@ -54,14 +54,14 @@ class DasturTopshirishlarViewTests(TestCase):
             self.variant, self.egasi, SimpleUploadedFile("v3.docx", b"m")
         )
 
-        login(self.client, admin)
+        tizimga_kir(self.client, admin)
         javob = self.client.get(reverse("office:dastur_topshirishlar"))
 
         self.assertEqual(len(javob.context["topshirishlar"]), 1)
         self.assertEqual(javob.context["topshirishlar"][0].pk, uchinchi.pk)
 
     def test_qabul_qilish(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.post(
             reverse("office:dastur_qabul", args=[self.topshirish.pk])
         )
@@ -70,7 +70,7 @@ class DasturTopshirishlarViewTests(TestCase):
         self.assertEqual(self.topshirish.holat, TopshirishHolati.QABUL_QILINDI)
 
     def test_rad_etish(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.post(
             reverse("office:dastur_rad", args=[self.topshirish.pk]),
             {"izoh": "Mavzular yetarli emas"},
@@ -81,7 +81,7 @@ class DasturTopshirishlarViewTests(TestCase):
         self.assertEqual(self.topshirish.izoh, "Mavzular yetarli emas")
 
     def test_fayl_yuklab_olinadi(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.get(
             reverse("office:dastur_fayl", args=[self.topshirish.pk])
         )
@@ -91,15 +91,15 @@ class DasturTopshirishlarViewTests(TestCase):
 class DasturTarixiViewTests(TestCase):
     def setUp(self) -> None:
         kafedra = Department.objects.create(nomi="Biologiya")
-        reja = make_reja(yonalish_kodi="60610144", boshlanish_yili=joriy_akademik_yil())
-        fan = make_fan(reja, kafedra=kafedra)
+        reja = reja_yasa(yonalish_kodi="60610144", boshlanish_yili=joriy_akademik_yil())
+        fan = fan_yasa(reja, kafedra=kafedra)
         self.variant = fan.tanlangan_variant
-        fs = make_fan_semestr(self.variant, semestr=1)
-        self.egasi = make_oqituvchi(kafedra=kafedra)
+        fs = fan_semestr_yasa(self.variant, semestr=1)
+        self.egasi = oqituvchi_yasa(kafedra=kafedra)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=self.egasi
         )
-        self.admin = office_admin_yarat()
+        self.admin = ofis_admin_yarat()
         birinchi = dastur_topshirish(
             self.variant, self.egasi, SimpleUploadedFile("v1.docx", b"m")
         )
@@ -108,7 +108,7 @@ class DasturTarixiViewTests(TestCase):
         self.url = reverse("office:dastur_tarixi", args=[self.variant.pk])
 
     def test_barcha_urinishlar_korsatiladi(self) -> None:
-        login(self.client, self.admin)
+        tizimga_kir(self.client, self.admin)
         javob = self.client.get(self.url)
         self.assertEqual(javob.status_code, 200)
         self.assertContains(javob, "1-urinish")

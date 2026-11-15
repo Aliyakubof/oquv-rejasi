@@ -1,8 +1,7 @@
 /**
- * Real-time UI synchronization for O'quv Reja Platformasi.
- * Watches /jonli-holat/ and updates [data-jonli] DOM regions in-place
- * whenever database state changes, without disrupting active popovers,
- * search inputs, open panels, or Alpine state.
+ * O'quv Reja Platformasi uchun jonli interfeys sinxronizatsiyasi.
+ * /jonli-holat/ ni kuzatadi va bazadagi o'zgarishlarda [data-jonli] bloklarini
+ * ochiq popover, qidiruv maydoni, panel yoki Alpine holatini buzmasdan yangilaydi.
  */
 (() => {
   const BOSH_INTERVAL_MS = 8000;
@@ -10,7 +9,7 @@
   let joriyIntervalMs = BOSH_INTERVAL_MS;
   let joriyVersiya = null;
   let sorovKetmoqda = false;
-  let timerId = null;
+  let taymerId = null;
 
   function kirishManzili() {
     return (
@@ -20,8 +19,8 @@
   }
 
   function qaytaRejalashtir(kechikishMs = joriyIntervalMs) {
-    if (timerId) clearTimeout(timerId);
-    timerId = setTimeout(tekshir, kechikishMs);
+    if (taymerId) clearTimeout(taymerId);
+    taymerId = setTimeout(tekshir, kechikishMs);
   }
 
   function skrollniSaqlash(el) {
@@ -92,7 +91,7 @@
       cache: "no-store",
     });
     if (javob.status === 401) {
-      if (timerId) clearTimeout(timerId);
+      if (taymerId) clearTimeout(taymerId);
       window.location.assign(kirishManzili());
       return true;
     }
@@ -151,20 +150,20 @@
         cache: "no-store",
       });
       if (javob.status === 401) {
-        if (timerId) clearTimeout(timerId);
+        if (taymerId) clearTimeout(taymerId);
         window.location.assign(kirishManzili());
         return;
       }
       if (javob.status === 403) {
         const xato = await javob.json().catch(() => null);
         if (xato && xato.manzil) {
-          if (timerId) clearTimeout(timerId);
+          if (taymerId) clearTimeout(taymerId);
           window.location.assign(xato.manzil);
           return;
         }
       }
       if (javob.redirected) {
-        if (timerId) clearTimeout(timerId);
+        if (taymerId) clearTimeout(taymerId);
         window.location.assign(javob.url);
         return;
       }
@@ -178,12 +177,12 @@
         return;
       }
       joriyIntervalMs = BOSH_INTERVAL_MS;
-      const data = await javob.json();
+      const malumot = await javob.json();
       if (!joriyVersiya) {
-        joriyVersiya = data.versiya;
-      } else if (data.versiya !== joriyVersiya) {
+        joriyVersiya = malumot.versiya;
+      } else if (malumot.versiya !== joriyVersiya) {
         const tugadi = await sahifaniYangila();
-        if (tugadi) joriyVersiya = data.versiya;
+        if (tugadi) joriyVersiya = malumot.versiya;
       }
     } catch (_) {
       joriyIntervalMs = Math.min(joriyIntervalMs * 2, MAX_INTERVAL_MS);
@@ -201,8 +200,8 @@
     }
   }
 
-  function belgilarniTozalash(scope) {
-    (scope || document).querySelectorAll('[data-ozgardi="1"]').forEach((el) => {
+  function belgilarniTozalash(hudud) {
+    (hudud || document).querySelectorAll('[data-ozgardi="1"]').forEach((el) => {
       delete el.dataset.ozgardi;
     });
   }

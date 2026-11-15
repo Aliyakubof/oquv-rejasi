@@ -1,4 +1,4 @@
-"""Health check endpoint verifying database and cache availability."""
+"""Ma'lumotlar bazasi va kesh ishlayotganini tekshiruvchi healthcheck endpointi."""
 
 import logging
 import uuid
@@ -34,7 +34,7 @@ def _kesh_tekshir() -> bool:
 
 
 def healthcheck(request: HttpRequest) -> JsonResponse:
-    """Return 200 when database and cache respond, 503 otherwise."""
+    """Baza va kesh javob bersa 200, aks holda 503 qaytaradi."""
     db_ok = _baza_tekshir()
     kesh_ok = _kesh_tekshir()
     hammasi_ok = db_ok and kesh_ok

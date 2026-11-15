@@ -1,4 +1,4 @@
-"""Login, logout, password change and the role-based landing dispatch."""
+"""Kirish, chiqish, parolni yangilash va rolga qarab sahifaga yo'naltirish."""
 
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash

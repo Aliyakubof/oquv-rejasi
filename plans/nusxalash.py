@@ -1,4 +1,4 @@
-"""Year-to-year assignment and workload copying between academic years."""
+"""O'quv yillari orasida kafedra biriktirish va yuklamalarni ko'chirib o'tkazish."""
 
 from dataclasses import dataclass
 
@@ -72,7 +72,7 @@ def _variant_kaliti_nom(fs: FanSemestr) -> NomKalit:
 def manba_yillar_royxati(
     maqsad_yil: int, *, kafedra: Department | None = None
 ) -> list[int]:
-    """Return past academic years strictly below maqsad_yil containing source data."""
+    """Maqsad yildan oldingi, manba ma'lumoti bor o'quv yillari ro'yxatini qaytaradi."""
     if kafedra is not None:
         juftliklar = (
             Yuklama.objects.filter(fan_semestr__variant__kafedra=kafedra)
@@ -229,7 +229,7 @@ def _ofis_nusxa_yigish(
 
 @transaction.atomic
 def ofis_taqsimotini_nusxalash(manba_yil: int, maqsad_yil: int) -> OfisNusxaNatija:
-    """Copy variant selections and unassigned kafedra links from manba_yil."""
+    """`manba_yil` dan tanlov va biriktirilmagan kafedra bog'lamalarini ko'chiradi."""
     if manba_yil >= maqsad_yil:
         raise ValidationError(
             "Manba o'quv yili maqsad yildan oldingi yil bo'lishi kerak."
@@ -431,7 +431,7 @@ def _kafedra_maqsad_qulfla(kafedra: Department, maqsad_yil: int) -> list[FanSeme
 def kafedra_taqsimotini_nusxalash(
     kafedra: Department, manba_yil: int, maqsad_yil: int
 ) -> KafedraNusxaNatija:
-    """Copy kafedra teacher allocations from manba_yil into empty maqsad_yil slots."""
+    """`manba_yil` dagi yuklamalarni `maqsad_yil` dagi bo'sh o'rinlarga ko'chiradi."""
     if manba_yil >= maqsad_yil:
         raise ValidationError(
             "Manba o'quv yili maqsad yildan oldingi yil bo'lishi kerak."

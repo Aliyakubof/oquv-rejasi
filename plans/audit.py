@@ -1,4 +1,4 @@
-"""Audit logging service for tracking system changes."""
+"""Tizimdagi o'zgarishlarni kuzatib boruvchi audit jurnali xizmati."""
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -25,7 +25,7 @@ def _toza_ip(nomzod: str | None) -> str | None:
 
 
 def sorovdan_ip(request: HttpRequest) -> str | None:
-    """Resolve client IP from request, honoring configured trusted proxies."""
+    """So'rovdan mijoz IP manzilini oladi (ishonchli proksilarni hisobga olib)."""
     remote_ip = _toza_ip(request.META.get("REMOTE_ADDR"))
     if not getattr(settings, "TRUST_X_FORWARDED_FOR", False):
         return remote_ip
@@ -72,7 +72,7 @@ def audit_yoz(
     ip_manzil: str | None = None,
     request: HttpRequest | None = None,
 ) -> AuditYozuvi:
-    """Record an audit trail event, deriving metadata and trusted IP."""
+    """Audit jurnaliga yozuv qo'shadi (obyekt meta-ma'lumoti va IP bilan)."""
     model_satri, obyekt_satri = _obyekt_meta(obyekt, model_nomi, obyekt_id)
     if request is not None:
         if (

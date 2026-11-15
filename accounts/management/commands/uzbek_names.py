@@ -1,6 +1,6 @@
-"""Sample Uzbek first/last names for seeding placeholder teacher accounts."""
+"""Sinov hisoblarini yaratishda ishlatiladigan o'zbekcha ism va familiya namunalari."""
 
-FIRST_NAMES = [
+ISMLAR = [
     "Aziz",
     "Bekzod",
     "Dilnoza",
@@ -18,7 +18,7 @@ FIRST_NAMES = [
     "Zarina",
 ]
 
-LAST_NAMES = [
+FAMILIYALAR = [
     "Abdullayev",
     "Yusupov",
     "Karimov",

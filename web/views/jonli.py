@@ -1,4 +1,4 @@
-"""Lightweight state-fingerprint endpoint for real-time UI synchronization."""
+"""Jonli interfeys sinxronizatsiyasi uchun yengil holat belgisi endpointi."""
 
 import hashlib
 import threading
@@ -76,7 +76,7 @@ _KUZATILADIGAN_MODELLAR = (
 
 
 def signallarni_ulash() -> None:
-    """Connect post_save/post_delete cache invalidators idempotently."""
+    """post_save/post_delete kesh tozalovchi signallarni bir martalik ulaydi."""
     for model in _KUZATILADIGAN_MODELLAR:
         post_save.connect(
             _signal_keshni_tozala,
@@ -158,7 +158,7 @@ def _jadval_qismlari() -> list[object]:
 
 
 def holat_versiyasi() -> str:
-    """Return a short hash that changes whenever any domain row is mutated."""
+    """Bazadagi har qanday o'zgarishda yangilanadigan qisqa xesh qaytaradi."""
     keshdagi = cache.get(_KESH_KALITI)
     if isinstance(keshdagi, str):
         return keshdagi

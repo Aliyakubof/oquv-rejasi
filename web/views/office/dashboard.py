@@ -1,4 +1,4 @@
-"""Office dashboard: year-scoped KPIs, course list and inline allocation."""
+"""Ofis bosh sahifasi: yillik ko'rsatkichlar, fanlar va biriktirish."""
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -16,9 +16,9 @@ from plans.audit import audit_yoz
 from plans.dashboard import yilni_tanlash
 from plans.models import AuditAmali, Fan, FanVariant
 from web.mixins import (
-    OfficeAdminTalabMixin,
+    OfisAdminTalabMixin,
     musbat_int_yoki_none,
-    office_admin_talab,
+    ofis_admin_talab,
     xato_matni,
 )
 
@@ -48,7 +48,7 @@ def _dashboard_konteksti(yil: int) -> dict[str, object]:
     }
 
 
-class DashboardView(OfficeAdminTalabMixin, TemplateView):
+class DashboardView(OfisAdminTalabMixin, TemplateView):
     template_name = "web/office/dashboard.html"
 
     def get_template_names(self) -> list[str]:
@@ -68,7 +68,7 @@ class DashboardView(OfficeAdminTalabMixin, TemplateView):
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def variant_tanlash(request: HttpRequest, pk: int) -> HttpResponse:
     fan = get_object_or_404(Fan, pk=pk)
     variant_pk = musbat_int_yoki_none(request.POST.get("variant"))
@@ -91,7 +91,7 @@ def variant_tanlash(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def kafedra_biriktirish(request: HttpRequest, pk: int) -> HttpResponse:
     variant = get_object_or_404(FanVariant, pk=pk)
     xom_kafedra = request.POST.get("kafedra")
@@ -119,7 +119,7 @@ def kafedra_biriktirish(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def ommaviy_kafedra_biriktirish(request: HttpRequest) -> HttpResponse:
     _, yil = yilni_tanlash(request.POST.get("yil"))
     yil = yil or dashboard.joriy_akademik_yil()
@@ -166,10 +166,10 @@ def _post_kafedra_olish(xom_kafedra: str | None) -> Department | None:
 
 
 def _qator_javobi(request: HttpRequest, fan: Fan, xato: str | None) -> HttpResponse:
-    """Re-render the mutated course row plus an out-of-band stats block.
+    """O'zgartirilgan fan qatori hamda yangilangan statistika blokini qaytaradi.
 
-    Non-HTMX callers (the reja detail page) pass `redirect` and get a normal
-    redirect with the outcome delivered via messages.
+    HTMX bo'lmagan chaqiruvlar (reja sahifasi) `redirect` beradi va natija
+    xabarlar (messages) orqali yetkaziladi.
     """
     redirect_url = request.POST.get("redirect")
     if redirect_url:
@@ -206,7 +206,7 @@ def _qator_javobi(request: HttpRequest, fan: Fan, xato: str | None) -> HttpRespo
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def taqsimot_nusxalash_view(request: HttpRequest) -> HttpResponse:
     _, maqsad_yil = yilni_tanlash(request.POST.get("yil"))
     maqsad_yil = maqsad_yil or dashboard.joriy_akademik_yil()
@@ -242,7 +242,7 @@ def taqsimot_nusxalash_view(request: HttpRequest) -> HttpResponse:
     return redirect(f"{reverse('office:dashboard')}?yil={maqsad_yil}")
 
 
-@office_admin_talab
+@ofis_admin_talab
 def svod_excel_view(request: HttpRequest) -> HttpResponse:
     _, yil = yilni_tanlash(request.GET.get("yil"))
     yil = yil or dashboard.joriy_akademik_yil()

@@ -5,28 +5,28 @@ from django.urls import reverse
 from accounts.models import Department
 from plans.models import DasturTopshirish, FanTuri, SoatTuri, Yuklama
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
 from web.forms.yuklama import KursIshiYuklamaForm
-from web.tests.helpers import login, office_admin_yarat
+from web.tests.helpers import ofis_admin_yarat, tizimga_kir
 
 
 class RejaListTests(TestCase):
     def setUp(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
 
     def test_rejalar_royxati(self) -> None:
-        make_reja()
+        reja_yasa()
         javob = self.client.get(reverse("office:reja_list"))
         self.assertContains(javob, "Dasturiy injiniring")
 
 
 class RejaImportTests(TestCase):
     def setUp(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
 
     def test_notogri_fayl_xato_korsatadi(self) -> None:
         javob = self.client.post(
@@ -43,44 +43,44 @@ class RejaImportTests(TestCase):
 
 class RejaDetailTests(TestCase):
     def setUp(self) -> None:
-        self.reja = make_reja()
-        login(self.client, office_admin_yarat())
+        self.reja = reja_yasa()
+        tizimga_kir(self.client, ofis_admin_yarat())
 
     def test_semestrovka_chiplari(self) -> None:
-        fan = make_fan(self.reja)
-        make_fan_semestr(fan.tanlangan_variant, semestr=1, haftalik_soat=6)
+        fan = fan_yasa(self.reja)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=1, haftalik_soat=6)
         javob = self.client.get(reverse("office:reja_detail", args=[self.reja.pk]))
         self.assertContains(javob, "sem-fill")
         self.assertContains(javob, "Majburiy fanlar")
         self.assertContains(javob, "Dasturlashga kirish")
 
     def test_semestrovka_breakdown_har_semestrni_yoyadi(self) -> None:
-        fan = make_fan(self.reja, maruza_soat=60, amaliyot_soat=60)
+        fan = fan_yasa(self.reja, maruza_soat=60, amaliyot_soat=60)
         variant = fan.tanlangan_variant
-        make_fan_semestr(
+        fan_semestr_yasa(
             variant, semestr=1, maruza_soat=30, amaliyot_soat=30, laboratoriya_soat=0
         )
-        make_fan_semestr(
+        fan_semestr_yasa(
             variant, semestr=2, maruza_soat=30, amaliyot_soat=30, laboratoriya_soat=0
         )
         javob = self.client.get(reverse("office:reja_detail", args=[self.reja.pk]))
-        # The toggled breakdown table lists each occupied semester as its own row,
-        # with editable hour inputs.
+        # Ochiladigan jadvalda har bir semestr alohida qator bo'lib,
+        # soatlarni tahrirlash kataklari chiqadi.
         self.assertContains(javob, "<strong>S1</strong>")
         self.assertContains(javob, "<strong>S2</strong>")
         self.assertContains(javob, 'class="soat-input"')
         self.assertContains(javob, "-amaliyot")
 
     def test_tanlanmagan_tanlov_belgisi(self) -> None:
-        fan = make_fan(self.reja, raqam="2.01", turi=FanTuri.TANLOV)
-        make_fan_semestr(fan.variantlar.first(), semestr=1)
+        fan = fan_yasa(self.reja, raqam="2.01", turi=FanTuri.TANLOV)
+        fan_semestr_yasa(fan.variantlar.first(), semestr=1)
         javob = self.client.get(reverse("office:reja_detail", args=[self.reja.pk]))
         self.assertContains(javob, "TANLANMAGAN")
 
     def test_detaldan_kafedra_biriktirish_redirect(self) -> None:
         kafedra = Department.objects.create(nomi="Iqtisod")
-        fan = make_fan(self.reja)
-        make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        fan = fan_yasa(self.reja)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         variant = fan.tanlangan_variant
         javob = self.client.post(
             reverse("office:kafedra_biriktirish", args=[variant.pk]),
@@ -96,16 +96,16 @@ class RejaDetailTests(TestCase):
 
 class SemestrovkaTahrirTests(TestCase):
     def setUp(self) -> None:
-        self.reja = make_reja()
-        self.fan = make_fan(self.reja, maruza_soat=60, amaliyot_soat=60)
-        self.fs = make_fan_semestr(
+        self.reja = reja_yasa()
+        self.fan = fan_yasa(self.reja, maruza_soat=60, amaliyot_soat=60)
+        self.fs = fan_semestr_yasa(
             self.fan.tanlangan_variant,
             semestr=1,
             maruza_soat=30,
             amaliyot_soat=30,
             laboratoriya_soat=0,
         )
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
 
     def _saqlash(self, **ozgarishlar: object) -> object:
         maydonlar = {
@@ -135,7 +135,7 @@ class SemestrovkaTahrirTests(TestCase):
         self.assertTrue(self.fs.kurs_ishi_bor)
 
     def test_taqsimlangan_turni_nolga_tushirib_bolmaydi(self) -> None:
-        oqituvchi = make_oqituvchi()
+        oqituvchi = oqituvchi_yasa()
         Yuklama.objects.create(
             fan_semestr=self.fs, tur=SoatTuri.MARUZA, oqituvchi=oqituvchi
         )
@@ -144,9 +144,9 @@ class SemestrovkaTahrirTests(TestCase):
         self.assertEqual(self.fs.maruza_soat, 30)
 
     def test_boshqa_rejaning_semestri_tegilmaydi(self) -> None:
-        boshqa = make_reja(yonalish_kodi="30310100", boshlanish_yili=2023)
-        fan2 = make_fan(boshqa)
-        fs2 = make_fan_semestr(fan2.tanlangan_variant, semestr=1, maruza_soat=24)
+        boshqa = reja_yasa(yonalish_kodi="30310100", boshlanish_yili=2023)
+        fan2 = fan_yasa(boshqa)
+        fs2 = fan_semestr_yasa(fan2.tanlangan_variant, semestr=1, maruza_soat=24)
         self.client.post(
             reverse("office:semestrovka_saqlash", args=[self.reja.pk]),
             {
@@ -162,8 +162,8 @@ class SemestrovkaTahrirTests(TestCase):
 
 class RejaTahrirTests(TestCase):
     def setUp(self) -> None:
-        self.reja = make_reja(guruhlar_soni=2)
-        login(self.client, office_admin_yarat())
+        self.reja = reja_yasa(guruhlar_soni=2)
+        tizimga_kir(self.client, ofis_admin_yarat())
 
     def test_guruhlar_soni_oshirilsa_guruhlar_yaratiladi(self) -> None:
         javob = self.client.post(
@@ -186,8 +186,8 @@ class RejaTahrirTests(TestCase):
 
     def test_dastur_topshirigi_bor_reja_ochirilmaydi(self) -> None:
         kaf = Department.objects.create(nomi="Dasturiy")
-        fan = make_fan(self.reja, kafedra=kaf)
-        oqit = make_oqituvchi(kafedra=kaf)
+        fan = fan_yasa(self.reja, kafedra=kaf)
+        oqit = oqituvchi_yasa(kafedra=kaf)
         DasturTopshirish.objects.create(
             variant=fan.tanlangan_variant,
             urinish_raqami=1,
@@ -200,9 +200,9 @@ class RejaTahrirTests(TestCase):
 
     def test_kurs_ishi_tahrir_formasi_ozini_inkor_qilmaydi(self) -> None:
         kaf = Department.objects.create(nomi="Kafedra")
-        fan = make_fan(self.reja, kafedra=kaf)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1, kurs_ishi_bor=True)
-        oqit = make_oqituvchi(kafedra=kaf)
+        fan = fan_yasa(self.reja, kafedra=kaf)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1, kurs_ishi_bor=True)
+        oqit = oqituvchi_yasa(kafedra=kaf)
         y = Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.KURS_ISHI, oqituvchi=oqit, talabalar_soni=20
         )

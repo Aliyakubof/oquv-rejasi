@@ -1,10 +1,10 @@
-"""Teacher create/edit forms delegating persistence to accounts.services."""
+"""O'qituvchi qo'shish/tahrirlash formalari (saqlash mantiqi accounts.services da)."""
 
 from django import forms
 from django.contrib.auth import password_validation
 
 from accounts.models import Department, Foydalanuvchi, OqituvchiProfil, OqituvchiTuri
-from accounts.phone import normalize_phone, validate_uzbek_phone
+from accounts.phone import telefonni_normallashtir, validate_uzbek_phone
 from accounts.services import oqituvchi_yangilash, oqituvchi_yaratish
 
 
@@ -25,7 +25,7 @@ class OqituvchiAsosForm(forms.Form):
     profil: OqituvchiProfil | None = None
 
     def clean_telefon(self) -> str:
-        telefon = normalize_phone(self.cleaned_data["telefon"])
+        telefon = telefonni_normallashtir(self.cleaned_data["telefon"])
         validate_uzbek_phone(telefon)
         boshqalar = Foydalanuvchi.objects.filter(telefon=telefon)
         if self.profil is not None:
@@ -73,7 +73,7 @@ class OqituvchiYaratishForm(OqituvchiAsosForm):
 
 
 class KafedraQulflanganMixin:
-    """Mudir's form mixin: locks kafedra to their own department."""
+    """Kafedra mudiri formasi uchun mixin: kafedrani o'z kafedrasiga bog'lab qo'yadi."""
 
     kafedra_qiymati: Department
 
@@ -88,7 +88,7 @@ class KafedraQulflanganMixin:
 
 
 class KafedraOqituvchiYaratishForm(KafedraQulflanganMixin, OqituvchiYaratishForm):
-    """Mudir's variant: kafedra is fixed to their own, not chosen."""
+    """Mudir uchun variant: kafedra tanlanmaydi, o'z kafedrasi avtomatik olinadi."""
 
     def __init__(self, kafedra: Department, *args: object, **kwargs: object):
         self.kafedra_qiymati = kafedra
@@ -137,7 +137,7 @@ class OqituvchiTahrirForm(OqituvchiAsosForm):
 
 
 class KafedraOqituvchiTahrirForm(KafedraQulflanganMixin, OqituvchiTahrirForm):
-    """Mudir's variant: teacher stays in the mudir's kafedra."""
+    """Mudir uchun variant: o'qituvchi mudirning o'z kafedrasida qoladi."""
 
     def __init__(self, *args: object, **kwargs: object):
         super().__init__(*args, **kwargs)

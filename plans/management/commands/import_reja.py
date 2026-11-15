@@ -3,7 +3,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
-from plans.importer import ImportNatija, ImportXato, import_reja, parse_xlsx
+from plans.importer import ImportNatija, ImportXato, excel_reja_oqi, import_reja
 
 
 class Command(BaseCommand):
@@ -25,28 +25,28 @@ class Command(BaseCommand):
 
     def handle(self, *args: object, **options: object) -> None:
         xatolar = 0
-        for path in options["files"]:
+        for yol in options["files"]:
             try:
-                natija = self._bitta_fayl(path, options)
-                self._chiqarish(path, natija)
+                natija = self._bitta_fayl(yol, options)
+                self._chiqarish(yol, natija)
             except ImportXato as xato:
-                self.stderr.write(self.style.ERROR(f"{path.name}: {xato}"))
+                self.stderr.write(self.style.ERROR(f"{yol.name}: {xato}"))
                 xatolar += 1
         if xatolar:
             raise CommandError(f"{xatolar} ta fayl import qilinmadi")
 
-    def _bitta_fayl(self, path: Path, options: dict[str, object]) -> ImportNatija:
-        if not path.exists():
+    def _bitta_fayl(self, yol: Path, options: dict[str, object]) -> ImportNatija:
+        if not yol.exists():
             raise ImportXato("fayl topilmadi")
         return import_reja(
-            parse_xlsx(path, boshlanish_yili=options["yil"]),
-            replace=options["replace"],
+            excel_reja_oqi(yol, boshlanish_yili=options["yil"]),
+            almashtirish=options["replace"],
         )
 
-    def _chiqarish(self, path: Path, natija: ImportNatija) -> None:
+    def _chiqarish(self, yol: Path, natija: ImportNatija) -> None:
         holat = "yaratildi" if natija.yaratildi else "yangilandi"
         self.stdout.write(
-            f"{path.name} -> {natija.reja} "
+            f"{yol.name} -> {natija.reja} "
             f"({natija.fan_soni} fan, {natija.variant_soni} variant) {holat}"
         )
         for ogohlantirish in natija.ogohlantirishlar:

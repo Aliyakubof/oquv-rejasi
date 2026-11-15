@@ -1,4 +1,4 @@
-"""Role-based access control for the web UI."""
+"""Veb interfeys uchun rollarga asoslangan kirish nazorati."""
 
 from collections.abc import Callable
 from functools import wraps
@@ -48,7 +48,7 @@ def _foydalanuvchini_tekshir(
 
 
 class RolTalabMixin(LoginRequiredMixin):
-    """Allow only the listed roles; others are sent back with a message."""
+    """Faqat ruxsat etilgan rollarni o'tkazadi; boshqalar xabar bilan qaytadi."""
 
     ruxsat_etilgan_rollar: tuple[str, ...] = ()
 
@@ -68,21 +68,21 @@ class RolTalabMixin(LoginRequiredMixin):
         return super().dispatch(request, *args, **kwargs)
 
 
-class OfficeAdminTalabMixin(RolTalabMixin):
+class OfisAdminTalabMixin(RolTalabMixin):
     ruxsat_etilgan_rollar = (Rol.OFFICE_ADMIN, Rol.SUPERADMIN)
 
 
 class OqituvchiTalabMixin(RolTalabMixin):
-    """Own-workload pages: teachers, and department heads (who also teach)."""
+    """Shaxsiy yuklama sahifalari: o'qituvchilar va mudirlar (ular ham dars o'tadi)."""
 
     ruxsat_etilgan_rollar = (Rol.TEACHER, Rol.DEPARTMENT_ADMIN)
 
 
 class KafedraMudiriTalabMixin(RolTalabMixin):
-    """Resolves the head's own kafedra; it is the only tenancy source.
+    """Mudirning o'z kafedrasini aniqlaydi; ko'rish doirasi faqat shu yerdan keladi.
 
-    Views under /kafedra/ must read scope from self.kafedra, never from
-    URL parameters — that is what keeps one mudir out of another's data.
+    /kafedra/ ostidagi sahifalar URL parametridan emas, faqat self.kafedra dan
+    foydalanadi — shunda bir mudir boshqa kafedra ma'lumotini ko'rolmaydi.
     """
 
     ruxsat_etilgan_rollar = (Rol.DEPARTMENT_ADMIN, Rol.SUPERADMIN)
@@ -111,10 +111,10 @@ def _boshqarayotgan_kafedra(request: HttpRequest) -> Department | None:
     return getattr(profil, "boshqarayotgan_kafedra", None)
 
 
-def office_admin_talab(
+def ofis_admin_talab(
     view: Callable[..., HttpResponse],
 ) -> Callable[..., HttpResponse]:
-    """Function-view counterpart of OfficeAdminTalabMixin for HTMX endpoints."""
+    """HTMX funksiya-ko'rinishlar uchun OfisAdminTalabMixin muqobili."""
 
     @wraps(view)
     def wrapper(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
@@ -129,7 +129,7 @@ def office_admin_talab(
 def kafedra_mudiri_talab(
     view: Callable[..., HttpResponse],
 ) -> Callable[..., HttpResponse]:
-    """Function-view counterpart of KafedraMudiriTalabMixin."""
+    """KafedraMudiriTalabMixin ning funksiya-ko'rinish muqobili."""
 
     @wraps(view)
     def wrapper(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
@@ -146,12 +146,12 @@ def kafedra_mudiri_talab(
 
 
 def xato_matni(exc: Exception) -> str:
-    """Format ValidationError messages into a single user-facing string."""
+    """ValidationError xabarlarini bitta tushunarli matnga yig'adi."""
     return " ".join(exc.messages) if hasattr(exc, "messages") else str(exc)
 
 
 def musbat_int_yoki_none(qiymat: str | None) -> int | None:
-    """Parse an ASCII non-negative integer string, returning None otherwise."""
+    """Manfiy bo'lmagan butun son satrini ajratadi, aks holda None qaytaradi."""
     if not qiymat:
         return None
     toza = qiymat.strip()
@@ -159,7 +159,7 @@ def musbat_int_yoki_none(qiymat: str | None) -> int | None:
 
 
 def xavfsiz_qaytish(request: HttpRequest, standart_nom: str) -> HttpResponse:
-    """Redirect to POST/GET 'next' if on the same host, else standart_nom."""
+    """Shu xostdagi POST/GET 'next' manziliga, bo'lmasa standart_nom ga qaytaradi."""
     qaytish_url = (request.POST.get("next") or request.GET.get("next") or "").strip()
     if qaytish_url and url_has_allowed_host_and_scheme(
         qaytish_url,
@@ -171,7 +171,7 @@ def xavfsiz_qaytish(request: HttpRequest, standart_nom: str) -> HttpResponse:
 
 
 class YilTanlovMixin:
-    """Provides self.yil and self.yillar and injects them into template context."""
+    """self.yil va self.yillar ni aniqlab, shablon kontekstiga qo'shib beradi."""
 
     yil: int
     yillar: list[int]

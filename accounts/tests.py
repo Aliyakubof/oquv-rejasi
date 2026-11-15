@@ -6,12 +6,12 @@ from django.core.management.base import CommandError
 from django.test import TestCase
 
 from accounts.management.commands.seed_departments import (
-    DEPARTMENT_NAMES,
-    OFFICE_ADMIN_PHONE,
+    KAFEDRA_NOMLARI,
+    OFIS_ADMIN_TELEFONI,
 )
 from accounts.models import Department, Foydalanuvchi, OqituvchiTuri, Rol
 from accounts.services import mudir_tayinlash, oqituvchi_yangilash, oqituvchi_yaratish
-from plans.tests.factories import make_oqituvchi
+from plans.tests.factories import oqituvchi_yasa
 
 
 def _kafedra(nomi: str = "Kimyo") -> Department:
@@ -59,7 +59,7 @@ class OqituvchiYaratishTests(TestCase):
 
 class OqituvchiYangilashTests(TestCase):
     def test_maydonlar_va_parol_yangilanadi(self) -> None:
-        profil = make_oqituvchi()
+        profil = oqituvchi_yasa()
         oqituvchi_yangilash(
             profil,
             telefon="+998 90 123 45 67",
@@ -77,7 +77,7 @@ class OqituvchiYangilashTests(TestCase):
     def test_mudir_boshqa_kafedraga_otsa_mudirlik_bekor_qilinadi(self) -> None:
         eski_kafedra = _kafedra("Biologiya")
         yangi_kafedra = _kafedra("Ekologiya")
-        profil = make_oqituvchi(kafedra=eski_kafedra)
+        profil = oqituvchi_yasa(kafedra=eski_kafedra)
         mudir_tayinlash(eski_kafedra, profil)
 
         oqituvchi_yangilash(
@@ -98,8 +98,8 @@ class OqituvchiYangilashTests(TestCase):
 class MudirTayinlashTests(TestCase):
     def setUp(self) -> None:
         self.kafedra = _kafedra()
-        self.birinchi = make_oqituvchi(kafedra=self.kafedra)
-        self.ikkinchi = make_oqituvchi(kafedra=self.kafedra)
+        self.birinchi = oqituvchi_yasa(kafedra=self.kafedra)
+        self.ikkinchi = oqituvchi_yasa(kafedra=self.kafedra)
 
     def test_tayinlash_rolni_kotaradi(self) -> None:
         mudir_tayinlash(self.kafedra, self.birinchi)
@@ -127,7 +127,7 @@ class MudirTayinlashTests(TestCase):
         self.assertEqual(self.birinchi.foydalanuvchi.rol, Rol.TEACHER)
 
     def test_begona_kafedra_oqituvchisi_rad_etiladi(self) -> None:
-        begona = make_oqituvchi(kafedra=_kafedra("Fizika"))
+        begona = oqituvchi_yasa(kafedra=_kafedra("Fizika"))
         with self.assertRaises(ValidationError):
             mudir_tayinlash(self.kafedra, begona)
 
@@ -141,8 +141,8 @@ class SeedDepartmentsCommandTests(TestCase):
         _turi()
         out = StringIO()
         call_command("seed_departments", "--parol=Vaqtincha99", stdout=out)
-        self.assertEqual(Department.objects.count(), len(DEPARTMENT_NAMES))
-        ofis = Foydalanuvchi.objects.get(telefon=OFFICE_ADMIN_PHONE)
+        self.assertEqual(Department.objects.count(), len(KAFEDRA_NOMLARI))
+        ofis = Foydalanuvchi.objects.get(telefon=OFIS_ADMIN_TELEFONI)
         self.assertEqual(ofis.rol, Rol.OFFICE_ADMIN)
         self.assertTrue(ofis.check_password("Vaqtincha99"))
         self.assertTrue(ofis.parol_ozgartirish_kerak)

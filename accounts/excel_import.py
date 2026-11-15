@@ -1,4 +1,4 @@
-"""Bulk Excel import and template generation for teachers and major classifiers."""
+"""O'qituvchilar va yo'nalishlarni Excel orqali yuklash hamda shablon yaratish."""
 
 import re
 from dataclasses import dataclass
@@ -23,7 +23,7 @@ from accounts.models import (
     OqituvchiTuri,
     Rol,
 )
-from accounts.phone import normalize_phone, validate_uzbek_phone
+from accounts.phone import telefonni_normallashtir, validate_uzbek_phone
 from accounts.services import vaqtinchalik_parol_tasodifiy
 from plans.models import TalimYonalishi
 from plans.services import keshni_tozala
@@ -94,7 +94,7 @@ def _telefonni_normallashtir(xom: object) -> str:
     matn = _matn(xom)
     if not matn:
         return ""
-    toza = re.sub(r"[^\d+]", "", normalize_phone(matn))
+    toza = re.sub(r"[^\d+]", "", telefonni_normallashtir(matn))
     if re.fullmatch(r"998\d{9}", toza):
         toza = f"+{toza}"
     elif re.fullmatch(r"\d{9}", toza):
@@ -176,7 +176,7 @@ def _varaqqa_bufferga(wb: Workbook) -> BytesIO:
 
 
 def oqituvchilar_namuna_excel() -> BytesIO:
-    """Build a downloadable .xlsx template with reference departments & positions."""
+    """Mavjud kafedralar va lavozimlar bilan .xlsx shablon tayyorlaydi."""
     wb = Workbook()
     ws = wb.active
     ws.title = "O'qituvchilar"
@@ -295,7 +295,7 @@ def _yangi_oqituvchi_obyektlari(
 
 
 def oqituvchilar_excel_import(fayl: UploadedFile) -> OqituvchiImportNatija:
-    """Validate and atomically import teachers with one-time temporary passwords."""
+    """O'qituvchilarni tekshirib, bir martalik parollar bilan bazaga yozadi."""
     qatorlar = _excel_yuklash(fayl)
     if len(qatorlar) < 2:
         raise ValidationError("Excel faylida ma'lumot qatorlari topilmadi.")
@@ -333,7 +333,7 @@ def oqituvchilar_excel_import(fayl: UploadedFile) -> OqituvchiImportNatija:
 
 
 def oqituvchi_import_natija_excel(yaratilganlar: list[dict[str, str]]) -> BytesIO:
-    """Export one-time initial credentials generated during teacher import."""
+    """Import paytida yaratilgan bir martalik parollarni Excelga eksport qiladi."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Vaqtinchalik parollar"
@@ -355,7 +355,7 @@ def oqituvchi_import_natija_excel(yaratilganlar: list[dict[str, str]]) -> BytesI
 
 
 def yonalishlar_namuna_excel() -> BytesIO:
-    """Build a downloadable .xlsx template for official classifier rows."""
+    """Tasdiqlangan yo'nalishlar klassifikatori uchun .xlsx shablon yaratadi."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Yo'nalishlar"
@@ -411,7 +411,7 @@ def _yonalish_qatorlarini_yigish(
 
 
 def yonalishlar_excel_import(fayl: UploadedFile) -> tuple[int, int]:
-    """Validate and bulk upsert TalimYonalishi rows from an .xlsx file."""
+    """Yo'nalishlarni .xlsx fayldan tekshirib, ommaviy yangilaydi yoki qo'shadi."""
     qatorlar = _excel_yuklash(fayl)
     if len(qatorlar) < 2:
         raise ValidationError("Excel faylida ma'lumot qatorlari topilmadi.")

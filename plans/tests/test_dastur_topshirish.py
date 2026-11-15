@@ -12,12 +12,12 @@ from plans.dastur.topshirish import (
 )
 from plans.models import DasturTopshirish, SoatTuri, TopshirishHolati, Yuklama
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
-from web.tests.helpers import office_admin_yarat
+from web.tests.helpers import ofis_admin_yarat
 
 
 def _fayl(nomi: str = "dastur.docx") -> SimpleUploadedFile:
@@ -28,12 +28,12 @@ class DasturTopshirishTest(TestCase):
     def setUp(self) -> None:
         yil = dashboard.joriy_akademik_yil()
         kafedra = Department.objects.create(nomi="Matematika")
-        reja = make_reja(boshlanish_yili=yil)
-        fan = make_fan(reja, kafedra=kafedra)
+        reja = reja_yasa(boshlanish_yili=yil)
+        fan = fan_yasa(reja, kafedra=kafedra)
         self.variant = fan.tanlangan_variant
-        fs = make_fan_semestr(self.variant, semestr=1)
-        self.egasi = make_oqituvchi(kafedra=kafedra)
-        self.begona = make_oqituvchi(kafedra=kafedra)
+        fs = fan_semestr_yasa(self.variant, semestr=1)
+        self.egasi = oqituvchi_yasa(kafedra=kafedra)
+        self.begona = oqituvchi_yasa(kafedra=kafedra)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=self.egasi
         )
@@ -50,7 +50,7 @@ class DasturTopshirishTest(TestCase):
 
     def test_qayta_topshirish_yangi_qator_yaratadi(self) -> None:
         birinchi = dastur_topshirish(self.variant, self.egasi, _fayl("v1.docx"))
-        dastur_rad_etish(birinchi, office_admin_yarat(), "To'liq emas")
+        dastur_rad_etish(birinchi, ofis_admin_yarat(), "To'liq emas")
 
         ikkinchi = dastur_topshirish(self.variant, self.egasi, _fayl("v2.docx"))
 
@@ -76,16 +76,16 @@ class DasturQabulRadTest(TestCase):
     def setUp(self) -> None:
         yil = dashboard.joriy_akademik_yil()
         kafedra = Department.objects.create(nomi="Fizika")
-        reja = make_reja(yonalish_kodi="60610199", boshlanish_yili=yil)
-        fan = make_fan(reja, kafedra=kafedra)
+        reja = reja_yasa(yonalish_kodi="60610199", boshlanish_yili=yil)
+        fan = fan_yasa(reja, kafedra=kafedra)
         variant = fan.tanlangan_variant
-        fs = make_fan_semestr(variant, semestr=1)
-        self.egasi = make_oqituvchi(kafedra=kafedra)
+        fs = fan_semestr_yasa(variant, semestr=1)
+        self.egasi = oqituvchi_yasa(kafedra=kafedra)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=self.egasi
         )
         self.topshirish = dastur_topshirish(variant, self.egasi, _fayl())
-        self.admin = office_admin_yarat()
+        self.admin = ofis_admin_yarat()
 
     def test_qabul_qilish(self) -> None:
         dastur_qabul_qilish(self.topshirish, self.admin)
@@ -109,22 +109,22 @@ class JoriyTopshirishlarTest(TestCase):
     def setUp(self) -> None:
         yil = dashboard.joriy_akademik_yil()
         kafedra = Department.objects.create(nomi="Kimyo")
-        self.admin = office_admin_yarat()
+        self.admin = ofis_admin_yarat()
 
-        reja1 = make_reja(yonalish_kodi="60610111", boshlanish_yili=yil)
-        fan1 = make_fan(reja1, kafedra=kafedra)
+        reja1 = reja_yasa(yonalish_kodi="60610111", boshlanish_yili=yil)
+        fan1 = fan_yasa(reja1, kafedra=kafedra)
         self.variant1 = fan1.tanlangan_variant
-        fs1 = make_fan_semestr(self.variant1, semestr=1)
-        self.egasi1 = make_oqituvchi(kafedra=kafedra)
+        fs1 = fan_semestr_yasa(self.variant1, semestr=1)
+        self.egasi1 = oqituvchi_yasa(kafedra=kafedra)
         Yuklama.objects.create(
             fan_semestr=fs1, tur=SoatTuri.MARUZA, oqituvchi=self.egasi1
         )
 
-        reja2 = make_reja(yonalish_kodi="60610122", boshlanish_yili=yil)
-        fan2 = make_fan(reja2, kafedra=kafedra)
+        reja2 = reja_yasa(yonalish_kodi="60610122", boshlanish_yili=yil)
+        fan2 = fan_yasa(reja2, kafedra=kafedra)
         self.variant2 = fan2.tanlangan_variant
-        fs2 = make_fan_semestr(self.variant2, semestr=1)
-        self.egasi2 = make_oqituvchi(kafedra=kafedra)
+        fs2 = fan_semestr_yasa(self.variant2, semestr=1)
+        self.egasi2 = oqituvchi_yasa(kafedra=kafedra)
         Yuklama.objects.create(
             fan_semestr=fs2, tur=SoatTuri.MARUZA, oqituvchi=self.egasi2
         )

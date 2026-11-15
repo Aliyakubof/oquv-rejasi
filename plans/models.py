@@ -4,7 +4,7 @@ from django.db.models import Q, Sum
 from django.utils import timezone
 
 from accounts.models import Department, Foydalanuvchi, OqituvchiProfil
-from parser.models import derived_credits
+from parser.models import hisoblangan_kredit
 from plans.managers import (
     FanManager,
     FanSemestrManager,
@@ -12,8 +12,8 @@ from plans.managers import (
     YuklamaManager,
 )
 
-# Rate fixed by the owner: kurs ishi supervision is 2 contact hours per student,
-# independent of the hours printed in the reja's kurs-ishi column.
+# Egasi belgilagan qoida: kurs ishi uchun har talabaga 2 soat beriladi
+# (rejada kurs ishi ustunida nima yozilganidan qat'i nazar).
 KURS_ISHI_SOAT_TALABAGA = 2
 
 
@@ -30,7 +30,7 @@ class SoatTuri(models.TextChoices):
     KURS_ISHI = "KURS_ISHI", "Kurs ishi"
 
 
-# Lecture is taught once to the whole intake; these three are taught per group.
+# Ma'ruza butun oqim uchun bir marta o'tiladi; qolgan uchtasi har bir guruhga alohida.
 PER_GURUH_TURLAR = (SoatTuri.AMALIYOT, SoatTuri.LABORATORIYA, SoatTuri.SEMINAR)
 
 AUDITORIYA_MAYDONLARI: dict[str, str] = {
@@ -42,11 +42,10 @@ AUDITORIYA_MAYDONLARI: dict[str, str] = {
 
 
 class TalimYonalishi(models.Model):
-    """Official classifier row: major code -> field of study / knowledge.
+    """Rasmiy klassifikator: yo'nalish kodi bo'yicha bilim va ta'lim sohasi.
 
-    Maintained by AOH via admin, one row per major, independent of any
-    single reja upload. `OquvReja.bilim_sohasi_*`/`talim_sohasi_*`/
-    `yonalish_nomi` are populated from here at import time.
+    Ofis admin tomonidan bitta yo'nalishga bir qator qilib yuritiladi.
+    Reja yuklanganda bilim_sohasi_* va talim_sohasi_* maydonlari shu yerdan olinadi.
     """
 
     kodi = models.CharField(max_length=20, unique=True)
@@ -66,7 +65,7 @@ class TalimYonalishi(models.Model):
 
 
 class OquvReja(models.Model):
-    """One major intake: a curriculum (direction + start year + study form)."""
+    """Bitta qabul bo'yicha o'quv reja (yo'nalish + boshlanish yili + ta'lim shakli)."""
 
     bilim_sohasi_kodi = models.CharField(max_length=10)
     bilim_sohasi_nomi = models.CharField(max_length=255)
@@ -145,11 +144,11 @@ class Guruh(models.Model):
 
 
 class Fan(models.Model):
-    """One curriculum line: a mandatory course or a selective slot.
+    """Rejadagi bitta qator: majburiy fan yoki tanlov bloki.
 
-    Every Fan owns 1+ FanVariant rows; a mandatory course's single variant is
-    auto-selected at import, a selective slot stays unselected until the office
-    head picks one. Only the selected variant counts in hour demand.
+    Majburiy fanning bitta varianti import paytida avtomatik tanlanadi.
+    Tanlov fanida esa ofis xodimi variant tanlamaguncha bo'sh turadi va
+    soat hisob-kitobiga faqat tanlangan variant kiradi.
     """
 
     reja = models.ForeignKey(OquvReja, on_delete=models.CASCADE, related_name="fanlar")
@@ -182,7 +181,7 @@ class Fan(models.Model):
 
     @property
     def kredit(self) -> int | None:
-        return derived_credits(self.jami_soat)
+        return hisoblangan_kredit(self.jami_soat)
 
     @property
     def effektiv_variant(self) -> "FanVariant | None":
@@ -202,7 +201,7 @@ class Fan(models.Model):
 
 
 class FanVariant(models.Model):
-    """Course content: the unit carrying a kafedra and hour breakdown."""
+    """Fan mazmuni: qaysi kafedraga biriktirilgani va soat taqsimoti shu yerda."""
 
     fan = models.ForeignKey(Fan, on_delete=models.CASCADE, related_name="variantlar")
     kodi = models.CharField(max_length=50, blank=True)
@@ -237,7 +236,7 @@ class FanVariant(models.Model):
 
 
 class FanSemestr(models.Model):
-    """Materialized per-semester hour breakdown; the delegation anchor."""
+    """Fanning semestrdagi soatlari — yuklama taqsimlash shu yerga bog'lanadi."""
 
     variant = models.ForeignKey(
         FanVariant, on_delete=models.CASCADE, related_name="semestrlar"
@@ -289,11 +288,11 @@ class FanSemestr(models.Model):
 
 
 class Yuklama(models.Model):
-    """One delegation row: a teacher takes one portion of a course-semester.
+    """O'qituvchiga biriktirilgan bitta dars bo'lagi.
 
-    Three shapes, enforced by chk_yuklama_shakl: MARUZA covers the whole
-    intake (no guruh), per-group types cover exactly one guruh per row, and
-    KURS_ISHI carries a supervised-student count instead of a guruh.
+    chk_yuklama_shakl uch xil ko'rinishni nazorat qiladi: MARUZA butun oqimga
+    (guruhsiz), amaliyot/lab/seminar bitta aniq guruhga, KURS_ISHI esa
+    biriktirilgan talabalar soniga yoziladi.
     """
 
     fan_semestr = models.ForeignKey(
@@ -444,13 +443,10 @@ class TopshirishHolati(models.TextChoices):
 
 
 class DasturTopshirish(models.Model):
-    """One attempt at submitting a course's O'quv Dastur, and its AOH review.
+    """O'quv dasturini topshirish urinishi va o'quv bo'limining tekshiruvi.
 
-    Append-only: a variant can have many attempts (one per resubmission
-    round), each immutable once reviewed. Never edit or delete a past
-    attempt — that history is what lets both the teacher and the AOH see
-    every prior rejection reason across the several reject/resubmit rounds
-    a dastur typically goes through.
+    Yozuvlar faqat qo'shiladi (append-only): rad etilgan dastur qayta
+    topshirilganda yangi urinish ochiladi, eskilari tarix sifatida saqlanadi.
     """
 
     variant = models.ForeignKey(
@@ -512,7 +508,7 @@ class KafedraTasdiqHolati(models.TextChoices):
 
 
 class KafedraYuklamaTasdiq(models.Model):
-    """Department workload approval status per academic year."""
+    """Kafedraning akademik yil bo'yicha yuklama tasdiqlanish holati."""
 
     kafedra = models.ForeignKey(
         Department, on_delete=models.CASCADE, related_name="yuklama_tasdiqlari"
@@ -559,7 +555,7 @@ class AuditAmali(models.TextChoices):
 
 
 class AuditYozuvi(models.Model):
-    """Activity tracking across curriculum and workload operations."""
+    """O'quv reja va yuklama amallari bo'yicha audit yozuvlari jurnali."""
 
     foydalanuvchi = models.ForeignKey(
         Foydalanuvchi,
@@ -599,7 +595,7 @@ class BildirishnomaTuri(models.TextChoices):
 
 
 class Bildirishnoma(models.Model):
-    """In-app notification delivered to a user (optionally mirrored to Telegram)."""
+    """Tizim ichidagi (va xohlasa Telegram'ga ham ketadigan) bildirishnoma."""
 
     qabul_qiluvchi = models.ForeignKey(
         Foydalanuvchi,

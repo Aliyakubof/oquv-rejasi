@@ -1,13 +1,13 @@
-"""Audit trail viewer for Office Admins."""
+"""Ofis adminlari uchun audit yozuvlari sahifasi."""
 
 from django.db.models import QuerySet
 from django.views.generic import ListView
 
 from plans.models import AuditAmali, AuditYozuvi
-from web.mixins import OfficeAdminTalabMixin
+from web.mixins import OfisAdminTalabMixin
 
 
-class AuditListView(OfficeAdminTalabMixin, ListView):
+class AuditListView(OfisAdminTalabMixin, ListView):
     template_name = "web/office/audit/list.html"
     model = AuditYozuvi
     context_object_name = "yozuvlar"

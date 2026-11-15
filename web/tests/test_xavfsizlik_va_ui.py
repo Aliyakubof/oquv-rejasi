@@ -1,5 +1,5 @@
-"""Regression tests for security middleware, RBAC isolation, N+1 ORM budgets,
-workload confirmation locks, live-polling auth, and UI filters."""
+"""Xavfsizlik middleware, RBAC izolyatsiyasi, N+1 cheklovlari, yuklama qulfi,
+jonli yangilanish va UI filtrlari bo'yicha regressiya testlari."""
 
 from unittest.mock import patch
 
@@ -17,18 +17,18 @@ from plans import dashboard, services
 from plans.audit import sorovdan_ip
 from plans.models import KafedraYuklamaTasdiq, SoatTuri
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
 from web.templatetags.ui import bosh_harflar, foiz
 from web.tests.helpers import (
     foydalanuvchi_yarat,
-    login,
     mudir_yarat,
-    office_admin_yarat,
+    ofis_admin_yarat,
     oqituvchi_yarat,
+    tizimga_kir,
 )
 from web.views.jonli import holat_versiyasi
 
@@ -40,7 +40,7 @@ class XavfsizlikVaRuxsatTests(TestCase):
         self.kafedra = self.mudir.oqituvchi_profil.kafedra
 
     def test_faolsiz_foydalanuvchi_middleware_chiqaradi_va_htmx_401(self) -> None:
-        login(self.client, self.mudir)
+        tizimga_kir(self.client, self.mudir)
         self.mudir.is_active = False
         self.mudir.save(update_fields=["is_active"])
 
@@ -49,16 +49,16 @@ class XavfsizlikVaRuxsatTests(TestCase):
             oddiy, f"{reverse('kirish')}?next={reverse('kafedra:dashboard')}"
         )
 
-        login(self.client, self.mudir)
+        tizimga_kir(self.client, self.mudir)
         htmx = self.client.get(reverse("kafedra:dashboard"), HTTP_HX_REQUEST="true")
         self.assertEqual(htmx.status_code, 401)
         self.assertEqual(htmx["HX-Redirect"], reverse("kirish"))
 
     def test_reja_detail_notogri_tab_va_sem_tozalanadi(self) -> None:
-        reja = make_reja(boshlanish_yili=self.yil)
-        fan = make_fan(reja, kafedra=self.kafedra)
-        make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        login(self.client, office_admin_yarat())
+        reja = reja_yasa(boshlanish_yili=self.yil)
+        fan = fan_yasa(reja, kafedra=self.kafedra)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        tizimga_kir(self.client, ofis_admin_yarat())
 
         url = reverse("office:reja_detail", args=[reja.pk])
         javob = self.client.get(url, {"tab": "<script>alert(1)</script>", "sem": "bad"})
@@ -68,12 +68,12 @@ class XavfsizlikVaRuxsatTests(TestCase):
         self.assertNotContains(javob, "<script>alert(1)</script>")
 
     def test_mudir_office_admin_profilini_tahrirlay_olmaydi(self) -> None:
-        admin = office_admin_yarat()
+        admin = ofis_admin_yarat()
         turi = self.mudir.oqituvchi_profil.turi
         admin_profil = OqituvchiProfil.objects.create(
             foydalanuvchi=admin, kafedra=self.kafedra, turi=turi
         )
-        login(self.client, self.mudir)
+        tizimga_kir(self.client, self.mudir)
         javob = self.client.get(
             reverse("kafedra:oqituvchi_tahrir", args=[admin_profil.pk])
         )
@@ -81,9 +81,9 @@ class XavfsizlikVaRuxsatTests(TestCase):
 
     @override_settings(DEBUG=True)
     def test_dev_panel_mudir_va_oqituvchiga_taqiqlanadi(self) -> None:
-        login(self.client, self.mudir)
+        tizimga_kir(self.client, self.mudir)
         self.assertEqual(self.client.get(reverse("dev:panel")).status_code, 403)
-        login(self.client, oqituvchi_yarat(kafedra=self.kafedra))
+        tizimga_kir(self.client, oqituvchi_yarat(kafedra=self.kafedra))
         self.assertEqual(
             self.client.post(
                 reverse("dev:almashtirish"), {"foydalanuvchi": self.mudir.pk}
@@ -92,14 +92,14 @@ class XavfsizlikVaRuxsatTests(TestCase):
         )
 
     def test_office_admin_superadmin_hisobini_tahrirlay_va_ochira_olmaydi(self) -> None:
-        admin = office_admin_yarat()
+        admin = ofis_admin_yarat()
         super_user = foydalanuvchi_yarat(Rol.SUPERADMIN)
         super_prof = OqituvchiProfil.objects.create(
             foydalanuvchi=super_user,
             kafedra=self.kafedra,
             turi=self.mudir.oqituvchi_profil.turi,
         )
-        login(self.client, admin)
+        tizimga_kir(self.client, admin)
 
         r_get = self.client.get(
             reverse("office:oqituvchi_tahrir", args=[super_prof.pk])
@@ -151,13 +151,13 @@ class OrmVaTasdiqTests(TestCase):
         self.kafedra = self.mudir.oqituvchi_profil.kafedra
 
     def test_kafedra_dashboard_get_bazaga_yozmaydi(self) -> None:
-        login(self.client, self.mudir)
+        tizimga_kir(self.client, self.mudir)
         javob = self.client.get(reverse("kafedra:dashboard"))
         self.assertEqual(javob.status_code, 200)
         self.assertEqual(KafedraYuklamaTasdiq.objects.count(), 0)
 
     def test_qayta_yuborishda_tasdiqlagan_tozalanadi(self) -> None:
-        admin = office_admin_yarat()
+        admin = ofis_admin_yarat()
         services.yuklamani_tasdiqqa_yuborish(self.kafedra, self.yil, "V1")
         services.yuklamani_tasdiqlash(self.kafedra, self.yil, admin, "Ok")
         services.yuklamani_qaytarish(self.kafedra, self.yil, admin, "Tuzating")
@@ -166,12 +166,12 @@ class OrmVaTasdiqTests(TestCase):
         self.assertIsNone(qayta.tasdiqlangan_vaqt)
 
     def test_n_plus_1_sorovlar_soni_cheklangan(self) -> None:
-        reja = make_reja(boshlanish_yili=self.yil)
+        reja = reja_yasa(boshlanish_yili=self.yil)
         services.guruhlarni_sinxronlash(reja)
-        fan1 = make_fan(reja, raqam="1.01", kafedra=self.kafedra)
-        make_fan_semestr(fan1.tanlangan_variant, semestr=1)
+        fan1 = fan_yasa(reja, raqam="1.01", kafedra=self.kafedra)
+        fan_semestr_yasa(fan1.tanlangan_variant, semestr=1)
 
-        login(self.client, self.mudir)
+        tizimga_kir(self.client, self.mudir)
 
         def _count(url: str) -> int:
             with CaptureQueriesContext(connection) as ctx:
@@ -180,17 +180,17 @@ class OrmVaTasdiqTests(TestCase):
 
         k_kichik = _count(reverse("kafedra:dashboard"))
         for idx in range(2, 10):
-            fan = make_fan(reja, raqam=f"1.{idx:02d}", kafedra=self.kafedra)
-            make_fan_semestr(fan.tanlangan_variant, semestr=1)
+            fan = fan_yasa(reja, raqam=f"1.{idx:02d}", kafedra=self.kafedra)
+            fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         k_katta = _count(reverse("kafedra:dashboard"))
         self.assertLessEqual(abs(k_katta - k_kichik), 1)
 
-        admin = office_admin_yarat()
-        login(self.client, admin)
+        admin = ofis_admin_yarat()
+        tizimga_kir(self.client, admin)
         o_katta = _count(reverse("office:dashboard"))
         for idx in range(10, 18):
-            fan = make_fan(reja, raqam=f"1.{idx:02d}", kafedra=self.kafedra)
-            make_fan_semestr(fan.tanlangan_variant, semestr=1)
+            fan = fan_yasa(reja, raqam=f"1.{idx:02d}", kafedra=self.kafedra)
+            fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         o_juda_katta = _count(reverse("office:dashboard"))
         self.assertLessEqual(abs(o_juda_katta - o_katta), 1)
 
@@ -198,11 +198,11 @@ class OrmVaTasdiqTests(TestCase):
         anonim = self.client.get(reverse("jonli_holat"))
         self.assertEqual(anonim.status_code, 401)
 
-        reja = make_reja(boshlanish_yili=self.yil)
+        reja = reja_yasa(boshlanish_yili=self.yil)
         services.guruhlarni_sinxronlash(reja)
-        fan = make_fan(reja, kafedra=self.kafedra)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        oqituvchi = make_oqituvchi(kafedra=self.kafedra)
+        fan = fan_yasa(reja, kafedra=self.kafedra)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        oqituvchi = oqituvchi_yasa(kafedra=self.kafedra)
 
         v1 = holat_versiyasi()
         services.guruhlarga_ommaviy_taqsimlash(fs, oqituvchi, SoatTuri.AMALIYOT)
@@ -210,7 +210,7 @@ class OrmVaTasdiqTests(TestCase):
         self.assertNotEqual(v1, v2)
 
         cache.clear()
-        login(self.client, self.mudir)
+        tizimga_kir(self.client, self.mudir)
         for _ in range(60):
             self.assertEqual(self.client.get(reverse("jonli_holat")).status_code, 200)
         self.assertEqual(self.client.get(reverse("jonli_holat")).status_code, 429)
@@ -228,7 +228,7 @@ class OrmVaTasdiqTests(TestCase):
         self.mudir.save(update_fields=["last_login"])
         self.assertEqual(cache.get(JONLI_KESH_KALITI), v1)
 
-        login(self.client, self.mudir)
+        tizimga_kir(self.client, self.mudir)
         with CaptureQueriesContext(connection) as ctx:
             self.client.get(reverse("parol_ozgartirish"), HTTP_HX_REQUEST="true")
         sql = " ".join(q["sql"] for q in ctx)
@@ -244,9 +244,9 @@ class UiVaTelefonTests(TestCase):
         self.assertEqual(foiz(10, 0), 0)
 
     def test_navbar_va_oqituvchi_excel_oob_shablonlari(self) -> None:
-        admin = office_admin_yarat()
+        admin = ofis_admin_yarat()
         Department.objects.create(nomi="Matematika")
-        login(self.client, admin)
+        tizimga_kir(self.client, admin)
         javob = self.client.get(reverse("office:oqituvchi_list"))
         self.assertEqual(javob.status_code, 200)
         for belgi in (
@@ -291,7 +291,7 @@ class BackendAuditRegressiyaTests(TestCase):
         self.yil = dashboard.joriy_akademik_yil()
         self.kaf1 = Department.objects.create(nomi="Audit Kaf 1")
         self.kaf2 = Department.objects.create(nomi="Audit Kaf 2")
-        self.admin = office_admin_yarat()
+        self.admin = ofis_admin_yarat()
 
     def tearDown(self) -> None:
         cache.clear()
@@ -299,7 +299,7 @@ class BackendAuditRegressiyaTests(TestCase):
     def test_tasdiqqa_yuborilmagan_kafedrani_tasdiqlash_va_qaytarish_500_bermaydi(
         self,
     ) -> None:
-        login(self.client, self.admin)
+        tizimga_kir(self.client, self.admin)
         r_tasdiq = self.client.post(
             reverse("office:kafedra_tasdiqlash", args=[self.kaf1.pk]),
             {"yil": self.yil},
@@ -319,13 +319,13 @@ class BackendAuditRegressiyaTests(TestCase):
     def test_yuklamali_oqituvchini_boshqa_kafedraga_otkazish_rad_etiladi(self) -> None:
         from plans.models import Yuklama
 
-        reja = make_reja(boshlanish_yili=self.yil)
-        fan = make_fan(reja, kafedra=self.kaf1)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        oqit = make_oqituvchi(kafedra=self.kaf1)
+        reja = reja_yasa(boshlanish_yili=self.yil)
+        fan = fan_yasa(reja, kafedra=self.kaf1)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        oqit = oqituvchi_yasa(kafedra=self.kaf1)
         Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=oqit)
 
-        login(self.client, self.admin)
+        tizimga_kir(self.client, self.admin)
         javob = self.client.post(
             reverse("office:oqituvchi_tahrir", args=[oqit.pk]),
             {
@@ -345,16 +345,16 @@ class BackendAuditRegressiyaTests(TestCase):
     def test_reja_tahrir_band_guruh_va_qulflangan_kafedrani_himoyalaydi(self) -> None:
         from plans.models import KafedraTasdiqHolati, Yuklama
 
-        reja = make_reja(boshlanish_yili=self.yil, guruhlar_soni=2, talabalar_soni=50)
+        reja = reja_yasa(boshlanish_yili=self.yil, guruhlar_soni=2, talabalar_soni=50)
         guruhlar = services.guruhlarni_sinxronlash(reja)
-        fan = make_fan(reja, kafedra=self.kaf1)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        oqit = make_oqituvchi(kafedra=self.kaf1)
+        fan = fan_yasa(reja, kafedra=self.kaf1)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        oqit = oqituvchi_yasa(kafedra=self.kaf1)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.AMALIYOT, oqituvchi=oqit, guruh=guruhlar[1]
         )
 
-        login(self.client, self.admin)
+        tizimga_kir(self.client, self.admin)
         r_guruh = self.client.post(
             reverse("office:reja_tahrir", args=[reja.pk]),
             {
@@ -403,18 +403,18 @@ class BackendAuditRegressiyaTests(TestCase):
     )
     def test_api_kafedralar_aniqligi_va_rate_limit(self) -> None:
         from plans.models import FanTuri
-        from plans.tests.factories import make_variant
+        from plans.tests.factories import variant_yasa
 
-        faol = make_oqituvchi(kafedra=self.kaf1)
-        nofaol = make_oqituvchi(kafedra=self.kaf1)
+        faol = oqituvchi_yasa(kafedra=self.kaf1)
+        nofaol = oqituvchi_yasa(kafedra=self.kaf1)
         nofaol.foydalanuvchi.is_active = False
         nofaol.foydalanuvchi.save(update_fields=["is_active"])
         self.assertTrue(faol.foydalanuvchi.is_active)
 
-        reja = make_reja(boshlanish_yili=self.yil)
-        fan = make_fan(reja, turi=FanTuri.TANLOV, kafedra=self.kaf1)
+        reja = reja_yasa(boshlanish_yili=self.yil)
+        fan = fan_yasa(reja, turi=FanTuri.TANLOV, kafedra=self.kaf1)
         v1 = fan.variantlar.first()
-        v2 = make_variant(fan, kodi="ALT-2", nomi="Tanlanmagan", kafedra=self.kaf1)
+        v2 = variant_yasa(fan, kodi="ALT-2", nomi="Tanlanmagan", kafedra=self.kaf1)
         self.assertIsNotNone(v2.pk)
         fan.tanlangan_variant = v1
         fan.save(update_fields=["tanlangan_variant"])

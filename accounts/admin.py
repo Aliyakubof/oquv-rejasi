@@ -85,7 +85,7 @@ class OqituvchiProfilAdmin(admin.ModelAdmin):
     list_display = ("foydalanuvchi", "kafedra", "turi")
     list_filter = ("kafedra", "turi")
     list_select_related = ("foydalanuvchi", "kafedra", "turi")
-    # Required for autocomplete_fields pointing here (plans.Yuklama.oqituvchi).
+    # plans.Yuklama.oqituvchi maydonidagi autocomplete_fields ishlashi uchun kerak.
     search_fields = (
         "foydalanuvchi__first_name",
         "foydalanuvchi__last_name",

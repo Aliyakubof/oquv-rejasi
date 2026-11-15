@@ -7,7 +7,7 @@ def _oquv_yili_semestrlari(kurs: int) -> tuple[int, int]:
 
 
 def _akademik_yil_ifodasi(prefiks: str = "") -> ExpressionWrapper:
-    # Integer division on both SQLite and Postgres, so (semestr-1)/2 floors.
+    # SQLite va Postgres da butun sonli bo'lish: (semestr - 1) / 2 pastga yaxlitlaydi.
     return ExpressionWrapper(
         F(f"{prefiks}variant__fan__reja__boshlanish_yili")
         + (F(f"{prefiks}semestr") - 1) / 2,

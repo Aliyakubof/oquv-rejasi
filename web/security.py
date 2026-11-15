@@ -1,4 +1,4 @@
-"""Cache-backed login rate-limiting helpers."""
+"""Kesh asosida tizimga kirish va API so'rovlar chastotasini cheklash yordamchilari."""
 
 import hashlib
 import logging
@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest
 
-from accounts.phone import normalize_phone
+from accounts.phone import telefonni_normallashtir
 from plans.audit import sorovdan_ip
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def _cheklov_kalitlari(
 ) -> list[tuple[str, int]]:
     kalitlar: list[tuple[str, int]] = []
     ip = sorovdan_ip(request)
-    toza_tel = normalize_phone(telefon) if telefon else ""
+    toza_tel = telefonni_normallashtir(telefon) if telefon else ""
     if toza_tel:
         kalitlar.append((_kalit("tel", toza_tel), chegara))
     if ip and toza_tel:
@@ -43,7 +43,7 @@ def _blok_soniya() -> int:
 
 
 def kesh_hisoblagichni_oshir(kalit: str, muddat: int) -> int:
-    """Atomically initialize and increment a cache counter within the given TTL."""
+    """Berilgan muddat ichida kesh hisoblagichni atomik tarzda oshiradi."""
     cache.add(kalit, 0, timeout=muddat)
     try:
         return int(cache.incr(kalit))
@@ -53,7 +53,7 @@ def kesh_hisoblagichni_oshir(kalit: str, muddat: int) -> int:
 
 
 def kirish_bloklanganmi(request: HttpRequest, telefon: str = "") -> tuple[bool, int]:
-    """Return (blocked, block_duration_seconds) when login attempts exceed threshold."""
+    """Urinishlar me'yordan oshsa (bloklanganmi, soniya) juftligini qaytaradi."""
     chegara = _max_urinish()
     if chegara <= 0:
         return False, 0
@@ -64,7 +64,7 @@ def kirish_bloklanganmi(request: HttpRequest, telefon: str = "") -> tuple[bool, 
 
 
 def kirish_xatosini_qayd_et(request: HttpRequest, telefon: str = "") -> int:
-    """Increment failed-login counters atomically across IP and phone buckets."""
+    """Muvaffaqiyatsiz kirish urinishlarini IP va telefon bo'yicha hisoblaydi."""
     chegara = _max_urinish()
     if chegara <= 0:
         return 0
@@ -86,7 +86,7 @@ def kirish_xatosini_qayd_et(request: HttpRequest, telefon: str = "") -> int:
 
 
 def kirish_muvaffaqiyatini_tozala(request: HttpRequest, telefon: str = "") -> None:
-    """Clear per-phone failed-login counters after a successful authentication."""
+    """Muvaffaqiyatli kirishdan keyin telefon bo'yicha blok hisoblagichni tozalaydi."""
     chegara = max(1, _max_urinish())
     for kalit, _limit in _cheklov_kalitlari(request, telefon, chegara=chegara):
         if not kalit.startswith("kirish_cheklov:ip:"):
@@ -94,7 +94,7 @@ def kirish_muvaffaqiyatini_tozala(request: HttpRequest, telefon: str = "") -> No
 
 
 def api_sorov_limitdan_oshdimi(request: HttpRequest) -> bool:
-    """Rate-limit API requests per client IP within a 60-second window."""
+    """Har bir IP uchun 60 soniyalik oynada API so'rovlari sonini cheklaydi."""
     limit = int(getattr(settings, "API_MAX_SOROV_DAQIQA", 120))
     if limit <= 0:
         return False

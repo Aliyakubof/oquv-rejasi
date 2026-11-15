@@ -1,4 +1,4 @@
-"""Teacher's own workload table for the selected academic year."""
+"""O'qituvchining tanlangan o'quv yili bo'yicha shaxsiy yuklama jadvali."""
 
 from collections import defaultdict
 

@@ -1,4 +1,4 @@
-"""1-shakl personal teacher workload Word (.docx) and .zip batch exporter."""
+"""O'qituvchining 1-shakl shaxsiy yuklama rejasini Word (.docx) va .zip eksporti."""
 
 import re
 from collections import defaultdict
@@ -164,7 +164,7 @@ def _shakl1_hujjat_yarat(
 
 
 def shakl1_docx_render(profil: OqituvchiProfil, akademik_yil: int) -> BytesIO:
-    """Render one teacher's 1-shakl individual workload plan as .docx."""
+    """Bitta o'qituvchining 1-shakl shaxsiy rejasini .docx qilib chiqaradi."""
     yuklamalar = list(
         Yuklama.objects.filter(oqituvchi=profil)
         .akademik_yilda(akademik_yil)
@@ -204,7 +204,7 @@ def _shakl1_zip_yoz(
 def shakl1_zip_yarat(
     akademik_yil: int, *, kafedra: Department | None = None
 ) -> BytesIO:
-    """Bundle active teachers' 1-shakl .docx files into a .zip archive."""
+    """Faol o'qituvchilarning 1-shakl .docx fayllarini bitta .zip arxivga yig'adi."""
     qs_prof = (
         OqituvchiProfil.objects.filter(foydalanuvchi__is_active=True)
         .toliq()

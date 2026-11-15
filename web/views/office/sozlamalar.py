@@ -1,4 +1,4 @@
-"""Office settings: institution name, teacher position norms and major classifier."""
+"""Ofis sozlamalari: universitet nomi, shtat me'yorlari va yo'nalishlar."""
 
 from urllib.parse import urlencode
 
@@ -26,10 +26,10 @@ from web.forms.sozlamalar import (
     TalimYonalishiForm,
     UniversitetForm,
 )
-from web.mixins import OfficeAdminTalabMixin, office_admin_talab
+from web.mixins import OfisAdminTalabMixin, ofis_admin_talab
 
 
-class SozlamalarView(OfficeAdminTalabMixin, TemplateView):
+class SozlamalarView(OfisAdminTalabMixin, TemplateView):
     template_name = "web/office/sozlamalar/list.html"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
@@ -61,7 +61,7 @@ class SozlamalarView(OfficeAdminTalabMixin, TemplateView):
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def universitet_saqlash(request: HttpRequest) -> HttpResponse:
     with transaction.atomic():
         universitet = Universitet.objects.select_for_update().first() or Universitet()
@@ -80,7 +80,7 @@ def universitet_saqlash(request: HttpRequest) -> HttpResponse:
     return redirect("office:sozlamalar")
 
 
-class LavozimYangiView(OfficeAdminTalabMixin, CreateView):
+class LavozimYangiView(OfisAdminTalabMixin, CreateView):
     template_name = "web/office/sozlamalar/form.html"
     form_class = OqituvchiTuriForm
     success_url = reverse_lazy("office:sozlamalar")
@@ -98,7 +98,7 @@ class LavozimYangiView(OfficeAdminTalabMixin, CreateView):
         return javob
 
 
-class LavozimTahrirView(OfficeAdminTalabMixin, UpdateView):
+class LavozimTahrirView(OfisAdminTalabMixin, UpdateView):
     template_name = "web/office/sozlamalar/form.html"
     form_class = OqituvchiTuriForm
     queryset = OqituvchiTuri.objects.all()
@@ -118,7 +118,7 @@ class LavozimTahrirView(OfficeAdminTalabMixin, UpdateView):
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def lavozim_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     lavozim = get_object_or_404(OqituvchiTuri, pk=pk)
     try:
@@ -146,7 +146,7 @@ def lavozim_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("office:sozlamalar")
 
 
-class YonalishYangiView(OfficeAdminTalabMixin, CreateView):
+class YonalishYangiView(OfisAdminTalabMixin, CreateView):
     template_name = "web/office/sozlamalar/form.html"
     form_class = TalimYonalishiForm
     success_url = reverse_lazy("office:sozlamalar")
@@ -164,7 +164,7 @@ class YonalishYangiView(OfficeAdminTalabMixin, CreateView):
         return javob
 
 
-class YonalishTahrirView(OfficeAdminTalabMixin, UpdateView):
+class YonalishTahrirView(OfisAdminTalabMixin, UpdateView):
     template_name = "web/office/sozlamalar/form.html"
     form_class = TalimYonalishiForm
     queryset = TalimYonalishi.objects.all()
@@ -184,7 +184,7 @@ class YonalishTahrirView(OfficeAdminTalabMixin, UpdateView):
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def yonalish_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     yonalish = get_object_or_404(TalimYonalishi, pk=pk)
     try:
@@ -221,7 +221,7 @@ def yonalish_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("office:sozlamalar")
 
 
-@office_admin_talab
+@ofis_admin_talab
 def yonalish_namuna_excel_view(request: HttpRequest) -> HttpResponse:
     return FileResponse(
         yonalishlar_namuna_excel(),
@@ -231,7 +231,7 @@ def yonalish_namuna_excel_view(request: HttpRequest) -> HttpResponse:
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def yonalish_import_view(request: HttpRequest) -> HttpResponse:
     fayl = request.FILES.get("fayl")
     if fayl is None:

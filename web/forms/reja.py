@@ -1,4 +1,4 @@
-"""Forms for creating (via Excel upload) and correcting an o'quv reja."""
+"""O'quv rejani Excel orqali yuklash va tahrirlash formalari."""
 
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
@@ -46,7 +46,7 @@ class RejaImportForm(forms.Form):
             guruhlar_soni=self.cleaned_data["guruhlar_soni"],
             guruh_prefiksi=self.cleaned_data["guruh_prefiksi"],
             boshlanish_yili=None,
-            replace=self.cleaned_data["replace"],
+            almashtirish=self.cleaned_data["replace"],
         )
 
 

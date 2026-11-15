@@ -1,4 +1,4 @@
-"""Notification inbox and read-state actions."""
+"""Bildirishnomalar ro'yxati va o'qildi deb belgilash amallari."""
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin

@@ -1,4 +1,4 @@
-"""AOH review of submitted O'quv Dastur files: list, accept, decline, open."""
+"""Topshirilgan O'quv Dastur fayllarini ko'rib chiqish: qabul, rad etish, ochish."""
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -20,14 +20,14 @@ from plans.dastur.topshirish import (
 from plans.models import AuditAmali, DasturTopshirish, FanVariant
 from web.forms.dastur import DasturRadEtishForm
 from web.mixins import (
-    OfficeAdminTalabMixin,
+    OfisAdminTalabMixin,
     musbat_int_yoki_none,
-    office_admin_talab,
+    ofis_admin_talab,
     xato_matni,
 )
 
 
-class DasturTopshirishlarView(OfficeAdminTalabMixin, ListView):
+class DasturTopshirishlarView(OfisAdminTalabMixin, ListView):
     template_name = "web/office/dasturlar/list.html"
     context_object_name = "topshirishlar"
 
@@ -110,7 +110,7 @@ def _javob(
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def dastur_qabul(request: HttpRequest, pk: int) -> HttpResponse:
     topshirish = get_object_or_404(
         DasturTopshirish.objects.select_related(
@@ -135,7 +135,7 @@ def dastur_qabul(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def dastur_rad(request: HttpRequest, pk: int) -> HttpResponse:
     topshirish = get_object_or_404(
         DasturTopshirish.objects.select_related(
@@ -164,7 +164,7 @@ def dastur_rad(request: HttpRequest, pk: int) -> HttpResponse:
     return _javob(request, topshirish.variant, xato=xato)
 
 
-@office_admin_talab
+@ofis_admin_talab
 def dastur_fayl(request: HttpRequest, pk: int) -> HttpResponse:
     topshirish = get_object_or_404(DasturTopshirish, pk=pk)
     try:
@@ -173,7 +173,7 @@ def dastur_fayl(request: HttpRequest, pk: int) -> HttpResponse:
         raise Http404("Fayl topilmadi.") from exc
 
 
-@office_admin_talab
+@ofis_admin_talab
 def dastur_tarixi(request: HttpRequest, variant_id: int) -> HttpResponse:
     variant = get_object_or_404(
         FanVariant.objects.select_related("fan__reja", "kafedra"), pk=variant_id

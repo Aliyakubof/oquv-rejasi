@@ -8,30 +8,30 @@ from plans.dastur.topshirish import dastur_rad_etish, dastur_topshirish
 from plans.models import DasturTopshirish, SoatTuri, Yuklama
 from plans.services import oqituvchi_yillik_yuklamasi
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
 from web.tests.helpers import (
     foydalanuvchi_yarat,
-    login,
     mudir_yarat,
-    office_admin_yarat,
+    ofis_admin_yarat,
+    tizimga_kir,
 )
 
 
 class MenYuklamalarimTests(TestCase):
     def setUp(self) -> None:
         self.joriy = joriy_akademik_yil()
-        self.profil = make_oqituvchi()
-        self.reja = make_reja(boshlanish_yili=self.joriy)
-        fan = make_fan(self.reja, kafedra=self.profil.kafedra)
-        self.fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        login(self.client, self.profil.foydalanuvchi)
+        self.profil = oqituvchi_yasa()
+        self.reja = reja_yasa(boshlanish_yili=self.joriy)
+        fan = fan_yasa(self.reja, kafedra=self.profil.kafedra)
+        self.fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        tizimga_kir(self.client, self.profil.foydalanuvchi)
 
     def test_faqat_oz_yuklamalari(self) -> None:
-        boshqa = make_oqituvchi(kafedra=self.profil.kafedra)
+        boshqa = oqituvchi_yasa(kafedra=self.profil.kafedra)
         Yuklama.objects.create(
             fan_semestr=self.fs, tur=SoatTuri.MARUZA, oqituvchi=self.profil
         )
@@ -57,9 +57,9 @@ class MenYuklamalarimTests(TestCase):
         self.assertContains(javob, "Jami yuklama soat")
 
     def test_otgan_yil_yuklamasi_korinmaydi(self) -> None:
-        eski_reja = make_reja(yonalish_kodi="60610155", boshlanish_yili=self.joriy - 2)
-        eski_fan = make_fan(eski_reja, kafedra=self.profil.kafedra)
-        eski_fs = make_fan_semestr(eski_fan.tanlangan_variant, semestr=1)
+        eski_reja = reja_yasa(yonalish_kodi="60610155", boshlanish_yili=self.joriy - 2)
+        eski_fan = fan_yasa(eski_reja, kafedra=self.profil.kafedra)
+        eski_fs = fan_semestr_yasa(eski_fan.tanlangan_variant, semestr=1)
         Yuklama.objects.create(
             fan_semestr=eski_fs, tur=SoatTuri.MARUZA, oqituvchi=self.profil
         )
@@ -67,18 +67,18 @@ class MenYuklamalarimTests(TestCase):
         self.assertEqual(len(javob.context["yuklamalar"]), 0)
 
     def test_profilsiz_oqituvchi_bosh_holat(self) -> None:
-        login(self.client, foydalanuvchi_yarat(Rol.TEACHER))
+        tizimga_kir(self.client, foydalanuvchi_yarat(Rol.TEACHER))
         javob = self.client.get(reverse("men:yuklamalar"))
         self.assertContains(javob, "Profil biriktirilmagan")
 
     def test_kafedra_mudiri_oz_yuklamasini_koradi(self) -> None:
         mudir = mudir_yarat()
         profil = mudir.oqituvchi_profil
-        reja = make_reja(yonalish_kodi="60610177", boshlanish_yili=self.joriy)
-        fan = make_fan(reja, kafedra=profil.kafedra)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        reja = reja_yasa(yonalish_kodi="60610177", boshlanish_yili=self.joriy)
+        fan = fan_yasa(reja, kafedra=profil.kafedra)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=profil)
-        login(self.client, mudir)
+        tizimga_kir(self.client, mudir)
         javob = self.client.get(reverse("men:yuklamalar"))
         self.assertEqual(javob.status_code, 200)
         self.assertEqual(len(javob.context["yuklamalar"]), 1)
@@ -87,18 +87,18 @@ class MenYuklamalarimTests(TestCase):
 class MenOquvDasturTests(TestCase):
     def setUp(self) -> None:
         self.joriy = joriy_akademik_yil()
-        self.maruza_egasi = make_oqituvchi()
-        reja = make_reja(boshlanish_yili=self.joriy)
-        fan = make_fan(reja, kafedra=self.maruza_egasi.kafedra)
+        self.maruza_egasi = oqituvchi_yasa()
+        reja = reja_yasa(boshlanish_yili=self.joriy)
+        fan = fan_yasa(reja, kafedra=self.maruza_egasi.kafedra)
         self.variant = fan.tanlangan_variant
-        fs = make_fan_semestr(self.variant, semestr=1)
+        fs = fan_semestr_yasa(self.variant, semestr=1)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=self.maruza_egasi
         )
         self.url = reverse("men:dastur", args=[self.variant.pk])
 
     def test_maruza_egasi_hujjatni_yuklab_oladi(self) -> None:
-        login(self.client, self.maruza_egasi.foydalanuvchi)
+        tizimga_kir(self.client, self.maruza_egasi.foydalanuvchi)
         javob = self.client.get(self.url)
         self.assertEqual(javob.status_code, 200)
         self.assertEqual(
@@ -107,8 +107,8 @@ class MenOquvDasturTests(TestCase):
         )
 
     def test_begona_oqituvchi_rad_etiladi(self) -> None:
-        begona = make_oqituvchi(kafedra=self.maruza_egasi.kafedra)
-        login(self.client, begona.foydalanuvchi)
+        begona = oqituvchi_yasa(kafedra=self.maruza_egasi.kafedra)
+        tizimga_kir(self.client, begona.foydalanuvchi)
         javob = self.client.get(self.url)
         self.assertEqual(javob.status_code, 403)
 
@@ -119,12 +119,12 @@ class MenOquvDasturTests(TestCase):
     def test_kafedra_mudiri_ham_ozi_oqigan_dasturni_yaratadi(self) -> None:
         mudir = mudir_yarat()
         profil = mudir.oqituvchi_profil
-        reja = make_reja(yonalish_kodi="60610188", boshlanish_yili=self.joriy)
-        fan = make_fan(reja, kafedra=profil.kafedra)
+        reja = reja_yasa(yonalish_kodi="60610188", boshlanish_yili=self.joriy)
+        fan = fan_yasa(reja, kafedra=profil.kafedra)
         variant = fan.tanlangan_variant
-        fs = make_fan_semestr(variant, semestr=1)
+        fs = fan_semestr_yasa(variant, semestr=1)
         Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=profil)
-        login(self.client, mudir)
+        tizimga_kir(self.client, mudir)
         javob = self.client.get(reverse("men:dastur", args=[variant.pk]))
         self.assertEqual(javob.status_code, 200)
 
@@ -132,19 +132,19 @@ class MenOquvDasturTests(TestCase):
 class MenDasturTopshirishTests(TestCase):
     def setUp(self) -> None:
         self.joriy = joriy_akademik_yil()
-        self.maruza_egasi = make_oqituvchi()
-        reja = make_reja(boshlanish_yili=self.joriy)
-        fan = make_fan(reja, kafedra=self.maruza_egasi.kafedra)
+        self.maruza_egasi = oqituvchi_yasa()
+        reja = reja_yasa(boshlanish_yili=self.joriy)
+        fan = fan_yasa(reja, kafedra=self.maruza_egasi.kafedra)
         self.variant = fan.tanlangan_variant
-        fs = make_fan_semestr(self.variant, semestr=1)
+        fs = fan_semestr_yasa(self.variant, semestr=1)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=self.maruza_egasi
         )
         self.url = reverse("men:dastur_topshirish", args=[self.variant.pk])
 
     def test_begona_oqituvchi_rad_etiladi(self) -> None:
-        begona = make_oqituvchi(kafedra=self.maruza_egasi.kafedra)
-        login(self.client, begona.foydalanuvchi)
+        begona = oqituvchi_yasa(kafedra=self.maruza_egasi.kafedra)
+        tizimga_kir(self.client, begona.foydalanuvchi)
         javob = self.client.post(
             self.url, {"fayl": SimpleUploadedFile("d.docx", b"mazmun")}
         )
@@ -157,7 +157,7 @@ class MenDasturTopshirishTests(TestCase):
         bufer = BytesIO()
         with ZipFile(bufer, "w") as arxiv:
             arxiv.writestr("word/document.xml", "<w:document/>")
-        login(self.client, self.maruza_egasi.foydalanuvchi)
+        tizimga_kir(self.client, self.maruza_egasi.foydalanuvchi)
         javob = self.client.post(
             self.url, {"fayl": SimpleUploadedFile("d.docx", bufer.getvalue())}
         )
@@ -166,7 +166,7 @@ class MenDasturTopshirishTests(TestCase):
         self.assertContains(javob, "KO'RIB CHIQILMOQDA")
 
     def test_notogri_kengaytma_rad_etiladi(self) -> None:
-        login(self.client, self.maruza_egasi.foydalanuvchi)
+        tizimga_kir(self.client, self.maruza_egasi.foydalanuvchi)
         javob = self.client.post(
             self.url, {"fayl": SimpleUploadedFile("d.txt", b"mazmun")}
         )
@@ -181,7 +181,7 @@ class MenDasturTopshirishTests(TestCase):
         bufer = BytesIO()
         with ZipFile(bufer, "w") as arxiv:
             arxiv.writestr("word/document.xml", "<w:document/>")
-        login(self.client, self.maruza_egasi.foydalanuvchi)
+        tizimga_kir(self.client, self.maruza_egasi.foydalanuvchi)
         dastur_topshirish(
             self.variant, self.maruza_egasi, SimpleUploadedFile("v1.docx", b"m")
         )
@@ -198,11 +198,11 @@ class MenDasturTopshirishTests(TestCase):
 class MenDasturTarixiTests(TestCase):
     def setUp(self) -> None:
         self.joriy = joriy_akademik_yil()
-        self.maruza_egasi = make_oqituvchi()
-        reja = make_reja(boshlanish_yili=self.joriy)
-        fan = make_fan(reja, kafedra=self.maruza_egasi.kafedra)
+        self.maruza_egasi = oqituvchi_yasa()
+        reja = reja_yasa(boshlanish_yili=self.joriy)
+        fan = fan_yasa(reja, kafedra=self.maruza_egasi.kafedra)
         self.variant = fan.tanlangan_variant
-        fs = make_fan_semestr(self.variant, semestr=1)
+        fs = fan_semestr_yasa(self.variant, semestr=1)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=self.maruza_egasi
         )
@@ -212,12 +212,12 @@ class MenDasturTarixiTests(TestCase):
         birinchi = dastur_topshirish(
             self.variant, self.maruza_egasi, SimpleUploadedFile("v1.docx", b"m")
         )
-        dastur_rad_etish(birinchi, office_admin_yarat(), "Mavzular yetarli emas")
+        dastur_rad_etish(birinchi, ofis_admin_yarat(), "Mavzular yetarli emas")
         dastur_topshirish(
             self.variant, self.maruza_egasi, SimpleUploadedFile("v2.docx", b"m")
         )
 
-        login(self.client, self.maruza_egasi.foydalanuvchi)
+        tizimga_kir(self.client, self.maruza_egasi.foydalanuvchi)
         javob = self.client.get(self.url)
 
         self.assertEqual(javob.status_code, 200)
@@ -226,7 +226,7 @@ class MenDasturTarixiTests(TestCase):
         self.assertContains(javob, "Mavzular yetarli emas")
 
     def test_begona_kira_olmaydi(self) -> None:
-        begona = make_oqituvchi(kafedra=self.maruza_egasi.kafedra)
-        login(self.client, begona.foydalanuvchi)
+        begona = oqituvchi_yasa(kafedra=self.maruza_egasi.kafedra)
+        tizimga_kir(self.client, begona.foydalanuvchi)
         javob = self.client.get(self.url)
         self.assertEqual(javob.status_code, 403)

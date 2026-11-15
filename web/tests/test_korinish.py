@@ -1,4 +1,4 @@
-"""Tests for first-login accessibility onboarding and appearance preferences."""
+"""Birinchi kirishdagi moslashtirish va ko'rinish sozlamalari testlari."""
 
 from pathlib import Path
 
@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from accounts.models import Department, OqituvchiTuri, ShriftOlchami
 from accounts.services import oqituvchi_yaratish
-from web.tests.helpers import PAROL, login, oqituvchi_yarat
+from web.tests.helpers import PAROL, oqituvchi_yarat, tizimga_kir
 
 
 class KorinishOnboardingTests(TestCase):
@@ -27,7 +27,7 @@ class KorinishOnboardingTests(TestCase):
         self.assertFalse(user.korinish_tanlangan)
         self.assertEqual(user.shrift_olchami, ShriftOlchami.STANDART)
 
-        login(self.client, user)
+        tizimga_kir(self.client, user)
         javob = self.client.get(reverse("men:yuklamalar"))
         self.assertEqual(javob.status_code, 200)
         self.assertContains(javob, "korinish-sozlash-modal")
@@ -36,7 +36,7 @@ class KorinishOnboardingTests(TestCase):
 
     def test_korinish_saqlash_db_va_klasslarni_yangilaydi(self) -> None:
         user = oqituvchi_yarat()
-        login(self.client, user)
+        tizimga_kir(self.client, user)
         javob = self.client.post(
             reverse("korinish_saqlash"),
             {
@@ -68,7 +68,7 @@ class KorinishOnboardingTests(TestCase):
         self.assertRedirects(anon, f"{reverse('kirish')}?next={url}")
 
         user = oqituvchi_yarat()
-        login(self.client, user)
+        tizimga_kir(self.client, user)
         get_javob = self.client.get(url)
         self.assertEqual(get_javob.status_code, 405)
 

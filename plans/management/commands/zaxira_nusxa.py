@@ -1,4 +1,4 @@
-"""Create timestamped backup archive of the database and media files."""
+"""Ma'lumotlar bazasi va media fayllarning vaqt tamg'ali zaxira arxivini yaratadi."""
 
 import os
 import sqlite3

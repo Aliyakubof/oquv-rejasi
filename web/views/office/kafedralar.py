@@ -1,4 +1,4 @@
-"""Department administration: CRUD, coverage overview and mudir assignment."""
+"""Kafedralar boshqaruvi: CRUD, qoplash holati va mudir tayinlash."""
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -20,16 +20,16 @@ from plans.models import AuditAmali
 from plans.shakl1_doc import shakl1_zip_yarat
 from web.forms.kafedra import KafedraForm
 from web.mixins import (
-    OfficeAdminTalabMixin,
+    OfisAdminTalabMixin,
     YilTanlovMixin,
     musbat_int_yoki_none,
-    office_admin_talab,
+    ofis_admin_talab,
     xato_matni,
     xavfsiz_qaytish,
 )
 
 
-class KafedraListView(OfficeAdminTalabMixin, YilTanlovMixin, TemplateView):
+class KafedraListView(OfisAdminTalabMixin, YilTanlovMixin, TemplateView):
     template_name = "web/office/kafedralar/list.html"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
@@ -38,7 +38,7 @@ class KafedraListView(OfficeAdminTalabMixin, YilTanlovMixin, TemplateView):
         return context
 
 
-class KafedraYangiView(OfficeAdminTalabMixin, CreateView):
+class KafedraYangiView(OfisAdminTalabMixin, CreateView):
     template_name = "web/office/kafedralar/form.html"
     form_class = KafedraForm
     success_url = reverse_lazy("office:kafedra_list")
@@ -55,7 +55,7 @@ class KafedraYangiView(OfficeAdminTalabMixin, CreateView):
         return javob
 
 
-class KafedraTahrirView(OfficeAdminTalabMixin, UpdateView):
+class KafedraTahrirView(OfisAdminTalabMixin, UpdateView):
     template_name = "web/office/kafedralar/form.html"
     form_class = KafedraForm
     queryset = Department.objects.all()
@@ -74,7 +74,7 @@ class KafedraTahrirView(OfficeAdminTalabMixin, UpdateView):
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def kafedra_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     kafedra = get_object_or_404(Department, pk=pk)
     try:
@@ -101,7 +101,7 @@ def kafedra_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def kafedra_mudir(request: HttpRequest, pk: int) -> HttpResponse:
     kafedra = get_object_or_404(Department, pk=pk)
     xom_profil = request.POST.get("profil")
@@ -147,7 +147,7 @@ def kafedra_mudir(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def kafedra_yuklama_tasdiqlash(request: HttpRequest, pk: int) -> HttpResponse:
     kafedra = get_object_or_404(Department, pk=pk)
     _, yil = yilni_tanlash(request.POST.get("yil"))
@@ -171,7 +171,7 @@ def kafedra_yuklama_tasdiqlash(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def kafedra_yuklama_qaytarish(request: HttpRequest, pk: int) -> HttpResponse:
     kafedra = get_object_or_404(Department, pk=pk)
     _, yil = yilni_tanlash(request.POST.get("yil"))
@@ -195,7 +195,7 @@ def kafedra_yuklama_qaytarish(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
 
 
-@office_admin_talab
+@ofis_admin_talab
 def kafedra_shakl1_zip_view(
     request: HttpRequest, pk: int | None = None
 ) -> HttpResponse:

@@ -1,8 +1,8 @@
-"""Seed departments (kafedra) with random teacher accounts and a head each.
+"""Kafedralar, sinov o'qituvchi hisoblari va har bir kafedraga mudir yaratish komandasi.
 
-One-off data seeding: teacher names are randomly generated placeholders since
-no real HR data is available yet; every created teacher shares one default
-password, printed at the end for the operator to hand out and rotate.
+Bir martalik boshlang'ich to'ldirish: haqiqiy kadrlar bazasi hali yo'q paytda
+tasodifiy o'zbekcha ismlar bilan hisob ochiladi; barchasiga bitta boshlang'ich parol
+beriladi va oxirida ekranga chiqariladi (ilk kirishda almashtirilishi shart).
 """
 
 import random
@@ -10,7 +10,7 @@ import random
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import transaction
 
-from accounts.management.commands.uzbek_names import FIRST_NAMES, LAST_NAMES
+from accounts.management.commands.uzbek_names import FAMILIYALAR, ISMLAR
 from accounts.models import (
     Department,
     Foydalanuvchi,
@@ -24,7 +24,7 @@ from accounts.services import (
     vaqtinchalik_parol_tasodifiy,
 )
 
-DEPARTMENT_NAMES = [
+KAFEDRA_NOMLARI = [
     "Axborot tizimlari va texnologiyalari",
     "Raqamli texnologiyalar",
     "Menejment",
@@ -34,13 +34,13 @@ DEPARTMENT_NAMES = [
     "Marketing",
 ]
 
-PHONE_PREFIX = "+99890"
-# Clear of the teacher range, which runs to +99890 0000603 (index*100 + offset).
-OFFICE_ADMIN_PHONE = "+998909999999"
+TELEFON_PREFIKSI = "+99890"
+# O'qituvchilar +99890 0000603 gacha boradi (indeks*100 + siljish), to'qnashmaydi.
+OFIS_ADMIN_TELEFONI = "+998909999999"
 
 
 class Command(BaseCommand):
-    help = "Create departments, random teacher accounts, and assign heads."
+    help = "Kafedralar, tasodifiy o'qituvchi hisoblari va kafedra mudirlarini yaratadi."
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
@@ -57,29 +57,32 @@ class Command(BaseCommand):
         turlari = list(OqituvchiTuri.objects.all())
         if not turlari:
             raise CommandError(
-                "No OqituvchiTuri rows found. Create teacher types before seeding."
+                "OqituvchiTuri yozuvlari topilmadi. Avval lavozim turlarini yarating."
             )
 
         parol = str(options.get("parol") or "").strip() or vaqtinchalik_parol_tasodifiy(
             12
         )
         with transaction.atomic():
-            self._seed_office_admin(parol)
-            for index, nomi in enumerate(DEPARTMENT_NAMES):
-                self._seed_department(nomi, index, turlari, parol)
+            self._ofis_admin_yarat(parol)
+            for indeks, nomi in enumerate(KAFEDRA_NOMLARI):
+                self._kafedra_yarat(nomi, indeks, turlari, parol)
 
-        self.stdout.write(self.style.SUCCESS("Done."))
+        self.stdout.write(self.style.SUCCESS("Tayyor."))
         self.stdout.write(
-            f"One-time password for seeded accounts (change on login): {parol}"
+            f"Yaratilgan hisoblar uchun bir martalik parol: {parol} "
+            "(kirishda almashtiriladi)"
         )
 
-    def _seed_office_admin(self, parol: str) -> None:
-        if Foydalanuvchi.objects.filter(telefon=OFFICE_ADMIN_PHONE).exists():
-            self.stdout.write(f"Skipped (exists): office admin {OFFICE_ADMIN_PHONE}")
+    def _ofis_admin_yarat(self, parol: str) -> None:
+        if Foydalanuvchi.objects.filter(telefon=OFIS_ADMIN_TELEFONI).exists():
+            self.stdout.write(
+                f"O'tkazildi (mavjud): ofis admin ({OFIS_ADMIN_TELEFONI})"
+            )
             return
 
         Foydalanuvchi.objects.create_user(
-            telefon=OFFICE_ADMIN_PHONE,
+            telefon=OFIS_ADMIN_TELEFONI,
             password=parol,
             first_name="Ofis",
             last_name="Admin",
@@ -87,42 +90,40 @@ class Command(BaseCommand):
             parol_ozgartirish_kerak=True,
         )
         self.stdout.write(
-            self.style.SUCCESS(f"Created: office admin ({OFFICE_ADMIN_PHONE})")
+            self.style.SUCCESS(f"Yaratildi: ofis admin ({OFIS_ADMIN_TELEFONI})")
         )
 
-    def _seed_department(
-        self, nomi: str, index: int, turlari: list[OqituvchiTuri], parol: str
+    def _kafedra_yarat(
+        self, nomi: str, indeks: int, turlari: list[OqituvchiTuri], parol: str
     ) -> None:
-        department, created = Department.objects.get_or_create(nomi=nomi)
-        if not created:
-            self.stdout.write(f"Skipped (exists): {nomi}")
+        kafedra, yaratildi = Department.objects.get_or_create(nomi=nomi)
+        if not yaratildi:
+            self.stdout.write(f"O'tkazildi (mavjud): {nomi}")
             return
 
-        head_profil = self._create_teacher_profil(
-            index * 100, department, turlari, parol
+        mudir_profil = self._oqituvchi_yarat(indeks * 100, kafedra, turlari, parol)
+        mudir_tayinlash(kafedra, mudir_profil)
+
+        for siljish in range(1, 4):
+            self._oqituvchi_yarat(indeks * 100 + siljish, kafedra, turlari, parol)
+
+        self.stdout.write(
+            self.style.SUCCESS(f"Yaratildi: {nomi} (mudir: {mudir_profil})")
         )
-        mudir_tayinlash(department, head_profil)
 
-        for offset in range(1, 4):
-            self._create_teacher_profil(
-                index * 100 + offset, department, turlari, parol
-            )
-
-        self.stdout.write(self.style.SUCCESS(f"Created: {nomi} (head: {head_profil})"))
-
-    def _create_teacher_profil(
+    def _oqituvchi_yarat(
         self,
-        seed: int,
-        department: Department,
+        raqam_urugi: int,
+        kafedra: Department,
         turlari: list[OqituvchiTuri],
         parol: str,
     ) -> OqituvchiProfil:
         profil = oqituvchi_yaratish(
-            telefon=f"{PHONE_PREFIX}{seed:07d}",
-            first_name=random.choice(FIRST_NAMES),
-            last_name=random.choice(LAST_NAMES),
+            telefon=f"{TELEFON_PREFIKSI}{raqam_urugi:07d}",
+            first_name=random.choice(ISMLAR),
+            last_name=random.choice(FAMILIYALAR),
             parol=parol,
-            kafedra=department,
+            kafedra=kafedra,
             turi=random.choice(turlari),
         )
         profil.foydalanuvchi.parol_ozgartirish_kerak = True

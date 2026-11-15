@@ -1,4 +1,4 @@
-"""Persist a parsed o'quv reja into the plans schema."""
+"""O'qilgan o'quv rejani ma'lumotlar bazasiga saqlash moduli."""
 
 import math
 from dataclasses import dataclass, field
@@ -7,8 +7,8 @@ from pathlib import Path
 from django.db import transaction
 from django.utils import timezone
 
-from parser.models import Alternative, Course, ParseError, SelectiveSlot
-from parser.parser import parse_workbook
+from parser.models import MajburiyFan, TahlilXatosi, TanlovFani, TanlovVarianti
+from parser.parser import kitobni_tahlil_qil
 from plans.models import (
     DasturTopshirish,
     Fan,
@@ -20,23 +20,23 @@ from plans.models import (
     Yuklama,
 )
 from plans.services import keshni_tozala, reja_qulflanganmi
-from plans.split import split_breakdown
+from plans.split import soatni_semestrlarga_bol
 
 
 class ImportXato(Exception):
-    """A file cannot be imported; the message is user-facing."""
+    """Faylni import qilib bo'lmaganda ko'tariladigan tushunarli xato."""
 
 
 @dataclass(frozen=True)
-class ParsedReja:
+class TahlilQilinganReja:
     yonalish_kodi: str
     boshlanish_yili: int
     daraja: str
     davomiylik_yil: int
     talim_shakli: str
     fayl_nomi: str
-    core: list[Course]
-    slots: list[SelectiveSlot]
+    majburiy_fanlar: list[MajburiyFan]
+    tanlov_fanlar: list[TanlovFani]
     ogohlantirishlar: list[str] = field(default_factory=list)
 
 
@@ -49,61 +49,63 @@ class ImportNatija:
     ogohlantirishlar: list[str]
 
 
-def parse_xlsx(path: Path, boshlanish_yili: int | None = None) -> ParsedReja:
+def excel_reja_oqi(yol: Path, boshlanish_yili: int | None = None) -> TahlilQilinganReja:
     try:
-        natija = parse_workbook(path)
-    except ParseError as exc:
+        natija = kitobni_tahlil_qil(yol)
+    except TahlilXatosi as exc:
         raise ImportXato(str(exc)) from exc
 
-    if not natija.direction_code:
+    if not natija.yonalish_kodi:
         raise ImportXato("yo'nalish kodi topilmadi — reja identifikatsiya qilinmaydi")
     if boshlanish_yili is None:
-        if not natija.start_year:
+        if not natija.boshlanish_yili:
             raise ImportXato(
                 "o'quv yili topilmadi — boshlanish yilini --yil bilan ko'rsating"
             )
-        boshlanish_yili = int(natija.start_year)
+        boshlanish_yili = int(natija.boshlanish_yili)
 
-    ogohlantirishlar = list(natija.warnings)
-    davomiylik_yil = math.ceil(natija.duration_years)
-    if davomiylik_yil != natija.duration_years:
+    ogohlantirishlar = list(natija.ogohlantirishlar)
+    davomiylik_yil = math.ceil(natija.davomiylik_yil)
+    if davomiylik_yil != natija.davomiylik_yil:
         ogohlantirishlar.append(
-            f"o'qish muddati {natija.duration_years:g} yil —"
+            f"o'qish muddati {natija.davomiylik_yil:g} yil —"
             f" {davomiylik_yil} yilga yaxlitlandi"
         )
 
-    return ParsedReja(
-        yonalish_kodi=natija.direction_code,
+    return TahlilQilinganReja(
+        yonalish_kodi=natija.yonalish_kodi,
         boshlanish_yili=boshlanish_yili,
-        daraja=_bir_qatorga(natija.degree, 100),
+        daraja=_bir_qatorga(natija.daraja, 100),
         davomiylik_yil=davomiylik_yil,
-        talim_shakli=_bir_qatorga(natija.edu_type, 100),
-        fayl_nomi=path.name,
-        core=natija.core,
-        slots=natija.slots,
+        talim_shakli=_bir_qatorga(natija.talim_shakli, 100),
+        fayl_nomi=yol.name,
+        majburiy_fanlar=natija.majburiy_fanlar,
+        tanlov_fanlar=natija.tanlov_fanlar,
         ogohlantirishlar=ogohlantirishlar,
     )
 
 
 def _bir_qatorga(matn: str, uzunlik: int) -> str:
-    # Some sheets merge several metadata labels into one multi-line cell;
-    # store a single-line, field-length-safe version.
+    # Ba'zi varaqlarda katak ichiga bir nechta qator birlashtirilgan bo'ladi;
+    # bitta qatorga tushirib, maydon sig'imidan oshirmaymiz.
     return " ".join(matn.split())[:uzunlik]
 
 
 @transaction.atomic
-def import_reja(parsed: ParsedReja, *, replace: bool = False) -> ImportNatija:
+def import_reja(
+    tahlil: TahlilQilinganReja, *, almashtirish: bool = False
+) -> ImportNatija:
     try:
-        yonalish = TalimYonalishi.objects.get(kodi=parsed.yonalish_kodi)
+        yonalish = TalimYonalishi.objects.get(kodi=tahlil.yonalish_kodi)
     except TalimYonalishi.DoesNotExist as exc:
         raise ImportXato(
-            f"{parsed.yonalish_kodi} yo'nalishi klassifikatorda topilmadi — "
+            f"{tahlil.yonalish_kodi} yo'nalishi klassifikatorda topilmadi — "
             "avval admin panelda bilim/ta'lim sohasini qo'shing"
         ) from exc
-    reja, yaratildi, holat = _rejani_tayyorlash(parsed, yonalish, replace)
-    fanlar, variantlar, ogohlantirishlar = _fan_va_variantlarni_yaratish(reja, parsed)
+    reja, yaratildi, holat = _rejani_tayyorlash(tahlil, yonalish, almashtirish)
+    fanlar, variantlar, ogohlantirishlar = _fan_va_variantlarni_yaratish(reja, tahlil)
     if holat is not None:
-        ogohlantirishlar += _manual_holatni_tiklash(reja, holat)
+        ogohlantirishlar += _qoldiq_holatni_tiklash(reja, holat)
     keshni_tozala()
     return ImportNatija(
         reja=reja,
@@ -114,8 +116,8 @@ def import_reja(parsed: ParsedReja, *, replace: bool = False) -> ImportNatija:
     )
 
 
-def _mavjud_rejani_tekshir(reja: OquvReja, replace: bool) -> None:
-    if not replace:
+def _mavjud_rejani_tekshir(reja: OquvReja, almashtirish: bool) -> None:
+    if not almashtirish:
         raise ImportXato(
             f"{reja} allaqachon import qilingan; --replace bilan qayta yuklang"
         )
@@ -139,33 +141,33 @@ def _mavjud_rejani_tekshir(reja: OquvReja, replace: bool) -> None:
 
 
 def _rejani_tayyorlash(
-    parsed: ParsedReja,
+    tahlil: TahlilQilinganReja,
     yonalish: TalimYonalishi,
-    replace: bool,
+    almashtirish: bool,
 ) -> tuple[OquvReja, bool, dict | None]:
-    """Create the reja or, on re-import, empty it while keeping manual state."""
+    """Yangi reja ochadi yoki qayta yuklashda bog'langan yuklamalarni saqlab qoladi."""
     yangilanadigan = {
         "bilim_sohasi_kodi": yonalish.bilim_sohasi_kodi,
         "bilim_sohasi_nomi": yonalish.bilim_sohasi_nomi,
         "talim_sohasi_kodi": yonalish.talim_sohasi_kodi,
         "talim_sohasi_nomi": yonalish.talim_sohasi_nomi,
         "yonalish_nomi": yonalish.nomi,
-        "daraja": parsed.daraja,
-        "davomiylik_yil": parsed.davomiylik_yil,
-        "manba_fayl": parsed.fayl_nomi[:255],
+        "daraja": tahlil.daraja,
+        "davomiylik_yil": tahlil.davomiylik_yil,
+        "manba_fayl": tahlil.fayl_nomi[:255],
         "import_vaqti": timezone.now(),
     }
     reja, yaratildi = OquvReja.objects.get_or_create(
-        yonalish_kodi=parsed.yonalish_kodi,
-        boshlanish_yili=parsed.boshlanish_yili,
-        talim_shakli=parsed.talim_shakli,
+        yonalish_kodi=tahlil.yonalish_kodi,
+        boshlanish_yili=tahlil.boshlanish_yili,
+        talim_shakli=tahlil.talim_shakli,
         defaults=yangilanadigan,
     )
     if yaratildi:
         return reja, True, None
     reja = OquvReja.objects.select_for_update().get(pk=reja.pk)
-    _mavjud_rejani_tekshir(reja, replace)
-    holat = _manual_holatni_saqlash(reja)
+    _mavjud_rejani_tekshir(reja, almashtirish)
+    holat = _qoldiq_holatni_saqlash(reja)
     reja.fanlar.all().delete()
     for maydon, qiymat in yangilanadigan.items():
         setattr(reja, maydon, qiymat)
@@ -174,7 +176,7 @@ def _rejani_tayyorlash(
 
 
 def _noyob_raqam_toplamda(raqam: str, mavjud: set[str]) -> tuple[str, str | None]:
-    """Disambiguate a duplicate course raqam inside an in-memory set."""
+    """Bir xil raqamli fanlar tushib qolsa, oxiriga .2, .3 qo'shib farqlaydi."""
     if raqam not in mavjud:
         mavjud.add(raqam)
         return raqam, None
@@ -187,75 +189,75 @@ def _noyob_raqam_toplamda(raqam: str, mavjud: set[str]) -> tuple[str, str | None
 
 
 def _variant_obyekti(
-    fan: Fan, kodi: str, nomi: str, soatlar: Course | Alternative
+    fan: Fan, kodi: str, nomi: str, soatlar: MajburiyFan | TanlovVarianti
 ) -> FanVariant:
     return FanVariant(
         fan=fan,
         kodi=kodi or "",
         nomi=nomi,
-        auditoriya_soat=soatlar.classroom,
-        maruza_soat=soatlar.lecture,
-        amaliyot_soat=soatlar.practice,
-        laboratoriya_soat=soatlar.lab,
+        auditoriya_soat=soatlar.auditoriya,
+        maruza_soat=soatlar.maruza,
+        amaliyot_soat=soatlar.amaliyot,
+        laboratoriya_soat=soatlar.laboratoriya,
         seminar_soat=soatlar.seminar,
-        kurs_ishi_soat=soatlar.course_proj,
+        kurs_ishi_soat=soatlar.kurs_ishi,
     )
 
 
 def _variant_semestr_royxati(
-    variant: FanVariant, credits: dict[int, int], weekly: dict[int, int]
+    variant: FanVariant, kreditlar: dict[int, int], haftalik: dict[int, int]
 ) -> tuple[list[FanSemestr], list[str]]:
-    satrlar, ogohlantirishlar = split_breakdown(
+    satrlar, ogohlantirishlar = soatni_semestrlarga_bol(
         variant.maruza_soat,
         variant.amaliyot_soat,
         variant.laboratoriya_soat,
         variant.seminar_soat,
-        weekly,
-        credits,
+        haftalik,
+        kreditlar,
     )
     semestrlar = [
         FanSemestr(
             variant=variant,
             semestr=semestr,
-            kredit=credits.get(semestr, 0),
-            haftalik_soat=weekly.get(semestr, 0),
+            kredit=kreditlar.get(semestr, 0),
+            haftalik_soat=haftalik.get(semestr, 0),
             **maydonlar,
         )
         for semestr, maydonlar in sorted(satrlar.items())
     ]
     if variant.kurs_ishi_soat > 0 and semestrlar:
-        # Owner's rule: the course project lands in the course's final semester.
+        # Qoida bo'yicha kurs ishi fanning oxirgi semestriga yoziladi.
         semestrlar[-1].kurs_ishi_bor = True
     return semestrlar, ogohlantirishlar
 
 
 def _fan_va_variantlarni_yaratish(
-    reja: OquvReja, parsed: ParsedReja
+    reja: OquvReja, tahlil: TahlilQilinganReja
 ) -> tuple[list[Fan], list[FanVariant], list[str]]:
     mavjud_raqamlar: set[str] = set()
-    ogohlantirishlar = list(parsed.ogohlantirishlar)
+    ogohlantirishlar = list(tahlil.ogohlantirishlar)
     fanlar: list[Fan] = []
-    for course in parsed.core:
-        raqam, raqam_ogoh = _noyob_raqam_toplamda(course.num, mavjud_raqamlar)
+    for fan_m in tahlil.majburiy_fanlar:
+        raqam, raqam_ogoh = _noyob_raqam_toplamda(fan_m.raqam, mavjud_raqamlar)
         if raqam_ogoh:
             ogohlantirishlar.append(raqam_ogoh)
         fanlar.append(
-            Fan(reja=reja, raqam=raqam, turi=FanTuri.MAJBURIY, jami_soat=course.hours)
+            Fan(reja=reja, raqam=raqam, turi=FanTuri.MAJBURIY, jami_soat=fan_m.soat)
         )
-    for slot in parsed.slots:
-        raqam, raqam_ogoh = _noyob_raqam_toplamda(slot.num, mavjud_raqamlar)
+    for blok in tahlil.tanlov_fanlar:
+        raqam, raqam_ogoh = _noyob_raqam_toplamda(blok.raqam, mavjud_raqamlar)
         if raqam_ogoh:
             ogohlantirishlar.append(raqam_ogoh)
         fanlar.append(
-            Fan(reja=reja, raqam=raqam, turi=FanTuri.TANLOV, jami_soat=slot.hours)
+            Fan(reja=reja, raqam=raqam, turi=FanTuri.TANLOV, jami_soat=blok.soat)
         )
     if not fanlar:
         return [], [], ogohlantirishlar
     Fan.objects.bulk_create(fanlar)
 
-    core_soni = len(parsed.core)
+    majburiy_soni = len(tahlil.majburiy_fanlar)
     variantlar, semestr_rejalari, tanlangan_fanlar = _variantlarni_yigish(
-        fanlar[:core_soni], fanlar[core_soni:], parsed, ogohlantirishlar
+        fanlar[:majburiy_soni], fanlar[majburiy_soni:], tahlil, ogohlantirishlar
     )
     if variantlar:
         FanVariant.objects.bulk_create(variantlar)
@@ -270,41 +272,47 @@ SemestrRejasi = tuple[Fan, FanVariant, str, dict[int, int], dict[int, int]]
 
 def _tanlov_slot_variantlari(
     fan: Fan,
-    slot: object,
+    blok: TanlovFani,
     ogohlantirishlar: list[str],
     variantlar: list[FanVariant],
     semestr_rejalari: list[SemestrRejasi],
 ) -> None:
-    if not slot.alternatives:
+    if not blok.variantlar:
         ogohlantirishlar.append(f"{fan.raqam}: tanlov slotida variantlar topilmadi")
         return
     korilgan: set[tuple[str, str]] = set()
-    for alt in slot.alternatives:
-        kalit = (alt.code or "", alt.name)
+    for alt in blok.variantlar:
+        kalit = (alt.kod or "", alt.nom)
         if kalit in korilgan:
             ogohlantirishlar.append(
-                f"{fan.raqam} {alt.name}: takroriy variant tashlab yuborildi"
+                f"{fan.raqam} {alt.nom}: takroriy variant tashlab yuborildi"
             )
             continue
         korilgan.add(kalit)
-        variant = _variant_obyekti(fan, alt.code, alt.name, alt)
+        variant = _variant_obyekti(fan, alt.kod, alt.nom, alt)
         variantlar.append(variant)
         semestr_rejalari.append(
-            (fan, variant, alt.name, slot.semester_credits, slot.semester_weekly_hours)
+            (
+                fan,
+                variant,
+                alt.nom,
+                blok.semestr_kreditlari,
+                blok.semestr_haftalik_soatlar,
+            )
         )
 
 
 def _variantlarni_yigish(
     majburiy_fanlar: list[Fan],
     tanlov_fanlar: list[Fan],
-    parsed: ParsedReja,
+    tahlil: TahlilQilinganReja,
     ogohlantirishlar: list[str],
 ) -> tuple[list[FanVariant], list[SemestrRejasi], list[Fan]]:
     variantlar: list[FanVariant] = []
     semestr_rejalari: list[SemestrRejasi] = []
     tanlangan_fanlar: list[Fan] = []
-    for fan, course in zip(majburiy_fanlar, parsed.core, strict=True):
-        variant = _variant_obyekti(fan, course.code, course.name, course)
+    for fan, fan_m in zip(majburiy_fanlar, tahlil.majburiy_fanlar, strict=True):
+        variant = _variant_obyekti(fan, fan_m.kod, fan_m.nom, fan_m)
         fan.tanlangan_variant = variant
         tanlangan_fanlar.append(fan)
         variantlar.append(variant)
@@ -312,33 +320,33 @@ def _variantlarni_yigish(
             (
                 fan,
                 variant,
-                course.name,
-                course.semester_credits,
-                course.semester_weekly_hours,
+                fan_m.nom,
+                fan_m.semestr_kreditlari,
+                fan_m.semestr_haftalik_soatlar,
             )
         )
-    for fan, slot in zip(tanlov_fanlar, parsed.slots, strict=True):
+    for fan, blok in zip(tanlov_fanlar, tahlil.tanlov_fanlar, strict=True):
         _tanlov_slot_variantlari(
-            fan, slot, ogohlantirishlar, variantlar, semestr_rejalari
+            fan, blok, ogohlantirishlar, variantlar, semestr_rejalari
         )
     return variantlar, semestr_rejalari, tanlangan_fanlar
 
 
 def _semestrlarni_saqlash(
-    semestr_rejalari: list[tuple[Fan, FanVariant, str, dict[int, int], dict[int, int]]],
+    semestr_rejalari: list[SemestrRejasi],
     ogohlantirishlar: list[str],
 ) -> None:
     barcha_semestrlar: list[FanSemestr] = []
-    for fan, variant, nom, credits, weekly in semestr_rejalari:
-        semestrlar, sem_ogoh = _variant_semestr_royxati(variant, credits, weekly)
+    for fan, variant, nom, kreditlar, haftalik in semestr_rejalari:
+        semestrlar, sem_ogoh = _variant_semestr_royxati(variant, kreditlar, haftalik)
         barcha_semestrlar.extend(semestrlar)
         ogohlantirishlar.extend(f"{fan.raqam} {nom}: {o}" for o in sem_ogoh)
     if barcha_semestrlar:
         FanSemestr.objects.bulk_create(barcha_semestrlar)
 
 
-def _manual_holatni_saqlash(reja: OquvReja) -> dict:
-    """Snapshot kafedra links and tanlov selections keyed by stable identity."""
+def _qoldiq_holatni_saqlash(reja: OquvReja) -> dict:
+    """Qayta yuklashda kafedra biriktirmalari va tanlov qarorlarini eslab qoladi."""
     kafedralar = {
         (v.fan.raqam, v.kodi, v.nomi): v.kafedra_id
         for v in FanVariant.objects.filter(
@@ -354,7 +362,7 @@ def _manual_holatni_saqlash(reja: OquvReja) -> dict:
     return {"kafedralar": kafedralar, "tanlovlar": tanlovlar}
 
 
-def _manual_holatni_tiklash(reja: OquvReja, holat: dict) -> list[str]:
+def _qoldiq_holatni_tiklash(reja: OquvReja, holat: dict) -> list[str]:
     ogohlantirishlar = []
     kalitga = {
         (v.fan.raqam, v.kodi, v.nomi): v

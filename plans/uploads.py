@@ -1,4 +1,4 @@
-"""Orchestrate a browser-uploaded reja file into the importer."""
+"""Brauzerdan yuklangan o'quv reja faylini tekshirib importga uzatish moduli."""
 
 import uuid
 from dataclasses import dataclass
@@ -13,17 +13,17 @@ from django.db import transaction
 from lxml.etree import XMLSyntaxError
 from openpyxl.utils.exceptions import InvalidFileException
 
-from plans.importer import ImportNatija, ImportXato, import_reja, parse_xlsx
+from plans.importer import ImportNatija, ImportXato, excel_reja_oqi, import_reja
 from plans.services import guruhlarni_sinxronlash
 
 YUKLASH_KATALOGI = "rejalar"
 MAX_FAYL_STEM = 80
-MAX_ZIP_CHIQARILGAN_HAJM = 50 * 1024 * 1024  # 50 MB decompressed guard
+MAX_ZIP_CHIQARILGAN_HAJM = 50 * 1024 * 1024  # 50 MB dan oshiq arxivga ruxsat yo'q
 MAX_ZIP_FAYL_SONI = 2000
 
 
 def xavfsiz_fayl_nomi(xom_nom: str | None) -> str:
-    """Return a clean cross-OS basename or empty string if invalid."""
+    """Har xil OS yo'llaridan faqat toza fayl nomini ajratib oladi."""
     if not xom_nom or "\x00" in xom_nom:
         return ""
     return PureWindowsPath(PurePosixPath(xom_nom).name).name
@@ -65,7 +65,7 @@ def zip_faylini_tekshir(
     max_fayl_soni: int = MAX_ZIP_FAYL_SONI,
     zarur_fayl: str | None = None,
 ) -> str:
-    """Validate uploaded OOXML archive against extension, size, and zip-bomb limits."""
+    """Yuklangan OOXML arxivni kengaytma, hajm va zip-bomba chegaralaridan o'tkazadi."""
     toza_nom = xavfsiz_fayl_nomi(getattr(fayl, "name", ""))
     kengaytma = kutilgan_kengaytma.lower()
     if not toza_nom.lower().endswith(kengaytma):
@@ -96,13 +96,13 @@ class YuklashParametrlari:
     guruhlar_soni: int
     guruh_prefiksi: str
     boshlanish_yili: int | None
-    replace: bool
+    almashtirish: bool
 
 
 def fayldan_import_qilish(
     fayl: UploadedFile, parametrlar: YuklashParametrlari
 ) -> ImportNatija:
-    """Save the upload temporarily, parse and persist reja + counts atomically."""
+    """Faylni vaqtincha saqlab o'qiydi va reja bilan guruhlarni bazaga yozadi."""
     try:
         zip_faylini_tekshir(
             fayl,
@@ -115,9 +115,9 @@ def fayldan_import_qilish(
 
     yol = _faylni_saqlash(fayl)
     try:
-        parsed = parse_xlsx(yol, parametrlar.boshlanish_yili)
+        tahlil = excel_reja_oqi(yol, parametrlar.boshlanish_yili)
         with transaction.atomic():
-            natija = import_reja(parsed, replace=parametrlar.replace)
+            natija = import_reja(tahlil, almashtirish=parametrlar.almashtirish)
             reja = natija.reja
             reja.talabalar_soni = parametrlar.talabalar_soni
             reja.guruhlar_soni = parametrlar.guruhlar_soni

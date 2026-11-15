@@ -1,4 +1,4 @@
-"""In-app notification delivery and optional Telegram Bot dispatch."""
+"""Tizim ichidagi bildirishnomalar va ixtiyoriy Telegram bot xabarnomalari."""
 
 import json
 import logging
@@ -26,7 +26,7 @@ _TELEGRAM_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="teleg
 
 
 def ofis_adminlar() -> list[Foydalanuvchi]:
-    """Return active office and superadmin accounts."""
+    """Faol ofis admin va superadmin hisoblarini qaytaradi."""
     return list(
         Foydalanuvchi.objects.filter(
             is_active=True,
@@ -36,7 +36,7 @@ def ofis_adminlar() -> list[Foydalanuvchi]:
 
 
 def telegram_xabar_yubor(chat_id: str, matn: str) -> bool:
-    """Send a best-effort message to Telegram Bot API if token is configured."""
+    """Bot tokeni sozlangan bo'lsa, Telegram Bot API orqali xabar yuboradi."""
     token = getattr(settings, "TELEGRAM_BOT_TOKEN", "").strip()
     manzil_id = (chat_id or "").strip()
     if not token or not manzil_id:
@@ -99,7 +99,7 @@ def bildirishnoma_yubor(
     havola: str = "",
     turi: str = BildirishnomaTuri.INFO,
 ) -> list[Bildirishnoma]:
-    """Create persistent notifications for active users and queue Telegram alerts."""
+    """Faol foydalanuvchilarga bildirishnoma yozib, Telegram xabarini navbatlaydi."""
     noyoblar: dict[int, Foydalanuvchi] = {}
     for user in qabul_qiluvchilar:
         if user.pk and user.is_active:

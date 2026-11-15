@@ -9,11 +9,11 @@ from plans.dastur.mavzular import bosh_mavzular
 from plans.dastur.service import dastur_egasimi, dastur_render
 from plans.models import SoatTuri, Yuklama
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_guruh,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    guruh_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
 
 
@@ -43,17 +43,17 @@ class DasturEgasimiTest(TestCase):
     def setUp(self) -> None:
         self.yil = dashboard.joriy_akademik_yil()
         self.kafedra = Department.objects.create(nomi="Matematika")
-        reja = make_reja(boshlanish_yili=self.yil)
-        fan = make_fan(reja, kafedra=self.kafedra)
+        reja = reja_yasa(boshlanish_yili=self.yil)
+        fan = fan_yasa(reja, kafedra=self.kafedra)
         self.variant = fan.tanlangan_variant
-        self.fs = make_fan_semestr(self.variant, semestr=1)
-        self.maruza_egasi = make_oqituvchi(kafedra=self.kafedra)
-        self.amaliyot_egasi = make_oqituvchi(kafedra=self.kafedra)
-        self.begona = make_oqituvchi(kafedra=self.kafedra)
+        self.fs = fan_semestr_yasa(self.variant, semestr=1)
+        self.maruza_egasi = oqituvchi_yasa(kafedra=self.kafedra)
+        self.amaliyot_egasi = oqituvchi_yasa(kafedra=self.kafedra)
+        self.begona = oqituvchi_yasa(kafedra=self.kafedra)
         Yuklama.objects.create(
             fan_semestr=self.fs, tur=SoatTuri.MARUZA, oqituvchi=self.maruza_egasi
         )
-        guruh = make_guruh(reja)
+        guruh = guruh_yasa(reja)
         Yuklama.objects.create(
             fan_semestr=self.fs,
             tur=SoatTuri.AMALIYOT,
@@ -72,17 +72,18 @@ class DasturEgasimiTest(TestCase):
 
 
 class DasturEgasimiBoshqaYilTest(TestCase):
-    """A curriculum whose year isn't "today's" academic year must not block
-    its real lecture owner — ownership isn't tied to the calendar."""
+    """O'quv yili "bugungi" yilga teng bo'lmasa ham ma'ruza egasi rad etilmasin —
+    egalik kalendar yiliga bog'lanmagan.
+    """
 
     def test_kelajakdagi_reja_egasi_ham_ruxsat_etiladi(self) -> None:
         kafedra = Department.objects.create(nomi="Fizika")
         kelajak_yil = dashboard.joriy_akademik_yil() + 5
-        reja = make_reja(yonalish_kodi="60610199", boshlanish_yili=kelajak_yil)
-        fan = make_fan(reja, kafedra=kafedra)
+        reja = reja_yasa(yonalish_kodi="60610199", boshlanish_yili=kelajak_yil)
+        fan = fan_yasa(reja, kafedra=kafedra)
         variant = fan.tanlangan_variant
-        fs = make_fan_semestr(variant, semestr=1)
-        maruza_egasi = make_oqituvchi(kafedra=kafedra)
+        fs = fan_semestr_yasa(variant, semestr=1)
+        maruza_egasi = oqituvchi_yasa(kafedra=kafedra)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=maruza_egasi
         )
@@ -96,20 +97,20 @@ class DasturKontekstTest(TestCase):
         self.kafedra = Department.objects.create(
             nomi="Matematika", fakultet="Aniq fanlar fakulteti"
         )
-        reja = make_reja(
+        reja = reja_yasa(
             boshlanish_yili=self.yil,
             bilim_sohasi_kodi="600000",
             bilim_sohasi_nomi="Aniq fanlar",
         )
-        fan = make_fan(reja, raqam="1.05", kafedra=self.kafedra, jami_soat=120)
+        fan = fan_yasa(reja, raqam="1.05", kafedra=self.kafedra, jami_soat=120)
         self.variant = fan.tanlangan_variant
-        self.fs = make_fan_semestr(self.variant, semestr=1)
-        self.maruza_egasi = make_oqituvchi(kafedra=self.kafedra)
-        self.amaliyot_egasi = make_oqituvchi(kafedra=self.kafedra)
+        self.fs = fan_semestr_yasa(self.variant, semestr=1)
+        self.maruza_egasi = oqituvchi_yasa(kafedra=self.kafedra)
+        self.amaliyot_egasi = oqituvchi_yasa(kafedra=self.kafedra)
         Yuklama.objects.create(
             fan_semestr=self.fs, tur=SoatTuri.MARUZA, oqituvchi=self.maruza_egasi
         )
-        guruh = make_guruh(reja)
+        guruh = guruh_yasa(reja)
         Yuklama.objects.create(
             fan_semestr=self.fs,
             tur=SoatTuri.AMALIYOT,
@@ -181,7 +182,7 @@ class DasturKontekstTest(TestCase):
         self.assertEqual(kontekst["outcomes"]["professional"][0].code, "TN1")
 
     def test_kop_semestrli_oquv_yillari_takrorlanmaydi(self) -> None:
-        make_fan_semestr(self.variant, semestr=2)
+        fan_semestr_yasa(self.variant, semestr=2)
         kontekst = dastur_kontekst(self.variant)
         boshlanish = self.variant.fan.reja.boshlanish_yili
         self.assertEqual(
@@ -197,8 +198,9 @@ class DasturKontekstTest(TestCase):
         self.assertGreater(len(buffer.getvalue()), 0)
 
     def test_render_hech_qanday_teg_qolmaydi(self) -> None:
-        """Every declared variable must be supplied — a leftover {{ }} or
-        {%tr %} means one was missed."""
+        """Barcha teglar to'ldirilishi shart — qolib ketgan {{ }} yoki {%tr %}
+        context'da biror kalit unutilganini bildiradi.
+        """
         buffer = dastur_render(self.variant)
         hujjat = Document(buffer)
         self.assertNotRegex(hujjat.element.xml, r"\{\{|\{%")
@@ -225,8 +227,7 @@ class DasturKontekstTest(TestCase):
         self.assertIn(f"{self.kafedra.nomi} kafedrasi", muqova_matni)
 
     def test_bilim_sohasi_jadvali_toldiriladi(self) -> None:
-        """The bilim/ta'lim sohasi block lives in its own table, not the
-        cover paragraphs — moved there by a manual template edit."""
+        """Bilim va ta'lim sohasi muqovada emas, alohida jadvalda to'ldiriladi."""
         buffer = dastur_render(self.variant)
         hujjat = Document(buffer)
         jadval_matni = "\n".join(
@@ -250,9 +251,9 @@ class DasturKontekstTest(TestCase):
             self.assertEqual(paragraphs[idx + 1].text, "")
 
     def test_yorliq_va_qiymat_alohida_paragraf(self) -> None:
-        """The defect the code-built pipeline had: label and value fused
-        onto one line ("Fan/modul turiMajburiy"). They must render as two
-        separate paragraphs in the cell, one per line."""
+        """Avvalgi xato: yorliq va qiymat bitta qatorga qo'shilib qolardi
+        ("Fan/modul turiMajburiy"). Katakda ular alohida paragraf bo'lishi kerak.
+        """
         buffer = dastur_render(self.variant)
         hujjat = Document(buffer)
         matn = "\n".join(
@@ -265,19 +266,19 @@ class DasturKontekstTest(TestCase):
 
 
 class DasturSoatUstunlariTest(TestCase):
-    """Covers the post-render hour-column/sub-header surgery — it only
-    exists in the rendered document, since the raw template always carries
-    all three hour columns."""
+    """Renderdan keyingi soat ustuni va sarlavha qatorlarini kesishni tekshiradi —
+    xom shablonning o'zida barcha soat ustunlari doim mavjud.
+    """
 
     def setUp(self) -> None:
         Universitet.objects.create(rasmiy_nomi="Test universiteti")
         kafedra = Department.objects.create(
             nomi="Matematika", fakultet="Aniq fanlar fakulteti"
         )
-        reja = make_reja(boshlanish_yili=dashboard.joriy_akademik_yil())
-        fan = make_fan(reja, raqam="1.05", kafedra=kafedra, jami_soat=120)
+        reja = reja_yasa(boshlanish_yili=dashboard.joriy_akademik_yil())
+        fan = fan_yasa(reja, raqam="1.05", kafedra=kafedra, jami_soat=120)
         self.variant = fan.tanlangan_variant
-        make_fan_semestr(self.variant, semestr=1)
+        fan_semestr_yasa(self.variant, semestr=1)
 
     def _jadval1(self, variant):
         return Document(dastur_render(variant)).tables[2]
@@ -299,13 +300,13 @@ class DasturSoatUstunlariTest(TestCase):
         for kutilgan in ("Ma’ruza", "Amaliy", "Lab-ya", "Seminar"):
             self.assertIn(kutilgan, matn)
         self.assertEqual(len(self._grid_kengliklari(jadval)), 11)
-        # Section 1 values line up with their headers.
+        # 1-bo'lim qiymatlari sarlavha ustunlariga mos tushishi kerak.
         row5 = [c.text for c in jadval.rows[5].cells]
         self.assertIn(str(self.variant.maruza_soat), row5)
         self.assertIn(str(self.variant.amaliyot_soat), row5)
         self.assertIn(str(self.variant.laboratoriya_soat), row5)
         self.assertIn(str(self.variant.seminar_soat), row5)
-        # Section 5 carries all four sub-headers, in order.
+        # 5-bo'limda to'rttala ichki sarlavha ham tartibda bo'ladi.
         for kutilgan in (
             "Ma’ruza (M)",
             "Amaliy mashg‘ulot (A)",
@@ -315,8 +316,8 @@ class DasturSoatUstunlariTest(TestCase):
             self.assertIn(kutilgan, matn)
 
     def test_laboratoriyasiz_fan_ustuni_va_sarlavhasi_ochiriladi(self) -> None:
-        # Factory default seminar_soat is 0, so this drops both Lab-ya and
-        # Seminar (2 of the 4 hour columns) -- 11 grid cols down to 9.
+        # Fabrikada seminar_soat=0, shuning uchun Lab-ya ham, Seminar ham tushib
+        # qoladi (4 ta soat ustunidan 2 tasi) — 11 grid ustundan 9 ta qoladi.
         self.variant.laboratoriya_soat = 0
         self.variant.save(update_fields=["laboratoriya_soat"])
         jadval = self._jadval1(self.variant)
@@ -331,8 +332,9 @@ class DasturSoatUstunlariTest(TestCase):
         self.assertEqual(sum(kengliklar), 9961)
 
     def test_seminarli_labsiz_fan_ustunlari_togri_ochiriladi(self) -> None:
-        """The bug report: InkT.GP 1805 with maruza=32, amaliy=8, seminar=8,
-        laboratoriya=0 — everything except Seminar rendered."""
+        """Real xato misoli: InkT.GP 1805 da maruza=32, amaliy=8, seminar=8,
+        laboratoriya=0 bo'lganda Seminardan boshqa hammasi chiqar edi.
+        """
         self.variant.maruza_soat = 32
         self.variant.amaliyot_soat = 8
         self.variant.laboratoriya_soat = 0
@@ -395,9 +397,9 @@ class DasturSoatUstunlariTest(TestCase):
 
 
 class DasturFormatlashTest(TestCase):
-    """Uses the raw template (plans.dastur.service.SABLON_YOLI), not a
-    rendered document — docxtpl's {%tr %} loops add/remove rows based on
-    context, so row counts are only stable before rendering."""
+    """Render qilingan hujjatni emas, xom shablonni (SABLON_YOLI) tekshiradi —
+    docxtpl {%tr %} sikllari qator qo'shib-oladi, shablon esa doim barqaror.
+    """
 
     def setUp(self) -> None:
         from plans.dastur.service import SABLON_YOLI
@@ -413,8 +415,7 @@ class DasturFormatlashTest(TestCase):
         self.assertEqual(len(self.hujjat.tables), 4)
 
     def test_yorliq_qiymatdan_alohida_paragraf(self) -> None:
-        """Pins the structural fix: label and value are two paragraphs in
-        the same cell, not fused into one."""
+        """Yorliq va qiymat bitta katakda ikki alohida paragraf ekanini kafolatlaydi."""
         cell = self.hujjat.tables[2].rows[2].cells[0]
         self.assertEqual(len(cell.paragraphs), 2)
         self.assertEqual(cell.paragraphs[0].text, "Fan/modul turi")
