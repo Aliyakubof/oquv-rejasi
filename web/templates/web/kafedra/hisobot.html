@@ -68,11 +68,17 @@
       <div class="search">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input type="text" placeholder="O'qituvchi yoki lavozim..." aria-label="Hisobotda qidirish" x-model="qidiruv">
-        <button type="button" class="search-clear" x-show="qidiruv !== ''" x-cloak @click="qidiruv = ''" aria-label="Qidiruvni tozalash" title="Tozalash">
+        <button type="button" class="search-clear" x-show="qidiruv !== ''" x-cloak x-transition.opacity.duration.150ms @click="qidiruv = ''" aria-label="Qidiruvni tozalash" title="Tozalash">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <button type="button" class="chip-btn" :class="faqatKamomad && 'active'" @click="faqatKamomad = !faqatKamomad">Faqat kamomadi borlar</button>
+      <label class="chip-btn chip-toggle" :class="faqatKamomad && 'active'">
+        <input type="checkbox" class="chip-check-native" x-model="faqatKamomad">
+        <span class="chip-check-box" aria-hidden="true">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <span>Faqat kamomadi borlar</span>
+      </label>
     </div>
   </div>
   {% endif %}
@@ -94,7 +100,7 @@
         <tr data-nomi="{{ holat.oqituvchi|lower }} {{ holat.oqituvchi.turi.nomi|lower }}"
             data-kamomad="{% if holat.kamomad %}1{% else %}0{% endif %}"
             x-show="(!faqatKamomad || $el.dataset.kamomad === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))">
-          <td class="col-center" data-label="№" style="color:var(--text-muted);font-weight:600;">{{ forloop.counter }}</td>
+          <td class="col-center col-idx-muted" data-label="№">{{ forloop.counter }}</td>
           <td data-label="F.I.Sh">
             <button type="button" class="reja-link reja-link-btn"
                     data-modal-title="{{ holat.oqituvchi }}"
@@ -105,14 +111,14 @@
               <strong>{{ holat.oqituvchi }}</strong>
             </button>
           </td>
-          <td data-label="Lavozim" style="color:var(--text-secondary);">{{ holat.oqituvchi.turi.nomi|capfirst }}</td>
-          <td class="col-center" data-label="Minimal soat"><span class="hour-tag">{{ holat.min_soat }} soat</span></td>
+          <td data-label="Lavozim" class="row-muted-text">{{ holat.oqituvchi.turi.nomi|capfirst }}</td>
+          <td class="col-center" data-label="Minimal soat"><span class="hisobot-norma">{{ holat.min_soat }} soat</span></td>
           <td class="col-center" data-label="Yuklama soat"><span class="hour-tag {% if holat.jami_soat < holat.min_soat %}warn{% else %}ok{% endif %}">{{ holat.jami_soat }} soat</span></td>
           <td class="col-center" data-label="Farq">
             {% if holat.kamomad %}
-            <span style="color:var(--rad);font-weight:700;">−{{ holat.kamomad }}</span>
+            <span class="hisobot-farq-warn">−{{ holat.kamomad }}</span>
             {% else %}
-            <span style="color:var(--ok);font-weight:600;">0</span>
+            <span class="hisobot-farq-ok">0</span>
             {% endif %}
           </td>
           <td class="col-center" data-label="Holat">
@@ -152,11 +158,11 @@
       {% if holatlar %}
       <tfoot>
         <tr>
-          <td colspan="3" style="text-align:right;font-weight:700;padding-right:20px;">Jami:</td>
-          <td class="col-center" data-label="Minimal soat"><span class="hour-tag" style="font-weight:700;">{{ jami_min }} soat</span></td>
-          <td class="col-center" data-label="Yuklama soat"><span class="hour-tag ok" style="font-weight:700;">{{ jami_yuklama }} soat</span></td>
+          <td colspan="3" class="table-total-label">Jami:</td>
+          <td class="col-center" data-label="Minimal soat"><span class="hisobot-norma table-total-hour">{{ jami_min }} soat</span></td>
+          <td class="col-center" data-label="Yuklama soat"><span class="hour-tag ok table-total-hour">{{ jami_yuklama }} soat</span></td>
           <td class="col-center" data-label="Farq"><span class="credits">—</span></td>
-          <td class="col-center" data-label="Holat"><span class="hour-tag {% if jami_yuklama < jami_min %}warn{% else %}ok{% endif %}" style="font-weight:700;">Qoplanish: {{ jami_yuklama|foiz:jami_min }}%</span></td>
+          <td class="col-center" data-label="Holat"><span class="hour-tag {% if jami_yuklama < jami_min %}warn{% else %}ok{% endif %} table-total-hour">Qoplanish: {{ jami_yuklama|foiz:jami_min }}%</span></td>
         </tr>
       </tfoot>
       {% endif %}

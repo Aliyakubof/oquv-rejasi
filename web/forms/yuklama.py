@@ -115,11 +115,14 @@ class KursIshiYuklamaForm(YuklamaAsosForm):
 
     def clean_oqituvchi(self) -> OqituvchiProfil:
         oqituvchi = self.cleaned_data["oqituvchi"]
-        if Yuklama.objects.filter(
+        mavjud = Yuklama.objects.filter(
             fan_semestr=self.instance.fan_semestr,
             tur=SoatTuri.KURS_ISHI,
             oqituvchi=oqituvchi,
-        ).exists():
+        )
+        if self.instance.pk is not None:
+            mavjud = mavjud.exclude(pk=self.instance.pk)
+        if mavjud.exists():
             raise forms.ValidationError(
                 "Bu o'qituvchiga ushbu fandan kurs ishi allaqachon biriktirilgan."
             )

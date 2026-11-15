@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
-from django.db.models import OuterRef, QuerySet, Subquery
+from django.db.models import F, OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
 from accounts.models import Foydalanuvchi, OqituvchiProfil
@@ -136,32 +136,39 @@ def joriy_topshirishlar(
 
 def _topshirilmagan_yuklamalar_qs(
     kafedra_id: int | None = None,
+    *,
+    yil: int | None = None,
 ) -> "QuerySet[Yuklama]":
     qs = Yuklama.objects.filter(
         tur=SoatTuri.MARUZA,
+        fan_semestr__variant__fan__tanlangan_variant=F("fan_semestr__variant"),
         fan_semestr__variant__dastur_topshirishlari__isnull=True,
     )
     if kafedra_id is not None:
         qs = qs.filter(fan_semestr__variant__kafedra_id=kafedra_id)
+    if yil is not None:
+        qs = qs.akademik_yilda(yil)
     return qs
 
 
-def topshirilmagan_dasturlar_soni(*, kafedra_id: int | None = None) -> int:
+def topshirilmagan_dasturlar_soni(
+    *, kafedra_id: int | None = None, yil: int | None = None
+) -> int:
     """Count course variants with a lecture owner assigned that have no submission."""
     return (
-        _topshirilmagan_yuklamalar_qs(kafedra_id)
-        .values("fan_semestr__variant_id")
+        _topshirilmagan_yuklamalar_qs(kafedra_id, yil=yil)
+        .values("fan_semestr__variant_id", "oqituvchi_id")
         .distinct()
         .count()
     )
 
 
 def topshirilmagan_dasturlar(
-    *, kafedra_id: int | None = None
+    *, kafedra_id: int | None = None, yil: int | None = None
 ) -> list[TopshirilmaganDastur]:
     """Courses with an assigned lecture (MARUZA) owner that have no submission yet."""
     qs = (
-        _topshirilmagan_yuklamalar_qs(kafedra_id)
+        _topshirilmagan_yuklamalar_qs(kafedra_id, yil=yil)
         .select_related(
             "fan_semestr__variant__fan__reja",
             "fan_semestr__variant__kafedra",
@@ -169,13 +176,13 @@ def topshirilmagan_dasturlar(
         )
         .order_by("fan_semestr__variant__nomi", "fan_semestr__semestr")
     )
-    korilgan: set[int] = set()
+    korilgan: set[tuple[int, int]] = set()
     natija: list[TopshirilmaganDastur] = []
     for y in qs:
-        vid = y.fan_semestr.variant_id
-        if vid in korilgan:
+        kalit = (y.fan_semestr.variant_id, y.oqituvchi_id)
+        if kalit in korilgan:
             continue
-        korilgan.add(vid)
+        korilgan.add(kalit)
         natija.append(
             TopshirilmaganDastur(
                 variant=y.fan_semestr.variant,

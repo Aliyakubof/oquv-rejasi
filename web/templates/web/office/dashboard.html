@@ -15,8 +15,8 @@
     {% endif %}
   </div>
 </div>
-<div style="position:relative;">
-  <div id="yuklanish" class="skeleton-overlay htmx-indicator">{% include "web/parts/_skeleton_jadval.html" %}</div>
+<div class="office-dash-stage">
+  <div id="yuklanish" class="skeleton-overlay htmx-indicator">{% include "web/parts/_skeleton_jadval.html" with show_stats=True show_toolbar=True %}</div>
   <div id="kontent" {% if not yil %}data-jonli="office-kontent"{% endif %}>
     {% if yil %}
       {% include "web/office/_dashboard_kontent.html" %}

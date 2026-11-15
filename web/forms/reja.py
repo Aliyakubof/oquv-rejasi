@@ -1,12 +1,15 @@
 """Forms for creating (via Excel upload) and correcting an o'quv reja."""
 
-from zipfile import is_zipfile
-
 from django import forms
+from django.core.files.uploadedfile import UploadedFile
 
 from plans.models import OquvReja
-from plans.services import eng_kop_kurs_ishi_talabasi
-from plans.uploads import YuklashParametrlari, xavfsiz_fayl_nomi
+from plans.services import (
+    eng_katta_band_guruh,
+    eng_kop_kurs_ishi_talabasi,
+    reja_qulflanganmi,
+)
+from plans.uploads import YuklashParametrlari, zip_faylini_tekshir
 
 MAX_REJA_HAJMI = 10 * 1024 * 1024  # 10 MB
 
@@ -26,21 +29,14 @@ class RejaImportForm(forms.Form):
     )
     replace = forms.BooleanField(label="Mavjud rejani almashtirish", required=False)
 
-    def clean_fayl(self) -> object:
-        fayl = self.cleaned_data["fayl"]
-        toza_nom = xavfsiz_fayl_nomi(getattr(fayl, "name", ""))
-        if not toza_nom.lower().endswith(".xlsx"):
-            raise forms.ValidationError("Fayl .xlsx formatida bo'lishi kerak.")
-        if not fayl.size:
-            raise forms.ValidationError("Bo'sh fayl yuklab bo'lmaydi.")
-        if fayl.size > MAX_REJA_HAJMI:
-            raise forms.ValidationError("Fayl hajmi 10 MB dan oshmasligi kerak.")
-        try:
-            haqiqiy_zip = is_zipfile(fayl)
-        finally:
-            fayl.seek(0)
-        if not haqiqiy_zip:
-            raise forms.ValidationError("Fayl .xlsx formatida emas yoki buzilgan.")
+    def clean_fayl(self) -> UploadedFile:
+        fayl: UploadedFile = self.cleaned_data["fayl"]
+        toza_nom = zip_faylini_tekshir(
+            fayl,
+            kutilgan_kengaytma=".xlsx",
+            max_hajm=MAX_REJA_HAJMI,
+            zarur_fayl="xl/workbook.xml",
+        )
         fayl.name = toza_nom
         return fayl
 
@@ -100,4 +96,25 @@ class RejaTahrirForm(forms.ModelForm):
         soni = self.cleaned_data.get("guruhlar_soni")
         if soni is not None and soni < 1:
             raise forms.ValidationError("Guruhlar soni kamida 1 bo'lishi kerak.")
+        if self.instance.pk:
+            eng_katta = eng_katta_band_guruh(self.instance)
+            if eng_katta and (soni is None or soni < eng_katta):
+                raise forms.ValidationError(
+                    f"{eng_katta}-guruhga allaqachon o'qituvchi "
+                    "yuklamasi biriktirilgan."
+                )
         return soni
+
+    def clean(self) -> dict[str, object]:
+        cleaned = super().clean()
+        if self.instance.pk and (
+            cleaned.get("talabalar_soni") != self.instance.talabalar_soni
+            or cleaned.get("guruhlar_soni") != self.instance.guruhlar_soni
+        ):
+            if reja_qulflanganmi(self.instance):
+                raise forms.ValidationError(
+                    "Ushbu o'quv reja bo'yicha kafedra yuklamasi qulflangan — "
+                    "talabalar yoki guruhlar sonini o'zgartirishdan oldin "
+                    "tasdiqni qaytaring."
+                )
+        return cleaned

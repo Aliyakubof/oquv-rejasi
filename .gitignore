@@ -16,3 +16,8 @@ staticfiles/
 *.zip
 logs/
 backups/
+test_db.sqlite3
+*.py[cod]
+.coverage
+htmlcov/
+.DS_Store

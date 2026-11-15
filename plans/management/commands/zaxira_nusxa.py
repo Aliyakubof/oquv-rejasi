@@ -1,5 +1,6 @@
 """Create timestamped backup archive of the database and media files."""
 
+import os
 import sqlite3
 import subprocess
 from io import StringIO
@@ -28,6 +29,7 @@ def _postgres_nusxa(db_conf: dict[str, object], nishon: Path) -> None:
     host = str(db_conf.get("HOST") or "")
     port = str(db_conf.get("PORT") or "")
     user = str(db_conf.get("USER") or "")
+    password = str(db_conf.get("PASSWORD") or "")
     if host:
         cmd.extend(["-h", host])
     if port:
@@ -36,9 +38,44 @@ def _postgres_nusxa(db_conf: dict[str, object], nishon: Path) -> None:
         cmd.extend(["-U", user])
     if name:
         cmd.append(name)
-    natija = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    env = os.environ.copy()
+    if password:
+        env["PGPASSWORD"] = password
+    try:
+        natija = subprocess.run(
+            cmd, capture_output=True, text=True, check=False, env=env
+        )
+    except FileNotFoundError as exc:
+        raise CommandError("pg_dump utilitasi topilmadi") from exc
     if natija.returncode != 0:
-        raise CommandError(f"pg_dump xatosi: {natija.stderr.strip() or 'noma`lum'}")
+        raise CommandError(f"pg_dump xatosi: {natija.stderr.strip() or 'nomalum'}")
+
+
+def _db_vaqtincha_yarat(
+    engine: str,
+    db_conf: dict[str, object],
+    json_rejim: bool,
+    katalog: Path,
+    vaqt_tamga: str,
+) -> tuple[Path, str]:
+    if json_rejim:
+        nishon = katalog / f"_tmp_db_{vaqt_tamga}.json"
+        _json_dump_nusxa(nishon)
+        return nishon, "database.json"
+    if "sqlite3" in engine:
+        db_path = Path(str(db_conf.get("NAME") or ""))
+        if not db_path.exists():
+            raise CommandError(f"SQLite bazasi topilmadi: {db_path}")
+        nishon = katalog / f"_tmp_db_{vaqt_tamga}.sqlite3"
+        _sqlite_nusxa(db_path, nishon)
+        return nishon, "db.sqlite3"
+    if "postgresql" in engine:
+        nishon = katalog / f"_tmp_db_{vaqt_tamga}.sql"
+        _postgres_nusxa(db_conf, nishon)
+        return nishon, "database.sql"
+    nishon = katalog / f"_tmp_db_{vaqt_tamga}.json"
+    _json_dump_nusxa(nishon)
+    return nishon, "database.json"
 
 
 def _json_dump_nusxa(nishon: Path) -> None:
@@ -100,26 +137,9 @@ class Command(BaseCommand):
 
         db_vaqtincha: Path | None = None
         try:
-            if json_rejim:
-                db_vaqtincha = katalog / f"_tmp_db_{vaqt_tamga}.json"
-                _json_dump_nusxa(db_vaqtincha)
-                arxiv_ichki_nomi = "database.json"
-            elif "sqlite3" in engine:
-                db_path = Path(str(db_conf.get("NAME") or ""))
-                if not db_path.exists():
-                    raise CommandError(f"SQLite bazasi topilmadi: {db_path}")
-                db_vaqtincha = katalog / f"_tmp_db_{vaqt_tamga}.sqlite3"
-                _sqlite_nusxa(db_path, db_vaqtincha)
-                arxiv_ichki_nomi = "db.sqlite3"
-            elif "postgresql" in engine:
-                db_vaqtincha = katalog / f"_tmp_db_{vaqt_tamga}.sql"
-                _postgres_nusxa(db_conf, db_vaqtincha)
-                arxiv_ichki_nomi = "database.sql"
-            else:
-                db_vaqtincha = katalog / f"_tmp_db_{vaqt_tamga}.json"
-                _json_dump_nusxa(db_vaqtincha)
-                arxiv_ichki_nomi = "database.json"
-
+            db_vaqtincha, arxiv_ichki_nomi = _db_vaqtincha_yarat(
+                engine, db_conf, json_rejim, katalog, vaqt_tamga
+            )
             media_soni = 0
             with ZipFile(zip_yoli, "w", compression=ZIP_DEFLATED) as arxiv:
                 arxiv.write(db_vaqtincha, arcname=arxiv_ichki_nomi)

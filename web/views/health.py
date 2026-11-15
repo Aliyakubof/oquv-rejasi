@@ -1,10 +1,13 @@
 """Health check endpoint verifying database and cache availability."""
 
+import logging
 import uuid
 
 from django.core.cache import cache
 from django.db import connection
 from django.http import HttpRequest, JsonResponse
+
+logger = logging.getLogger(__name__)
 
 
 def _baza_tekshir() -> bool:
@@ -14,6 +17,7 @@ def _baza_tekshir() -> bool:
             cursor.fetchone()
         return True
     except Exception:
+        logger.warning("Healthcheck baza tekshiruvi muvaffaqiyatsiz", exc_info=True)
         return False
 
 
@@ -25,6 +29,7 @@ def _kesh_tekshir() -> bool:
         cache.delete(kalit)
         return qiymat == "ok"
     except Exception:
+        logger.warning("Healthcheck kesh tekshiruvi muvaffaqiyatsiz", exc_info=True)
         return False
 
 

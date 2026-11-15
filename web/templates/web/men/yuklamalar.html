@@ -22,7 +22,10 @@
       {% include "web/parts/_yil_tanlov.html" with hx_url=yuk_url hx_target="#men-yuklama-jonli" %}
     </form>
     {% endif %}
-    <a class="btn" href="{% url 'men:shakl1_docx' %}?yil={{ yil }}" hx-boost="false">1-shakl (.docx)</a>
+    <a class="btn" href="{% url 'men:shakl1_docx' %}?yil={{ yil }}" hx-boost="false">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>1-shakl (.docx)</span>
+    </a>
   </div>
 </div>
 
@@ -37,7 +40,7 @@
   <div class="stat {% if jami_soat < profil.turi.min_soat %}warn{% else %}ok{% endif %}">
     <div class="num">{{ jami_soat|foiz:profil.turi.min_soat }}%</div>
     <div class="lbl">Qoplanish
-      <div class="progress" style="margin-top:6px;">
+      <div class="progress progress-compact men-stat-progress">
         {% with f=jami_soat|foiz:profil.turi.min_soat %}
         <div class="fill {% if f < 100 %}warn{% endif %}" data-width="{{ f }}"></div>
         {% endwith %}
@@ -104,7 +107,7 @@
             </button>
           </td>
           <td class="col-center" data-label="Yo'nalish"><span class="code">{{ yuklama.fan_semestr.variant.fan.reja.yonalish_kodi }}</span></td>
-          <td class="col-center" data-label="Semestr"><span class="hour-tag">{{ yuklama.fan_semestr.semestr }}-semestr</span></td>
+          <td class="col-center" data-label="Semestr"><span class="sem-pill">{{ yuklama.fan_semestr.semestr }}-semestr</span></td>
           <td class="col-center" data-label="Mashg'ulot turi">
             <span class="tur-chip"><span class="tur-dot {% if yuklama.tur == 'MARUZA' %}tur-dot-maruza{% elif yuklama.tur == 'AMALIYOT' %}tur-dot-amaliyot{% elif yuklama.tur == 'LABORATORIYA' %}tur-dot-lab{% elif yuklama.tur == 'SEMINAR' %}tur-dot-seminar{% elif yuklama.tur == 'KURS_ISHI' %}tur-dot-kurs{% endif %}"></span>{{ yuklama.get_tur_display }}</span>
           </td>
@@ -125,7 +128,7 @@
           </td>
         </tr>
         {% if yuklama.dastur_korsatilsin %}
-        <tr class="panel-row"><td colspan="8" style="padding:0;border-bottom:0;">
+        <tr class="panel-row"><td colspan="8" class="panel-row-cell">
           <div id="dastur-panel-{{ yuklama.fan_semestr.variant_id }}"></div>
         </td></tr>
         {% endif %}

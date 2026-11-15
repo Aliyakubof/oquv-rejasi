@@ -425,7 +425,39 @@ class RestApiTests(TestCase):
             data=json.dumps({"rejalar": []}),
             content_type="application/json",
         )
-        self.assertEqual(javob.status_code, 401)
+        self.assertEqual(javob.status_code, 403)
+
+    def test_api_is_staff_va_mudir_403_va_sahifalash_ishlaydi(self) -> None:
+        staff_teacher = oqituvchi_yarat(kafedra=self.kafedra)
+        staff_teacher.is_staff = True
+        staff_teacher.save(update_fields=["is_staff"])
+
+        self.client.force_login(staff_teacher)
+        r_forbid = self.client.get(reverse("api:rejalar"))
+        self.assertEqual(r_forbid.status_code, 403)
+
+        auth = f"Bearer {self.api_key}"
+        r_bad = self.client.get(
+            reverse("api:rejalar"), HTTP_AUTHORIZATION="Bearer xato"
+        )
+        self.assertEqual(r_bad.status_code, 401)
+
+        r_page = self.client.get(
+            reverse("api:oqituvchilar"),
+            {"page": 1, "page_size": 1, "yil": 2024},
+            HTTP_AUTHORIZATION=auth,
+        )
+        self.assertEqual(r_page.status_code, 200)
+        self.assertEqual(r_page.json()["page"], 1)
+        self.assertEqual(r_page.json()["page_size"], 1)
+
+        r_too_many = self.client.post(
+            reverse("api:sync"),
+            data=json.dumps({"rejalar": [{} for _ in range(501)]}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=auth,
+        )
+        self.assertEqual(r_too_many.status_code, 400)
 
     def test_api_hemis_sync_talabalar_va_guruhlarni_yangilaydi(self) -> None:
         auth = f"Bearer {self.api_key}"

@@ -26,12 +26,12 @@ def output_stem(
     return f"{stem}_{start_year}" if start_year else stem
 
 
-def process_file(xlsx_path: Path) -> None:
+def process_file(xlsx_path: Path) -> bool:
     try:
         result = parse_workbook(xlsx_path)
-    except ParseError as exc:
-        print(f"  ERROR: {xlsx_path.name}: {exc}")
-        return
+    except (ParseError, OSError) as exc:
+        print(f"  ERROR: {xlsx_path.name}: {exc}", file=sys.stderr)
+        return False
 
     title = result.direction_name or xlsx_path.stem
     OUTPUT_DIR.mkdir(exist_ok=True)
@@ -57,9 +57,10 @@ def process_file(xlsx_path: Path) -> None:
     )
     for warning in result.warnings:
         print(f"    WARNING: {warning}")
+    return True
 
 
-def main() -> None:
+def main() -> int:
     # Windows consoles often default to cp1252, which can't encode every
     # character in these Uzbek-language warnings (apostrophe variants, etc).
     for stream in (sys.stdout, sys.stderr):
@@ -75,11 +76,13 @@ def main() -> None:
     )
     args = arg_parser.parse_args()
 
+    xato_bor = False
     if args.files:
         xlsx_files = []
         for p in args.files:
             if not p.exists():
-                print(f"WARNING: file not found: {p}")
+                print(f"ERROR: file not found: {p}", file=sys.stderr)
+                xato_bor = True
             else:
                 xlsx_files.append(p)
     else:
@@ -88,11 +91,14 @@ def main() -> None:
         )
 
     if not xlsx_files:
-        print("No .xlsx files found.")
-        return
+        if not xato_bor:
+            print("No .xlsx files found.")
+        return 1 if xato_bor else 0
     for xlsx_path in xlsx_files:
-        process_file(xlsx_path)
+        if not process_file(xlsx_path):
+            xato_bor = True
+    return 1 if xato_bor else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

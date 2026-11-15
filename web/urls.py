@@ -14,9 +14,12 @@ from web.views.bildirishnoma import (
     bildirishnoma_oqish,
 )
 from web.views.jonli import jonli_holat
+from web.views.offline import offline_sahifa, service_worker_js
 
 urlpatterns = [
     path("", bosh_sahifa, name="bosh_sahifa"),
+    path("offline/", offline_sahifa, name="offline_sahifa"),
+    path("sw.js", service_worker_js, name="service_worker"),
     path("kirish/", KirishView.as_view(), name="kirish"),
     path("parol/", ParolOzgartirishView.as_view(), name="parol_ozgartirish"),
     path(

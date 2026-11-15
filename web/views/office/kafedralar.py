@@ -109,7 +109,10 @@ def kafedra_mudir(request: HttpRequest, pk: int) -> HttpResponse:
         profil_pk = musbat_int_yoki_none(xom_profil)
         if profil_pk is None:
             raise Http404
-        profil = get_object_or_404(OqituvchiProfil, pk=profil_pk)
+        profil = get_object_or_404(
+            OqituvchiProfil.objects.select_related("foydalanuvchi", "kafedra"),
+            pk=profil_pk,
+        )
     else:
         profil = None
     try:
@@ -150,17 +153,20 @@ def kafedra_yuklama_tasdiqlash(request: HttpRequest, pk: int) -> HttpResponse:
     _, yil = yilni_tanlash(request.POST.get("yil"))
     yil = yil or dashboard.joriy_akademik_yil()
     izoh = request.POST.get("izoh", "").strip()
-    with transaction.atomic():
-        tasdiq = services.yuklamani_tasdiqlash(kafedra, yil, request.user, izoh)
-        audit_yoz(
-            AuditAmali.TASDIQLANDI,
-            f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi tasdiqlandi va qulflandi.",
-            model_nomi="KafedraYuklamaTasdiq",
-            obyekt_id=tasdiq.pk,
-            request=request,
-        )
-        kafedra_javobi_xabari(kafedra, yil, tasdiq)
-    messages.success(request, f"{kafedra.nomi} yuklamasi tasdiqlandi.")
+    try:
+        with transaction.atomic():
+            tasdiq = services.yuklamani_tasdiqlash(kafedra, yil, request.user, izoh)
+            audit_yoz(
+                AuditAmali.TASDIQLANDI,
+                f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi tasdiqlandi va qulflandi.",
+                model_nomi="KafedraYuklamaTasdiq",
+                obyekt_id=tasdiq.pk,
+                request=request,
+            )
+            kafedra_javobi_xabari(kafedra, yil, tasdiq)
+        messages.success(request, f"{kafedra.nomi} yuklamasi tasdiqlandi.")
+    except ValidationError as xato:
+        messages.error(request, xato_matni(xato))
     return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
 
 
@@ -171,18 +177,21 @@ def kafedra_yuklama_qaytarish(request: HttpRequest, pk: int) -> HttpResponse:
     _, yil = yilni_tanlash(request.POST.get("yil"))
     yil = yil or dashboard.joriy_akademik_yil()
     izoh = request.POST.get("izoh", "").strip()
-    with transaction.atomic():
-        tasdiq = services.yuklamani_qaytarish(kafedra, yil, request.user, izoh)
-        sabab = izoh or "Izohsiz"
-        audit_yoz(
-            AuditAmali.QAYTARILDI,
-            f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi qaytarildi. Sabab: {sabab}",
-            model_nomi="KafedraYuklamaTasdiq",
-            obyekt_id=tasdiq.pk,
-            request=request,
-        )
-        kafedra_javobi_xabari(kafedra, yil, tasdiq)
-    messages.warning(request, f"{kafedra.nomi} yuklamasi qaytarildi.")
+    try:
+        with transaction.atomic():
+            tasdiq = services.yuklamani_qaytarish(kafedra, yil, request.user, izoh)
+            sabab = izoh or "Izohsiz"
+            audit_yoz(
+                AuditAmali.QAYTARILDI,
+                f"{kafedra.nomi}: {yil}/{yil + 1} yuklamasi qaytarildi. Sabab: {sabab}",
+                model_nomi="KafedraYuklamaTasdiq",
+                obyekt_id=tasdiq.pk,
+                request=request,
+            )
+            kafedra_javobi_xabari(kafedra, yil, tasdiq)
+        messages.warning(request, f"{kafedra.nomi} yuklamasi qaytarildi.")
+    except ValidationError as xato:
+        messages.error(request, xato_matni(xato))
     return redirect(f"{reverse_lazy('office:kafedra_list')}?yil={yil}")
 
 

@@ -1,0 +1,15 @@
+{# Suv belgili yuklanish holati uchun markaziy ramz va matn tamg'asi #}
+<div class="skeleton-watermark-seal{% if wm_compact %} is-compact{% endif %}" aria-hidden="true">
+  <div class="skeleton-wm-mark">
+    <span class="skeleton-wm-emblem">
+      <svg width="{% if wm_compact %}14{% else %}18{% endif %}" height="{% if wm_compact %}14{% else %}18{% endif %}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </svg>
+    </span>
+    <span class="skeleton-wm-copy">
+      <span class="skeleton-wm-title">O'quv yuklamasi</span>
+      <span class="skeleton-wm-sub">{{ wm_text|default:"Yuklanmoqda…" }}</span>
+    </span>
+  </div>
+</div>

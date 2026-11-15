@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import FormView, TemplateView
 
-from accounts.models import OqituvchiProfil
+from accounts.models import OqituvchiProfil, Rol
 from plans import dashboard
 from plans.audit import audit_yoz
 from plans.dashboard import yilni_tanlash
@@ -84,10 +84,10 @@ class OqituvchiTahrirAsosView(FormView):
     success_url_name: str = ""
 
     def profil_olish(self) -> OqituvchiProfil:
-        return get_object_or_404(
-            OqituvchiProfil.objects.bilan_foydalanuvchi(),
-            pk=self.kwargs["pk"],
-        )
+        qs = OqituvchiProfil.objects.bilan_foydalanuvchi()
+        if getattr(self.request.user, "rol", None) != Rol.SUPERADMIN:
+            qs = qs.exclude(foydalanuvchi__rol=Rol.SUPERADMIN)
+        return get_object_or_404(qs, pk=self.kwargs["pk"])
 
     def get_form_kwargs(self) -> dict[str, object]:
         kwargs = super().get_form_kwargs()

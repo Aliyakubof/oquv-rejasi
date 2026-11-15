@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
   <meta name="login-url" content="{% url 'kirish' %}">
-  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=59">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=64">
   <link rel="stylesheet" href="{% static 'web/css/print.css' %}?v=6">
   <script src="{% static 'web/js/htmx.min.js' %}" defer></script>
   <script>
@@ -204,7 +204,14 @@
           }
           window.addEventListener('korinish:ochish', () => this.ochish());
         },
+        _bekorTimer: null,
         ochish() {
+          clearTimeout(this._bekorTimer);
+          this._bekorTimer = null;
+          this.shrift = this.asl.shrift;
+          this.yuqoriKontrast = this.asl.yuqoriKontrast;
+          this.kengRejim = this.asl.kengRejim;
+          this.qollash();
           this.xato = '';
           this.ochiq = true;
         },
@@ -216,12 +223,24 @@
           b.classList.toggle('ui-keng', Boolean(this.kengRejim));
         },
         yopish() {
-          if (this.majburiy) return;
-          this.shrift = this.asl.shrift;
-          this.yuqoriKontrast = this.asl.yuqoriKontrast;
-          this.kengRejim = this.asl.kengRejim;
-          this.qollash();
+          if (this.majburiy || !this.ochiq) return;
+          const ozgardi = this.shrift !== this.asl.shrift
+            || this.yuqoriKontrast !== this.asl.yuqoriKontrast
+            || this.kengRejim !== this.asl.kengRejim;
+          const tezkor = document.body?.classList.contains('ui-keng')
+            || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
           this.ochiq = false;
+          if (!ozgardi) return;
+          clearTimeout(this._bekorTimer);
+          const tiklash = () => {
+            this._bekorTimer = null;
+            if (this.ochiq) return;
+            this.shrift = this.asl.shrift;
+            this.yuqoriKontrast = this.asl.yuqoriKontrast;
+            this.kengRejim = this.asl.kengRejim;
+            this.qollash();
+          };
+          this._bekorTimer = setTimeout(tiklash, tezkor ? 30 : 220);
         },
         _toastKorsat(matn) {
           const joy = document.getElementById('app-messages');
@@ -245,6 +264,8 @@
           }, 3500);
         },
         async saqlash() {
+          clearTimeout(this._bekorTimer);
+          this._bekorTimer = null;
           this.saqlanmoqda = true;
           this.xato = '';
           try {
@@ -351,6 +372,323 @@
       }
     };
     window.PageLoader = PageLoader;
+
+    // ================= 1.2. Sekin HTMX Yuklanishlarda Suv Belgili Skelet =================
+    const SkeletonStage = {
+      active: new WeakMap(),
+      targetXhr: new WeakMap(),
+      _indicatorSelector(evt) {
+        const elt = evt.detail?.elt;
+        if (!elt || !elt.closest) return '';
+        const carrier = elt.hasAttribute('hx-indicator') ? elt : elt.closest('[hx-indicator]');
+        return carrier ? (carrier.getAttribute('hx-indicator') || '').trim() : '';
+      },
+      shouldStage(evt) {
+        const target = evt.detail?.target;
+        if (!(target instanceof HTMLElement)) return false;
+        if (target === document.body || target.matches('.app, main, #rol-royxati, tr, td, th, button, a, span')) {
+          return false;
+        }
+        const ind = this._indicatorSelector(evt);
+        if (ind && ind !== '#htmx-yuklanish' && document.querySelector(ind)) return false;
+        const isPanel = target.id.startsWith('dastur-panel-') || target.id.startsWith('panel-');
+        if (isPanel) return true;
+        return (
+          target.matches('[id$="-jonli"], [id$="-bolim"], #kontent, .table-wrap, .analitika-card, .report-sheet') ||
+          Boolean(target.querySelector('.table-wrap, .stats, table, .analitika-card, .report-sheet'))
+        );
+      },
+      _cloneWatermark(compact, label) {
+        const tpl = document.getElementById('tpl-skeleton-watermark');
+        const frag = tpl ? tpl.content.cloneNode(true) : document.createDocumentFragment();
+        const seal = frag.querySelector?.('.skeleton-watermark-seal');
+        if (seal) {
+          if (compact) seal.classList.add('is-compact');
+          const sub = seal.querySelector('.skeleton-wm-sub');
+          if (sub && label) sub.textContent = label;
+        }
+        return frag;
+      },
+      _makeBars(parent, specs) {
+        specs.forEach((cls) => {
+          const bar = document.createElement('div');
+          bar.className = `skeleton-bar ${cls}`;
+          parent.appendChild(bar);
+        });
+      },
+      _buildPanelStage() {
+        const box = document.createElement('div');
+        box.className = 'htmx-skeleton-stage is-inline-panel skeleton-watermark-shell skeleton-panel-box';
+        box.setAttribute('aria-hidden', 'true');
+        box.appendChild(this._cloneWatermark(true, 'Panel yuklanmoqda…'));
+        const head = document.createElement('div');
+        head.className = 'skeleton-panel-head';
+        this._makeBars(head, ['sk-title sk-w-34', 'sk-pill sk-w-14']);
+        box.appendChild(head);
+        const grid = document.createElement('div');
+        grid.className = 'skeleton-panel-grid';
+        ['sk-w-75', 'sk-w-60'].forEach((wCls) => {
+          const slot = document.createElement('div');
+          slot.className = 'skeleton-panel-slot';
+          this._makeBars(slot, ['sk-sm sk-w-45', wCls, 'sk-btn sk-w-28']);
+          grid.appendChild(slot);
+        });
+        box.appendChild(grid);
+        return box;
+      },
+      _buildStage(target) {
+        const isPanel = target.id.startsWith('dastur-panel-') || target.id.startsWith('panel-');
+        if (isPanel) return this._buildPanelStage();
+
+        const stage = document.createElement('div');
+        stage.className = 'htmx-skeleton-stage skeleton-watermark-shell';
+        stage.setAttribute('aria-hidden', 'true');
+        stage.appendChild(this._cloneWatermark(false, "Ma'lumot yuklanmoqda…"));
+
+        if (target.querySelector('.topbar')) {
+          const tb = document.createElement('div');
+          tb.className = 'skeleton-topbar';
+          this._makeBars(tb, ['sk-title sk-w-30', 'sk-btn sk-w-18']);
+          stage.appendChild(tb);
+        }
+
+        const statsEl = target.querySelector('.stats');
+        if (statsEl) {
+          const count = Math.min(4, Math.max(2, statsEl.querySelectorAll('.stat').length || 4));
+          const grid = document.createElement('div');
+          grid.className = 'skeleton-stat-grid';
+          for (let i = 0; i < count; i += 1) {
+            const card = document.createElement('div');
+            card.className = 'skeleton-stat-card';
+            this._makeBars(card, ['sk-lg sk-w-34', 'sk-sm sk-w-60']);
+            grid.appendChild(card);
+          }
+          stage.appendChild(grid);
+        }
+
+        if (target.querySelector('.filter-toolbar, .subtoolbar')) {
+          const bar = document.createElement('div');
+          bar.className = 'skeleton-toolbar';
+          this._makeBars(bar, ['sk-btn sk-w-30']);
+          const chips = document.createElement('div');
+          chips.className = 'skeleton-toolbar-chips';
+          this._makeBars(chips, ['sk-pill sk-w-14', 'sk-pill sk-w-14']);
+          bar.appendChild(chips);
+          stage.appendChild(bar);
+        }
+
+        const tableEl = target.querySelector('.table-wrap, table, .analitika-table');
+        if (tableEl || !target.querySelector('.card, .report-sheet, .analitika-card')) {
+          const tbl = document.createElement('div');
+          tbl.className = 'skeleton-table';
+          const head = document.createElement('div');
+          head.className = 'skeleton-row head';
+          this._makeBars(head, ['sk-w-12', 'sk-w-30', 'sk-w-14', 'sk-w-14', 'sk-w-18']);
+          tbl.appendChild(head);
+          for (let i = 0; i < 5; i += 1) {
+            const row = document.createElement('div');
+            row.className = 'skeleton-row';
+            this._makeBars(row, ['sk-w-10', 'sk-w-34', 'sk-w-12', 'sk-w-12', 'sk-w-20']);
+            tbl.appendChild(row);
+          }
+          stage.appendChild(tbl);
+        } else {
+          const cardBox = document.createElement('div');
+          cardBox.className = 'skeleton-card-box';
+          this._makeBars(cardBox, ['sk-title sk-w-45', 'sk-w-75', 'sk-w-60', 'sk-w-34']);
+          stage.appendChild(cardBox);
+        }
+        return stage;
+      },
+      start(evt) {
+        if (!this.shouldStage(evt)) return;
+        const xhr = evt.detail?.xhr;
+        const target = evt.detail?.target;
+        if (!xhr || !target) return;
+        const prevXhr = this.targetXhr.get(target);
+        if (prevXhr) this.finish({ detail: { xhr: prevXhr } });
+        this.targetXhr.set(target, xhr);
+        const isPanel = target.id.startsWith('dastur-panel-') || target.id.startsWith('panel-');
+        const delay = isPanel ? 100 : 150;
+        const state = { timer: null, target, stageEl: null, prevMinHeight: target.style.minHeight };
+        this.active.set(xhr, state);
+        state.timer = window.setTimeout(() => {
+          if (this.targetXhr.get(target) !== xhr || !target.isConnected) return;
+          if (!isPanel && target.offsetHeight > 0) {
+            target.style.minHeight = `${Math.max(target.offsetHeight, 200)}px`;
+          }
+          target.querySelectorAll(':scope > .htmx-skeleton-stage').forEach((n) => n.remove());
+          target.classList.add('is-skeleton-loading');
+          target.setAttribute('aria-busy', 'true');
+          const stageEl = this._buildStage(target);
+          state.stageEl = stageEl;
+          target.appendChild(stageEl);
+        }, delay);
+      },
+      finish(evt) {
+        const xhr = evt?.detail?.xhr;
+        if (!xhr) return;
+        const state = this.active.get(xhr);
+        if (!state) return;
+        window.clearTimeout(state.timer);
+        this.active.delete(xhr);
+        const t = state.target;
+        if (t && this.targetXhr.get(t) === xhr) {
+          state.stageEl?.remove();
+          if (t.isConnected) {
+            t.style.minHeight = state.prevMinHeight;
+            t.classList.remove('is-skeleton-loading');
+            t.removeAttribute('aria-busy');
+          }
+          this.targetXhr.delete(t);
+        }
+      },
+      clearAll() {
+        document.querySelectorAll('.htmx-skeleton-stage').forEach((n) => n.remove());
+        document.querySelectorAll('.is-skeleton-loading').forEach((el) => {
+          el.classList.remove('is-skeleton-loading');
+          el.removeAttribute('aria-busy');
+          el.style.minHeight = '';
+        });
+      }
+    };
+    window.SkeletonStage = SkeletonStage;
+
+    // ================= 1.3. Oflayn Rejim va Tarmoq Tiklanish Oynasi =================
+    const OfflineGuard = {
+      toastTimer: null,
+      _overlay() {
+        return document.getElementById('offline-modal-overlay');
+      },
+      _pill() {
+        return document.getElementById('offline-mini-pill');
+      },
+      _toast() {
+        return document.getElementById('offline-toast-banner');
+      },
+      isOpen() {
+        const el = this._overlay();
+        return Boolean(el && !el.classList.contains('is-hidden'));
+      },
+      _setStatus(text, stateLabel, isOnline) {
+        const el = this._overlay();
+        if (!el) return;
+        const pill = el.querySelector('[data-offline-pill]');
+        const st = el.querySelector('[data-offline-status-text]');
+        const val = el.querySelector('[data-offline-state-val]');
+        if (pill) pill.classList.toggle('is-online', Boolean(isOnline));
+        if (st) st.textContent = text;
+        if (val) val.textContent = stateLabel;
+      },
+      show() {
+        const el = this._overlay();
+        if (!el) return;
+        PageLoader.hide(true);
+        SkeletonStage.clearAll();
+        resetLoadingButtons();
+        this._toast()?.classList.add('is-hidden');
+        this._pill()?.classList.add('is-hidden');
+        this._setStatus('Internet aloqasi uzildi', 'Oflayn rejim', false);
+        el.classList.remove('is-hidden');
+        window.setTimeout(() => {
+          el.querySelector('[data-offline-retry]')?.focus?.();
+        }, 60);
+      },
+      minimize() {
+        const el = this._overlay();
+        if (el) el.classList.add('is-hidden');
+        if (!navigator.onLine) {
+          this._pill()?.classList.remove('is-hidden');
+        }
+      },
+      handleOnline() {
+        const wasOffline = this.isOpen() || !this._pill()?.classList.contains('is-hidden');
+        this._overlay()?.classList.add('is-hidden');
+        this._pill()?.classList.add('is-hidden');
+        if (wasOffline) {
+          this.showOnlineToast();
+          window.dispatchEvent(new Event('focus'));
+        }
+      },
+      showOnlineToast() {
+        const toast = this._toast();
+        if (!toast) return;
+        window.clearTimeout(this.toastTimer);
+        toast.classList.remove('is-hidden');
+        this.toastTimer = window.setTimeout(() => {
+          toast.classList.add('is-hidden');
+        }, 4500);
+      },
+      async probeHealth(silent = false) {
+        const ctrl = new AbortController();
+        const tid = window.setTimeout(() => ctrl.abort(), 3500);
+        try {
+          const resp = await fetch('{% url "healthcheck" %}', {
+            cache: 'no-store',
+            credentials: 'same-origin',
+            signal: ctrl.signal,
+          });
+          window.clearTimeout(tid);
+          return resp.status >= 200;
+        } catch (_err) {
+          window.clearTimeout(tid);
+          if (silent) this.show();
+          return false;
+        }
+      },
+      async checkNow() {
+        const el = this._overlay();
+        const btn = el?.querySelector('[data-offline-retry]');
+        const card = el?.querySelector('[data-offline-card]');
+        if (btn) {
+          btn.classList.add('is-probing');
+          btn.disabled = true;
+        }
+        this._setStatus('Aloqa tekshirilmoqda…', 'Tekshirilmoqda', false);
+        const ok = await this.probeHealth(false);
+        if (btn) {
+          btn.classList.remove('is-probing');
+          btn.disabled = false;
+        }
+        if (ok) {
+          this._setStatus('Aloqa tiklandi!', 'Onlayn', true);
+          window.setTimeout(() => this.handleOnline(), 280);
+          return;
+        }
+        this._setStatus("Hali ham tarmoq yo'q", 'Oflayn rejim', false);
+        if (card) {
+          card.classList.remove('is-shake');
+          void card.offsetWidth;
+          card.classList.add('is-shake');
+        }
+      },
+      onRequestError() {
+        if (!navigator.onLine) {
+          this.show();
+        } else {
+          this.probeHealth(true);
+        }
+      },
+      init() {
+        if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+          navigator.serviceWorker.register('{% url "service_worker" %}', { scope: '/' }).catch(() => {});
+        }
+        window.addEventListener('offline', () => this.show());
+        window.addEventListener('online', () => this.handleOnline());
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && this.isOpen()) this.minimize();
+        });
+        if (typeof navigator.onLine === 'boolean' && !navigator.onLine) {
+          this.show();
+        }
+      }
+    };
+    window.OfflineGuard = OfflineGuard;
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => OfflineGuard.init());
+    } else {
+      OfflineGuard.init();
+    }
 
     function boshlangichYuklanish() {
       const yol = window.location.pathname || '';
@@ -549,31 +887,80 @@
 
     window.addEventListener('pageshow', (e) => {
       PageLoader.hide(Boolean(e && e.persisted));
+      SkeletonStage.clearAll();
       resetLoadingButtons();
       applyDynamicStyles(document);
       animateCounters(document);
     });
 
-    document.addEventListener('htmx:afterSwap', () => {
+    document.addEventListener('htmx:beforeRequest', (evt) => {
+      SkeletonStage.start(evt);
+    });
+
+    document.addEventListener('htmx:beforeSwap', (evt) => {
+      const target = evt.detail?.target;
+      if (!target) return;
+      const hadBackdrop = !!target.querySelector('.table-modal-backdrop');
+      const resp = evt.detail?.xhr?.responseText || '';
+      if (hadBackdrop && resp.includes('table-modal-backdrop')) {
+        target.dataset.modalRefresh = '1';
+      } else {
+        delete target.dataset.modalRefresh;
+      }
+    });
+    document.addEventListener('htmx:afterSwap', (evt) => {
       PageLoader.hide();
+      const target = evt.detail?.target;
+      if (target?.dataset?.modalRefresh === '1') {
+        delete target.dataset.modalRefresh;
+        target.querySelectorAll('.table-modal-backdrop').forEach((el) => {
+          el.classList.add('is-panel-refresh');
+        });
+      } else if (
+        target &&
+        target.classList &&
+        !target.matches('body, .app, main, #kontent, [id$="-jonli"], [id$="-bolim"]') &&
+        !target.querySelector('.table-modal-backdrop')
+      ) {
+        target.classList.remove('is-htmx-updated');
+        void target.offsetWidth;
+        target.classList.add('is-htmx-updated');
+        window.setTimeout(() => target.classList.remove('is-htmx-updated'), 720);
+      }
       applyDynamicStyles(document);
       animateCounters(document);
+    });
+    document.addEventListener('jonli:yangilandi', (evt) => {
+      const target = (evt.detail && evt.detail.el) || (evt.target && evt.target !== document ? evt.target : null);
+      if (target && target.classList && !target.matches('body, .app, main, #kontent, [id$="-jonli"], [id$="-bolim"]')) {
+        target.classList.remove('is-jonli-updated');
+        void target.offsetWidth;
+        target.classList.add('is-jonli-updated');
+        window.setTimeout(() => target.classList.remove('is-jonli-updated'), 720);
+      }
     });
     document.addEventListener('htmx:afterSettle', () => {
       applyDynamicStyles(document);
       animateCounters(document);
     });
-    document.addEventListener('htmx:afterRequest', () => {
+    document.addEventListener('htmx:afterRequest', (evt) => {
       PageLoader.hide();
+      SkeletonStage.finish(evt);
       resetLoadingButtons();
     });
-    document.addEventListener('htmx:sendError', () => {
+    document.addEventListener('htmx:sendError', (evt) => {
       PageLoader.hide();
+      SkeletonStage.finish(evt);
+      resetLoadingButtons();
+      OfflineGuard.onRequestError();
+    });
+    document.addEventListener('htmx:responseError', (evt) => {
+      PageLoader.hide();
+      SkeletonStage.finish(evt);
       resetLoadingButtons();
     });
-    document.addEventListener('htmx:responseError', () => {
-      PageLoader.hide();
-      resetLoadingButtons();
+    document.addEventListener('htmx:abort', (evt) => {
+      SkeletonStage.finish(evt);
     });
 
     // ================= 1.5. Global Table & Action Modal Controller =================
@@ -957,7 +1344,7 @@
         || document.body?.classList.contains('ui-keng')
         || window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ) return;
-      const btn = e.target.closest('.btn, .chip-btn, .logout-btn, .btn-modal-view, .btn-dots, .teacher-chip, .app-modal-close');
+      const btn = e.target.closest('.btn, .chip-btn, .logout-btn, .btn-modal-view, .btn-dots, .teacher-chip, .app-modal-close, .seg-tab, .nav-link, .nav-pref-btn, .action-item, .menu-item, .nav-notif-item, .opt');
       if (!btn || btn.disabled || btn.classList.contains('is-loading')) return;
       btn.querySelectorAll('.btn-ripple').forEach((old) => old.remove());
       const rect = btn.getBoundingClientRect();
@@ -1004,6 +1391,13 @@
   <!-- Asosiy markaziy minimalistik yuklanish indikatori (Center Page Loader) -->
   <div id="htmx-yuklanish" class="htmx-top-bar htmx-indicator" aria-hidden="true"></div>
   <div id="main-page-loader" class="page-loader-overlay is-hidden" role="status" aria-live="polite" aria-label="Yuklanmoqda">
+    <div class="page-loader-ghost" aria-hidden="true">
+      <div class="skeleton-topbar">
+        <div class="skeleton-bar sk-title sk-w-30"></div>
+        <div class="skeleton-bar sk-btn sk-w-18"></div>
+      </div>
+      {% include "web/parts/_skeleton_jadval.html" with show_stats=True show_toolbar=True wm_text="Sahifa yuklanmoqda…" %}
+    </div>
     <div class="page-loader-spinner-wrap">
       <div class="loader-emblem" aria-hidden="true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1017,6 +1411,7 @@
       </div>
     </div>
   </div>
+  <template id="tpl-skeleton-watermark">{% include "web/parts/_skeleton_watermark.html" %}</template>
   <script>boshlangichYuklanish();</script>
   <div id="csrf-meta" data-csrf="{{ csrf_token }}" hidden></div>
   {% if user.is_authenticated %}{% include "web/parts/_navbar.html" %}{% endif %}
@@ -1044,6 +1439,20 @@
       <div id="app-modal-body" class="app-modal-body"></div>
       <div id="app-modal-footer" class="app-modal-footer"></div>
     </div>
+  </div>
+  <!-- Brendli Oflayn Oyna va Aloqa Holati Indikatori -->
+  <div id="offline-modal-overlay" class="app-modal-overlay offline-modal-overlay is-hidden print-hide" onclick="if(event.target===this) OfflineGuard.minimize()">
+    <div class="offline-modal-wrap" role="dialog" aria-modal="true" aria-labelledby="offline-modal-title">
+      {% include "web/parts/_offline_karta.html" with is_modal=True %}
+    </div>
+  </div>
+  <button type="button" id="offline-mini-pill" class="offline-mini-pill is-hidden print-hide" onclick="OfflineGuard.show()" aria-label="Oflayn holat tafsilotlari">
+    <span class="offline-mini-dot" aria-hidden="true"></span>
+    <span>Oflayn · Qayta ulash</span>
+  </button>
+  <div id="offline-toast-banner" class="offline-toast-banner is-hidden print-hide" role="status" aria-live="polite">
+    <span class="offline-toast-dot" aria-hidden="true"></span>
+    <span>Internet aloqasi tiklandi — ishlashda davom etishingiz mumkin</span>
   </div>
 </body>
 

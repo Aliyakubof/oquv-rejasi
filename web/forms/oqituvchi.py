@@ -34,6 +34,19 @@ class OqituvchiAsosForm(forms.Form):
             raise forms.ValidationError("Bu telefon raqam allaqachon ro'yxatda.")
         return telefon
 
+    def clean_kafedra(self) -> Department:
+        kafedra: Department = self.cleaned_data["kafedra"]
+        if (
+            self.profil is not None
+            and self.profil.kafedra_id != kafedra.pk
+            and self.profil.yuklamalar.exists()
+        ):
+            raise forms.ValidationError(
+                "O'qituvchiga joriy kafedrada yuklama biriktirilgan. "
+                "Boshqa kafedraga o'tkazishdan oldin yuklamalarni bekor qiling."
+            )
+        return kafedra
+
 
 class OqituvchiYaratishForm(OqituvchiAsosForm):
     parol = forms.CharField(label="Parol", widget=forms.PasswordInput)

@@ -88,17 +88,20 @@ def taqsimot_nusxalash_view(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Manba o'quv yilini tanlang.")
         return redirect(f"{reverse('kafedra:dashboard')}?yil={maqsad_yil}")
     try:
-        natija = nusxalash.kafedra_taqsimotini_nusxalash(kafedra, manba_yil, maqsad_yil)
-        audit_yoz(
-            AuditAmali.TAHRIRLANDI,
-            (
-                f"{kafedra.nomi}: {manba_yil}/{manba_yil + 1} dan "
-                f"{maqsad_yil}/{maqsad_yil + 1} ga {natija.yaratilgan_yuklamalar} ta "
-                "yuklama nusxalandi."
-            ),
-            model_nomi="Yuklama",
-            request=request,
-        )
+        with transaction.atomic():
+            natija = nusxalash.kafedra_taqsimotini_nusxalash(
+                kafedra, manba_yil, maqsad_yil
+            )
+            audit_yoz(
+                AuditAmali.TAHRIRLANDI,
+                (
+                    f"{kafedra.nomi}: {manba_yil}/{manba_yil + 1} dan "
+                    f"{maqsad_yil}/{maqsad_yil + 1} ga "
+                    f"{natija.yaratilgan_yuklamalar} ta yuklama nusxalandi."
+                ),
+                model_nomi="Yuklama",
+                request=request,
+            )
         messages.success(
             request,
             (

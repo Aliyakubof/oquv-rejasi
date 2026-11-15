@@ -93,7 +93,23 @@ class OquvReja(models.Model):
             models.UniqueConstraint(
                 fields=["yonalish_kodi", "boshlanish_yili", "talim_shakli"],
                 name="uniq_reja_kod_yil_shakl",
-            )
+            ),
+            models.CheckConstraint(
+                condition=Q(davomiylik_yil__gte=1),
+                name="chk_reja_davomiylik_min_1",
+            ),
+            models.CheckConstraint(
+                condition=Q(talabalar_soni__isnull=True) | Q(talabalar_soni__gte=1),
+                name="chk_reja_talabalar_min_1",
+            ),
+            models.CheckConstraint(
+                condition=Q(guruhlar_soni__isnull=True) | Q(guruhlar_soni__gte=1),
+                name="chk_reja_guruhlar_min_1",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["yonalish_kodi"]),
+            models.Index(fields=["-boshlanish_yili", "yonalish_nomi"]),
         ]
 
     def __str__(self) -> str:
@@ -118,6 +134,10 @@ class Guruh(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["reja", "raqam"], name="uniq_guruh_raqam"),
             models.UniqueConstraint(fields=["reja", "nomi"], name="uniq_guruh_nomi"),
+            models.CheckConstraint(
+                condition=Q(raqam__gte=1),
+                name="chk_guruh_raqam_min_1",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -246,6 +266,9 @@ class FanSemestr(models.Model):
                 name="chk_semestr_oraliq",
             ),
         ]
+        indexes = [
+            models.Index(fields=["semestr"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.variant} / {self.semestr}-semestr"
@@ -335,6 +358,7 @@ class Yuklama(models.Model):
         ]
         indexes = [
             models.Index(fields=["oqituvchi", "tur"]),
+            models.Index(fields=["oqituvchi", "fan_semestr"]),
             models.Index(fields=["fan_semestr", "tur"]),
         ]
 
@@ -368,6 +392,14 @@ class Yuklama(models.Model):
         variant = self.fan_semestr.variant
         if variant.fan.tanlangan_variant_id != variant.pk:
             raise ValidationError({"fan_semestr": "Fan uchun bu variant tanlanmagan."})
+        if (
+            variant.kafedra_id is not None
+            and self.oqituvchi_id is not None
+            and variant.kafedra_id != self.oqituvchi.kafedra_id
+        ):
+            raise ValidationError(
+                {"oqituvchi": "O'qituvchi boshqa kafedraga tegishli."}
+            )
 
     def _clean_soat_mavjud(self) -> None:
         if self.tur == SoatTuri.KURS_ISHI:
@@ -422,7 +454,7 @@ class DasturTopshirish(models.Model):
     """
 
     variant = models.ForeignKey(
-        FanVariant, on_delete=models.CASCADE, related_name="dastur_topshirishlari"
+        FanVariant, on_delete=models.PROTECT, related_name="dastur_topshirishlari"
     )
     urinish_raqami = models.PositiveSmallIntegerField()
     oqituvchi = models.ForeignKey(
@@ -449,7 +481,7 @@ class DasturTopshirish(models.Model):
     class Meta:
         verbose_name = "Dastur topshirig'i"
         verbose_name_plural = "Dastur topshiriqlari"
-        ordering = ["-yuborilgan_vaqt"]
+        ordering = ["-yuborilgan_vaqt", "-pk"]
         indexes = [
             models.Index(fields=["variant", "-yuborilgan_vaqt", "-id"]),
         ]
@@ -549,6 +581,8 @@ class AuditYozuvi(models.Model):
         ordering = ["-vaqt"]
         indexes = [
             models.Index(fields=["model_nomi", "-vaqt"]),
+            models.Index(fields=["model_nomi", "obyekt_id"]),
+            models.Index(fields=["amal", "-vaqt", "-id"]),
         ]
 
     def __str__(self) -> str:
@@ -589,6 +623,7 @@ class Bildirishnoma(models.Model):
         ordering = ["-yaratilgan_vaqt", "-pk"]
         indexes = [
             models.Index(fields=["qabul_qiluvchi", "oqilgan", "-yaratilgan_vaqt"]),
+            models.Index(fields=["qabul_qiluvchi", "-yaratilgan_vaqt", "-id"]),
         ]
 
     def __str__(self) -> str:

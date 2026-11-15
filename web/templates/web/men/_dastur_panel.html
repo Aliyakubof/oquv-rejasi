@@ -2,23 +2,34 @@
 <div class="table-modal-dialog taqsimot-panel" role="dialog" aria-modal="true" aria-label="{{ variant.nomi }} o'quv dasturi topshirig'i">
   <div class="taqsimot-panel-head">
     <div>
-      <div class="taqsimot-panel-title">
-        {% if variant.kodi %}<span class="col-code" style="margin-right:6px;">{{ variant.kodi }}</span>{% endif %}
-        {{ variant.nomi }} — o'quv dasturi topshirig'i
+      <div class="taqsimot-panel-title taqsimot-panel-title-wrap">
+        {% if variant.kodi %}<span class="code">{{ variant.kodi }}</span>{% endif %}
+        <span>{{ variant.nomi }}</span>
       </div>
+      <div class="credits taqsimot-panel-sub">O'quv dasturi (.docx) topshirish va ko'rib chiqish tarixi</div>
     </div>
-    <button type="button" class="app-modal-close" aria-label="Yopish" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')">
+    <button type="button" class="app-modal-close" aria-label="Yopish" title="Yopish (Esc)" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
   {% if xato %}
-  <div class="form-errors">{{ xato }}</div>
+  <div class="form-errors alert-danger-inline" role="alert">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>{{ xato }}</span>
+  </div>
   {% endif %}
   {% include "web/dastur/_tarix_royxati.html" with urinishlar=urinishlar fayl_url_nomi="men:dastur_fayl" %}
-  <div class="taqsimot-panel-foot tarix-panel-foot">
-    {% if joriy.holat == "KUTILMOQDA" %}
-    <div class="credits">Joriy topshiriq hali ko'rib chiqilmoqda — javob kutilsin.</div>
-    {% else %}
+  {% if joriy.holat == "KUTILMOQDA" %}
+  <div class="dastur-kutilmoqda-eslatma">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <span>Joriy topshiriq hali ko'rib chiqilmoqda — javob kutilsin.</span>
+  </div>
+  {% else %}
+  <div class="dastur-yuklash-card">
+    <div class="dastur-yuklash-sarlavha">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>{% if urinishlar %}Yangi versiya topshirish (.docx){% else %}O'quv dasturi faylini yuklash (.docx){% endif %}</span>
+    </div>
     <form method="post" hx-post="{% url 'men:dastur_topshirish' variant.pk %}" hx-target="#dastur-panel-{{ variant.pk }}" hx-swap="innerHTML" hx-indicator="#htmx-yuklanish"
           enctype="multipart/form-data" class="tarix-qaror-actions">
       {% csrf_token %}
@@ -32,7 +43,10 @@
       </div>
       <button type="submit" class="btn btn-primary btn-sm">Topshirish</button>
     </form>
-    {% endif %}
+  </div>
+  {% endif %}
+  <div class="taqsimot-panel-foot tarix-panel-foot">
+    <span></span>
     <button type="button" class="btn btn-sm" onclick="yopishTableModal('dastur-panel-{{ variant.pk }}')">Yopish</button>
   </div>
 </div>

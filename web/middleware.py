@@ -42,6 +42,8 @@ class ParolAlmashtirishMajburiyMiddleware:
             "profil_telegram_saqlash",
             "healthcheck",
             "kirish",
+            "offline_sahifa",
+            "service_worker",
         )
         return yol in {reverse(nom) for nom in ruxsat_nomlari}
 

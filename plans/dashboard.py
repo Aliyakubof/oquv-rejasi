@@ -318,7 +318,8 @@ class SemestrKesimSatri:
     @property
     def taqsimlangan(self) -> bool:
         return bool(self.talab_satrlari) and all(
-            (t.qoldiq_soat or 0) <= 0 for t in self.talab_satrlari
+            t.qoldiq_soat is not None and t.qoldiq_soat <= 0
+            for t in self.talab_satrlari
         )
 
 
@@ -380,10 +381,15 @@ class KafedraQamrov:
     tasdiq: KafedraYuklamaTasdiq | None = None
 
 
-def _kafedralar_oqituvchilar_bilan():
-    return (
-        Department.objects.select_related("mudir__foydalanuvchi")
-        .prefetch_related(
+def _kafedralar_oqituvchilar_bilan(*, oqituvchilar_bilan: bool = True) -> object:
+    qs = Department.objects.annotate(
+        oqituvchilar_soni=Count(
+            "oqituvchilar",
+            filter=Q(oqituvchilar__foydalanuvchi__is_active=True),
+        )
+    ).order_by("nomi")
+    if oqituvchilar_bilan:
+        qs = qs.select_related("mudir__foydalanuvchi").prefetch_related(
             Prefetch(
                 "oqituvchilar",
                 queryset=OqituvchiProfil.objects.filter(
@@ -391,18 +397,14 @@ def _kafedralar_oqituvchilar_bilan():
                 ).select_related("foydalanuvchi"),
             )
         )
-        .annotate(
-            oqituvchilar_soni=Count(
-                "oqituvchilar",
-                filter=Q(oqituvchilar__foydalanuvchi__is_active=True),
-            )
-        )
-        .order_by("nomi")
-    )
+    return qs
 
 
 def kafedra_qamrovi(
-    akademik_yil: int, *, taqsimot: list[TalabSatri] | None = None
+    akademik_yil: int,
+    *,
+    taqsimot: list[TalabSatri] | None = None,
+    oqituvchilar_bilan: bool = True,
 ) -> list[KafedraQamrov]:
     biriktirilgan: dict[int, int] = defaultdict(int)
     taqsimlangan: dict[int, int] = defaultdict(int)
@@ -426,5 +428,7 @@ def kafedra_qamrovi(
             oqituvchilar_soni=kafedra.oqituvchilar_soni,
             tasdiq=tasdiqlar.get(kafedra.pk),
         )
-        for kafedra in _kafedralar_oqituvchilar_bilan()
+        for kafedra in _kafedralar_oqituvchilar_bilan(
+            oqituvchilar_bilan=oqituvchilar_bilan
+        )
     ]

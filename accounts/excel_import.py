@@ -3,10 +3,13 @@
 import re
 from dataclasses import dataclass
 from io import BytesIO
+from xml.etree import ElementTree as ET
+from zipfile import BadZipFile
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
+from lxml.etree import XMLSyntaxError
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
@@ -24,6 +27,7 @@ from accounts.phone import normalize_phone, validate_uzbek_phone
 from accounts.services import vaqtinchalik_parol_tasodifiy
 from plans.models import TalimYonalishi
 from plans.services import keshni_tozala
+from plans.uploads import zip_faylini_tekshir
 
 MAX_EXCEL_HAJM = 10 * 1024 * 1024
 MAX_IMPORT_QATOR = 1000
@@ -67,7 +71,9 @@ class _TayyorOqituvchi:
 
 
 def _xavfsiz(qiymat: object) -> object:
-    if isinstance(qiymat, str) and qiymat.startswith(_FORMULA_BOSH):
+    if isinstance(qiymat, str) and (
+        qiymat[:1] in ("\t", "\r") or qiymat.lstrip().startswith(_FORMULA_BOSH)
+    ):
         return f"'{qiymat}"
     return qiymat
 
@@ -97,29 +103,53 @@ def _telefonni_normallashtir(xom: object) -> str:
     return toza
 
 
+_EXCEL_XATOLARI = (
+    BadZipFile,
+    ET.ParseError,
+    XMLSyntaxError,
+    EOFError,
+    InvalidFileException,
+    OSError,
+    KeyError,
+    ValueError,
+)
+
+
+def _excel_qatorlarini_oqi(wb) -> list[list[object]]:
+    qatorlar: list[list[object]] = []
+    ws = wb.active
+    for indeks, qator in enumerate(ws.iter_rows(values_only=True)):
+        if indeks > MAX_IMPORT_QATOR:
+            raise ValidationError(
+                f"Bir yuklashda ko'pi bilan {MAX_IMPORT_QATOR} "
+                "ta qator import qilinadi."
+            )
+        qatorlar.append(list(qator))
+    return qatorlar
+
+
 def _excel_yuklash(fayl: UploadedFile) -> list[list[object]]:
-    nom = (getattr(fayl, "name", "") or "").lower()
-    if not nom.endswith(".xlsx"):
-        raise ValidationError("Faqat .xlsx formatidagi Excel fayllar qabul qilinadi.")
-    if getattr(fayl, "size", 0) > MAX_EXCEL_HAJM:
-        raise ValidationError("Fayl hajmi 10 MB dan oshmasligi kerak.")
+    zip_faylini_tekshir(
+        fayl,
+        kutilgan_kengaytma=".xlsx",
+        max_hajm=MAX_EXCEL_HAJM,
+        zarur_fayl="xl/workbook.xml",
+    )
     fayl.seek(0)
     try:
         wb = load_workbook(fayl, read_only=True, data_only=True)
-    except (InvalidFileException, OSError, KeyError, ValueError) as exc:
+    except _EXCEL_XATOLARI as exc:
         raise ValidationError(
             "Excel faylini o'qib bo'lmadi. Namunadagi .xlsx fayldan foydalaning."
         ) from exc
     try:
-        ws = wb.active
-        qatorlar = [list(r) for r in ws.iter_rows(values_only=True)]
+        return _excel_qatorlarini_oqi(wb)
+    except _EXCEL_XATOLARI as exc:
+        raise ValidationError(
+            "Excel faylini o'qib bo'lmadi. Namunadagi .xlsx fayldan foydalaning."
+        ) from exc
     finally:
         wb.close()
-    if len(qatorlar) - 1 > MAX_IMPORT_QATOR:
-        raise ValidationError(
-            f"Bir yuklashda ko'pi bilan {MAX_IMPORT_QATOR} ta qator import qilinadi."
-        )
-    return qatorlar
 
 
 def _jadvalni_bezash(ws: Worksheet, ustun_soni: int, qator_soni: int) -> None:
@@ -247,6 +277,23 @@ def _oqituvchilarni_yigish(
     return tayyor, otkazildi
 
 
+def _yangi_oqituvchi_obyektlari(
+    tayyor: list[_TayyorOqituvchi], parollar: list[str]
+) -> list[Foydalanuvchi]:
+    yangi_userlar: list[Foydalanuvchi] = []
+    for item, parol in zip(tayyor, parollar):
+        user = Foydalanuvchi(
+            telefon=item.telefon,
+            first_name=item.first_name[:150],
+            last_name=item.last_name[:150],
+            rol=Rol.TEACHER,
+            parol_ozgartirish_kerak=True,
+        )
+        user.set_password(parol)
+        yangi_userlar.append(user)
+    return yangi_userlar
+
+
 def oqituvchilar_excel_import(fayl: UploadedFile) -> OqituvchiImportNatija:
     """Validate and atomically import teachers with one-time temporary passwords."""
     qatorlar = _excel_yuklash(fayl)
@@ -256,31 +303,30 @@ def oqituvchilar_excel_import(fayl: UploadedFile) -> OqituvchiImportNatija:
     if not tayyor:
         return OqituvchiImportNatija(yaratilganlar=[], otkazildi_mavjud=otkazildi)
 
-    yaratilganlar: list[dict[str, str]] = []
+    parollar = [vaqtinchalik_parol_tasodifiy() for _ in tayyor]
+    yangi_userlar = _yangi_oqituvchi_obyektlari(tayyor, parollar)
     with transaction.atomic():
-        for item in tayyor:
-            parol = vaqtinchalik_parol_tasodifiy()
-            user = Foydalanuvchi.objects.create_user(
-                telefon=item.telefon,
-                password=parol,
-                first_name=item.first_name,
-                last_name=item.last_name,
-                rol=Rol.TEACHER,
-                parol_ozgartirish_kerak=True,
-            )
-            OqituvchiProfil.objects.create(
-                foydalanuvchi=user, kafedra=item.kafedra, turi=item.turi
-            )
-            yaratilganlar.append(
-                {
-                    "ism": f"{user.last_name} {user.first_name}",
-                    "telefon": user.telefon,
-                    "kafedra": item.kafedra.nomi,
-                    "lavozim": item.turi.nomi,
-                    "parol": parol,
-                }
-            )
+        saqlangan = Foydalanuvchi.objects.bulk_create(yangi_userlar, batch_size=200)
+        OqituvchiProfil.objects.bulk_create(
+            [
+                OqituvchiProfil(
+                    foydalanuvchi=user, kafedra=item.kafedra, turi=item.turi
+                )
+                for user, item in zip(saqlangan, tayyor)
+            ],
+            batch_size=200,
+        )
         keshni_tozala()
+    yaratilganlar = [
+        {
+            "ism": f"{user.last_name} {user.first_name}",
+            "telefon": user.telefon,
+            "kafedra": item.kafedra.nomi,
+            "lavozim": item.turi.nomi,
+            "parol": parol,
+        }
+        for user, item, parol in zip(saqlangan, tayyor, parollar)
+    ]
     return OqituvchiImportNatija(
         yaratilganlar=yaratilganlar, otkazildi_mavjud=otkazildi
     )
@@ -342,13 +388,14 @@ def _yonalish_qatorlarini_yigish(
         if not all(qiymatlar):
             xatolar.append(f"{idx}-qator: barcha 6 ustun to'ldirilishi shart.")
             continue
+        kodi = kodi[:20]
         if kodi in korilgan_kod:
             xatolar.append(f"{idx}-qator: takroriy yo'nalish kodi ({kodi}).")
             continue
         korilgan_kod.add(kodi)
         yozuvlar.append(
             {
-                "kodi": kodi[:20],
+                "kodi": kodi,
                 "nomi": nomi[:255],
                 "bilim_sohasi_kodi": bs_kod[:10],
                 "bilim_sohasi_nomi": bs_nom[:255],
@@ -369,16 +416,36 @@ def yonalishlar_excel_import(fayl: UploadedFile) -> tuple[int, int]:
     if len(qatorlar) < 2:
         raise ValidationError("Excel faylida ma'lumot qatorlari topilmadi.")
     yozuvlar = _yonalish_qatorlarini_yigish(qatorlar)
-    yaratildi = 0
-    yangilandi = 0
+    kodlar = [item["kodi"] for item in yozuvlar]
+    yangilash_maydonlari = (
+        "nomi",
+        "bilim_sohasi_kodi",
+        "bilim_sohasi_nomi",
+        "talim_sohasi_kodi",
+        "talim_sohasi_nomi",
+    )
     with transaction.atomic():
-        for item in yozuvlar:
-            _, created = TalimYonalishi.objects.update_or_create(
-                kodi=item["kodi"], defaults=item
+        mavjud = {
+            obj.kodi: obj
+            for obj in TalimYonalishi.objects.select_for_update().filter(
+                kodi__in=kodlar
             )
-            if created:
-                yaratildi += 1
+        }
+        yangi: list[TalimYonalishi] = []
+        ozgargan: list[TalimYonalishi] = []
+        for item in yozuvlar:
+            obj = mavjud.get(item["kodi"])
+            if obj is None:
+                yangi.append(TalimYonalishi(**item))
             else:
-                yangilandi += 1
+                for maydon in yangilash_maydonlari:
+                    setattr(obj, maydon, item[maydon])
+                ozgargan.append(obj)
+        if yangi:
+            TalimYonalishi.objects.bulk_create(yangi, batch_size=200)
+        if ozgargan:
+            TalimYonalishi.objects.bulk_update(
+                ozgargan, list(yangilash_maydonlari), batch_size=200
+            )
         keshni_tozala()
-    return yaratildi, yangilandi
+    return len(yangi), len(ozgargan)

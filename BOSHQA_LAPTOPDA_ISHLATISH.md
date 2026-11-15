@@ -79,9 +79,10 @@ Agar PostgreSQL bazasida ishlamoqchi bo'lsangiz:
    ```bash
    python manage.py migrate
    ```
-4. Tayyor ma'lumotlarni bazaga yuklang:
+4. Tayyor namuna ma'lumotlarni bazaga yuklang (`initial_data.json` ichidagi namuna hisoblarda parollar xavfsizlik uchun o'chirilgan — keyin admin yarating yoki parol o'rnating):
    ```bash
    python manage.py loaddata initial_data.json
+   python manage.py createsuperuser
    ```
 
 ---

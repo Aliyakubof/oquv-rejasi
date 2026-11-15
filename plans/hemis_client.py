@@ -1,13 +1,15 @@
 """HEMIS integration helpers: inbound payload normalization and outbound pull."""
 
 import json
+import logging
 import urllib.error
+import urllib.parse
 import urllib.request
+from http.client import HTTPMessage
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
 from django.http import HttpRequest
 
 from accounts.models import Foydalanuvchi
@@ -15,15 +17,46 @@ from plans.audit import audit_yoz
 from plans.models import (
     AuditAmali,
     FanSemestr,
-    KafedraTasdiqHolati,
-    KafedraYuklamaTasdiq,
     OquvReja,
 )
-from plans.services import eng_kop_kurs_ishi_talabasi, guruhlarni_sinxronlash
+from plans.services import (
+    eng_katta_band_guruh,
+    eng_kop_kurs_ishi_talabasi,
+    guruhlarni_sinxronlash,
+    reja_qulflanganmi,
+)
+
+_LOGGER = logging.getLogger(__name__)
+MAX_HEMIS_TALABA = 10000
+MAX_HEMIS_GURUH = 200
+MAX_HEMIS_JAVOB_BAYT = 5 * 1024 * 1024
+
+
+class _YoqRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: object,
+        code: int,
+        msg: str,
+        headers: HTTPMessage,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        raise urllib.error.HTTPError(
+            req.full_url,
+            code,
+            "HEMIS redirect xavfsizlik sababli taqiqlangan.",
+            headers,
+            None,
+        )
 
 
 def butun_son_oqish(
-    item: dict[str, object], maydon: str, *, min_qiymat: int = 1
+    item: dict[str, object],
+    maydon: str,
+    *,
+    min_qiymat: int = 1,
+    max_qiymat: int | None = None,
 ) -> int | None:
     if maydon not in item or item[maydon] is None:
         return None
@@ -38,6 +71,8 @@ def butun_son_oqish(
         raise ValueError(f"{maydon} butun son bo'lishi kerak")
     if qiymat < min_qiymat:
         raise ValueError(f"{maydon} kamida {min_qiymat} bo'lishi kerak")
+    if max_qiymat is not None and qiymat > max_qiymat:
+        raise ValueError(f"{maydon} ko'pi bilan {max_qiymat} bo'lishi kerak")
     return qiymat
 
 
@@ -62,35 +97,15 @@ def sync_rejani_top(item: dict[str, object]) -> OquvReja | None:
     return None
 
 
-def reja_qulflanganmi(reja: OquvReja) -> bool:
-    fslar = (
-        FanSemestr.objects.reja_uchun(reja)
-        .filter(variant__kafedra__isnull=False)
-        .values_list("variant__kafedra_id", "semestr")
-    )
-    juftlar = {
-        (kafedra_id, reja.boshlanish_yili + (semestr - 1) // 2)
-        for kafedra_id, semestr in fslar
-    }
-    if not juftlar:
-        return False
-    shart = Q()
-    for kafedra_id, yil in juftlar:
-        shart |= Q(kafedra_id=kafedra_id, akademik_yil=yil)
-    return KafedraYuklamaTasdiq.objects.filter(
-        shart,
-        holat__in=(
-            KafedraTasdiqHolati.TASDIQDA,
-            KafedraTasdiqHolati.TASDIQLANGAN,
-        ),
-    ).exists()
-
-
-def sync_rejani_yangila(
+def _reja_maydonlarini_yangila(
     reja: OquvReja, item: dict[str, object]
-) -> dict[str, object] | None:
-    talabalar = butun_son_oqish(item, "talabalar_soni", min_qiymat=1)
-    guruhlar = butun_son_oqish(item, "guruhlar_soni", min_qiymat=1)
+) -> tuple[bool, int | None, int | None]:
+    talabalar = butun_son_oqish(
+        item, "talabalar_soni", min_qiymat=1, max_qiymat=MAX_HEMIS_TALABA
+    )
+    guruhlar = butun_son_oqish(
+        item, "guruhlar_soni", min_qiymat=1, max_qiymat=MAX_HEMIS_GURUH
+    )
     ozgardi = False
     if talabalar is not None and reja.talabalar_soni != talabalar:
         reja.talabalar_soni = talabalar
@@ -105,17 +120,39 @@ def sync_rejani_yangila(
         if reja.guruh_prefiksi != prefiks:
             reja.guruh_prefiksi = prefiks
             ozgardi = True
-    if not ozgardi:
-        return None
+    return ozgardi, talabalar, guruhlar
+
+
+def _sync_cheklovlarini_tekshir(
+    reja: OquvReja, talabalar: int | None, guruhlar: int | None
+) -> None:
     if reja_qulflanganmi(reja):
         raise ValueError("tasdiqlangan kafedra yuklamasi qulflangan")
     if talabalar is not None:
         eng_kop = eng_kop_kurs_ishi_talabasi(reja)
         if eng_kop and reja.talabalar_soni < eng_kop:
             raise ValueError(f"kurs ishiga allaqachon {eng_kop} ta talaba taqsimlangan")
+    if guruhlar is not None:
+        eng_katta = eng_katta_band_guruh(reja)
+        if eng_katta and reja.guruhlar_soni < eng_katta:
+            raise ValueError(f"{eng_katta}-guruhga allaqachon yuklama taqsimlangan")
+
+
+@transaction.atomic
+def sync_rejani_yangila(
+    reja: OquvReja, item: dict[str, object]
+) -> dict[str, object] | None:
+    """Apply atomic, lock-safe updates to one reja from a HEMIS sync item."""
+    reja = OquvReja.objects.select_for_update().get(pk=reja.pk)
+    ozgardi, talabalar, guruhlar = _reja_maydonlarini_yangila(reja, item)
+    if not ozgardi:
+        return None
+    list(reja.guruhlar.select_for_update().order_by("pk"))
+    list(FanSemestr.objects.reja_uchun(reja).select_for_update().order_by("pk"))
+    _sync_cheklovlarini_tekshir(reja, talabalar, guruhlar)
     reja.full_clean()
     reja.save()
-    guruhlarni_sinxronlash(reja)
+    yangilangan_guruhlar = guruhlarni_sinxronlash(reja)
     return {
         "id": reja.id,
         "yonalish_kodi": reja.yonalish_kodi,
@@ -123,7 +160,7 @@ def sync_rejani_yangila(
         "boshlanish_yili": reja.boshlanish_yili,
         "talabalar_soni": reja.talabalar_soni,
         "guruhlar_soni": reja.guruhlar_soni,
-        "guruhlar": [g.nomi for g in reja.guruhlar.all()],
+        "guruhlar": [g.nomi for g in yangilangan_guruhlar],
     }
 
 
@@ -165,12 +202,15 @@ def hemis_elementlarni_sinxronlash(
     return yangilangan, xatolar
 
 
-def _json_royxatni_ajrat(data: object) -> list[dict[str, object]]:
+def json_royxatni_ajrat(data: object) -> list[dict[str, object]]:
+    """Normalize supported HEMIS JSON payloads to a list of dicts."""
     if isinstance(data, list):
         elementlar = data
     elif isinstance(data, dict):
         for kalit in ("rejalar", "results", "data", "items"):
-            if kalit in data and isinstance(data[kalit], list):
+            if kalit in data:
+                if not isinstance(data[kalit], list):
+                    raise ValueError(f"'{kalit}' maydoni ro'yxat bo'lishi kerak.")
                 elementlar = data[kalit]
                 break
         else:
@@ -180,6 +220,30 @@ def _json_royxatni_ajrat(data: object) -> list[dict[str, object]]:
     if not all(isinstance(x, dict) for x in elementlar):
         raise ValueError("HEMIS javobidagi har bir element JSON obyekt bo'lishi kerak.")
     return elementlar
+
+
+def _manzilni_tekshir(manzil: str) -> None:
+    parsed = urllib.parse.urlparse(manzil)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError("HEMIS_BASE_URL yaroqli http(s) manzil bo'lishi kerak.")
+    if parsed.scheme == "http" and (parsed.hostname or "") not in (
+        "127.0.0.1",
+        "localhost",
+    ):
+        if not settings.DEBUG:
+            raise ValueError(
+                "Production muhitida HEMIS_BASE_URL faqat https:// bo'lishi shart."
+            )
+        _LOGGER.warning("HEMIS so'rovi shifrlanmagan HTTP orqali yuborilmoqda.")
+
+
+def _http_ochish(sorov: urllib.request.Request, kutish: int) -> bytes:
+    opener = urllib.request.build_opener(_YoqRedirectHandler())
+    with opener.open(sorov, timeout=kutish) as javob:
+        xom = javob.read(MAX_HEMIS_JAVOB_BAYT + 1)
+    if len(xom) > MAX_HEMIS_JAVOB_BAYT:
+        raise ValueError("HEMIS javob hajmi belgilangan chegaradan katta.")
+    return xom
 
 
 def hemis_dan_yuklash(
@@ -192,6 +256,7 @@ def hemis_dan_yuklash(
     manzil = (base_url or getattr(settings, "HEMIS_BASE_URL", "")).strip()
     if not manzil:
         raise ValueError("HEMIS_BASE_URL sozlanmagan.")
+    _manzilni_tekshir(manzil)
     kalit = api_key if api_key is not None else getattr(settings, "HEMIS_API_KEY", "")
     sarlavhalar = {"Accept": "application/json"}
     if kalit:
@@ -200,12 +265,11 @@ def hemis_dan_yuklash(
     sorov = urllib.request.Request(manzil, headers=sarlavhalar, method="GET")
     kutish = timeout or int(getattr(settings, "HEMIS_TIMEOUT", 15))
     try:
-        with urllib.request.urlopen(sorov, timeout=kutish) as javob:
-            xom = javob.read().decode("utf-8")
+        xom = _http_ochish(sorov, kutish).decode("utf-8")
     except urllib.error.URLError as err:
         raise ConnectionError(f"HEMIS serveriga ulanib bo'lmadi: {err}") from err
     try:
         malumot = json.loads(xom)
     except json.JSONDecodeError as err:
         raise ValueError("HEMIS javobi yaroqli JSON emas.") from err
-    return _json_royxatni_ajrat(malumot)
+    return json_royxatni_ajrat(malumot)

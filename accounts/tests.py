@@ -1,6 +1,14 @@
+from io import StringIO
+
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 
+from accounts.management.commands.seed_departments import (
+    DEPARTMENT_NAMES,
+    OFFICE_ADMIN_PHONE,
+)
 from accounts.models import Department, Foydalanuvchi, OqituvchiTuri, Rol
 from accounts.services import mudir_tayinlash, oqituvchi_yangilash, oqituvchi_yaratish
 from plans.tests.factories import make_oqituvchi
@@ -122,3 +130,19 @@ class MudirTayinlashTests(TestCase):
         begona = make_oqituvchi(kafedra=_kafedra("Fizika"))
         with self.assertRaises(ValidationError):
             mudir_tayinlash(self.kafedra, begona)
+
+
+class SeedDepartmentsCommandTests(TestCase):
+    def test_oqituvchi_turi_yoq_bolsa_xato_beradi(self) -> None:
+        with self.assertRaises(CommandError):
+            call_command("seed_departments", "--parol=Vaqtincha99")
+
+    def test_berilgan_parol_bilan_kafedra_va_ofis_yaratadi(self) -> None:
+        _turi()
+        out = StringIO()
+        call_command("seed_departments", "--parol=Vaqtincha99", stdout=out)
+        self.assertEqual(Department.objects.count(), len(DEPARTMENT_NAMES))
+        ofis = Foydalanuvchi.objects.get(telefon=OFFICE_ADMIN_PHONE)
+        self.assertEqual(ofis.rol, Rol.OFFICE_ADMIN)
+        self.assertTrue(ofis.check_password("Vaqtincha99"))
+        self.assertTrue(ofis.parol_ozgartirish_kerak)

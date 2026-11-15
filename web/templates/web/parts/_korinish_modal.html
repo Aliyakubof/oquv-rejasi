@@ -10,14 +10,19 @@
   })"
   x-show="ochiq"
   x-cloak
-  x-transition.opacity.duration.180ms
+  x-transition:enter="onb-tr-enter"
+  x-transition:enter-start="onb-tr-hidden"
+  x-transition:enter-end="onb-tr-shown"
+  x-transition:leave="onb-tr-leave"
+  x-transition:leave-start="onb-tr-shown"
+  x-transition:leave-end="onb-tr-hidden"
   @keydown.escape.window="if (ochiq && !majburiy) yopish()"
   @click.self="if (!majburiy) yopish()"
   role="dialog"
   aria-modal="true"
   aria-labelledby="onb-sarlavha"
 >
-  <div class="onb-card" x-show="ochiq" x-transition:enter="onb-card-enter" x-transition:leave="onb-card-leave">
+  <div class="onb-card">
     <div class="onb-top">
       <div>
         <h2 id="onb-sarlavha" class="onb-title">
@@ -117,7 +122,7 @@
       </div>
     </div>
 
-    <div class="onb-error" x-show="xato" x-text="xato" role="alert"></div>
+    <div class="onb-error" x-show="xato" x-transition.opacity.duration.160ms x-text="xato" role="alert"></div>
 
     <div class="onb-footer">
       <button

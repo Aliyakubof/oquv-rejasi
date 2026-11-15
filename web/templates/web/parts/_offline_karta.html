@@ -1,0 +1,83 @@
+{# Oflayn rejimda ham ilova ichida, ham /offline/ sahifasida ishlatiladigan brendli karta #}
+<div class="offline-card{% if is_modal %} is-modal-card{% endif %}" data-offline-card>
+  <div class="offline-watermark" aria-hidden="true">O'QUV YUKLAMASI · OFLAYN</div>
+
+  {% if is_modal %}
+  <button type="button" class="app-modal-close offline-close-btn" onclick="OfflineGuard.minimize()" aria-label="Yopish">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  {% endif %}
+
+  <div class="offline-scene" aria-hidden="true">
+    <div class="offline-radar">
+      <span class="offline-ring offline-ring-1"></span>
+      <span class="offline-ring offline-ring-2"></span>
+      <span class="offline-ring offline-ring-3"></span>
+      <div class="offline-emblem-core">
+        <svg class="offline-book-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span class="offline-signal-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="2" y1="2" x2="22" y2="22"></line>
+            <path d="M8.5 16.5a5 5 0 0 1 7 0"></path>
+            <path d="M5 12.859a10 10 0 0 1 5.17-2.69"></path>
+            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+          </svg>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="offline-status-pill" data-offline-pill>
+    <span class="offline-status-dot" aria-hidden="true"></span>
+    <span class="offline-status-text" data-offline-status-text>Internet aloqasi uzildi</span>
+  </div>
+
+  {% if is_modal %}
+  <h2 id="offline-modal-title" class="offline-title">Tarmoqqa ulanish uzildi</h2>
+  {% else %}
+  <h1 class="offline-title">Tarmoqqa ulanish uzildi</h1>
+  {% endif %}
+
+  <p class="offline-desc">
+    Internet yoki mahalliy tarmoq bilan aloqa vaqtincha mavjud emas. Ulanish tiklanishi bilan tizim o'z ishini avtomatik ravishda davom ettiradi.
+  </p>
+
+  <div class="offline-meta-grid">
+    <div class="offline-meta-tile">
+      <span class="offline-meta-lbl">Joriy holat</span>
+      <strong class="offline-meta-val" data-offline-state-val>Oflayn rejim</strong>
+    </div>
+    <div class="offline-meta-tile">
+      <span class="offline-meta-lbl">Ma'lumotlar</span>
+      <strong class="offline-meta-val">{% if is_modal %}Ochiq sahifa saqlangan{% else %}Oflayn oyna tayyor{% endif %}</strong>
+    </div>
+    <div class="offline-meta-tile">
+      <span class="offline-meta-lbl">Tiklanish</span>
+      <strong class="offline-meta-val">Avtomatik kuzatuv faol</strong>
+    </div>
+  </div>
+
+  <div class="offline-actions">
+    <button type="button" class="btn btn-primary offline-retry-btn" data-offline-retry
+            {% if is_modal %}onclick="OfflineGuard.checkNow()"{% endif %}>
+      <svg class="offline-retry-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+      </svg>
+      <span>Qayta ulanishni tekshirish</span>
+    </button>
+    {% if is_modal %}
+    <button type="button" class="btn offline-secondary-btn" onclick="OfflineGuard.minimize()">
+      Sahifada qolish
+    </button>
+    {% else %}
+    <button type="button" class="btn offline-secondary-btn" data-offline-back>
+      Orqaga qaytish
+    </button>
+    {% endif %}
+  </div>
+</div>

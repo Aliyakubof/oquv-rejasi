@@ -15,9 +15,8 @@
         · {{ fs.variant.fan.reja.talabalar_soni|default:"?" }} talaba
       </div>
     </div>
-    <button type="button" class="btn btn-sm" onclick="yopishTableModal('panel-{{ fs.pk }}')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      <span>Yopish (Esc)</span>
+    <button type="button" class="app-modal-close" aria-label="Yopish" title="Yopish (Esc)" onclick="yopishTableModal('panel-{{ fs.pk }}')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
   {% if xato %}
@@ -30,21 +29,25 @@
     {% for holat in holatlar %}
     <div class="taqsimot-qism">
       <div class="taqsimot-tur-sarlavha">
-        <span class="tur-dot {% if holat.tur == 'MARUZA' %}tur-dot-maruza{% elif holat.tur == 'AMALIYOT' %}tur-dot-amaliyot{% elif holat.tur == 'LABORATORIYA' %}tur-dot-lab{% elif holat.tur == 'SEMINAR' %}tur-dot-seminar{% elif holat.tur == 'KURS_ISHI' %}tur-dot-kurs{% endif %}"></span>
-        <strong>{{ holat.tur_nomi }}</strong>
-        <span class="credits">
-          {% if holat.talab_soat == None %}talab noma'lum (soni kiritilmagan)
-          {% else %}{{ holat.taqsimlangan_soat }} / {{ holat.talab_soat }} soat{% endif %}
-        </span>
-        {% if holat.qoldiq_soat > 0 %}
-        <span class="tag tag-rad">qoldiq {{ holat.qoldiq_soat }} soat</span>
-        {% elif holat.talab_soat != None %}
-        <span class="tag tag-mand">to'liq</span>
-        {% endif %}
+        <div class="taqsimot-tur-left">
+          <span class="tur-dot {% if holat.tur == 'MARUZA' %}tur-dot-maruza{% elif holat.tur == 'AMALIYOT' %}tur-dot-amaliyot{% elif holat.tur == 'LABORATORIYA' %}tur-dot-lab{% elif holat.tur == 'SEMINAR' %}tur-dot-seminar{% elif holat.tur == 'KURS_ISHI' %}tur-dot-kurs{% endif %}"></span>
+          <strong>{{ holat.tur_nomi }}</strong>
+          <span class="credits">
+            {% if holat.talab_soat == None %}talab noma'lum (soni kiritilmagan)
+            {% else %}{{ holat.taqsimlangan_soat }} / {{ holat.talab_soat }} soat{% endif %}
+          </span>
+        </div>
+        <div class="taqsimot-tur-right">
+          {% if holat.qoldiq_soat > 0 %}
+          <span class="tag tag-rad">qoldiq {{ holat.qoldiq_soat }} soat</span>
+          {% elif holat.talab_soat != None %}
+          <span class="tag tag-mand">to'liq</span>
+          {% endif %}
+        </div>
       </div>
 
       {% if holat.tur == "MARUZA" %}
-      <div style="max-width:360px;" class="cell-relative" x-data="popover" :class="ochiq && 'popover-ochiq'" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
+      <div class="maruza-assign-wrap cell-relative" x-data="popover" :class="ochiq && 'popover-ochiq'" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
         {% if holat.maruza_yuklama %}
         <span class="teacher-chip static-chip">
           <span class="avatar">{{ holat.maruza_yuklama.oqituvchi|stringformat:"s"|bosh_harflar }}</span>
@@ -186,7 +189,7 @@
           </select>
           <input type="number" name="talabalar_soni" min="1" max="{{ holat.qolgan_talabalar }}" x-model="talabaSoni"
                  placeholder="Talabalar soni" aria-label="Talabalar soni" class="soat-input" required>
-          <span class="kurs-ishi-preview" x-show="Number(talabaSoni) > 0" x-cloak x-text="'= ' + (Number(talabaSoni) * 2) + ' soat'"></span>
+          <span class="kurs-ishi-preview" x-show="Number(talabaSoni) > 0" x-cloak x-transition.opacity.duration.160ms x-text="'= ' + (Number(talabaSoni) * 2) + ' soat'"></span>
           <button type="submit" class="btn btn-primary">Qo'shish</button>
         </form>
         {% endif %}

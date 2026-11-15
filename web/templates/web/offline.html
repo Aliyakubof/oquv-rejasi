@@ -1,0 +1,296 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oflayn rejim — O'quv yuklamasi</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a2a6e'/%3E%3Cpath d='M8 9.5A2.5 2.5 0 0 1 10.5 7H24v16H10.5A2.5 2.5 0 0 0 8 25V9.5z' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linejoin='round'/%3E%3Cpath d='M12 12h8M12 16h5' stroke='%23ffffff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}?v=64">
+  <style>
+    :root {
+      --ink: #1a2a6e;
+      --ink-hover: #24388f;
+      --paper: #f8fafc;
+      --panel: #ffffff;
+      --line: #e2e8f0;
+      --line-strong: #cbd5e1;
+      --text-main: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #475569;
+      --gold: #f59e0b;
+      --mand: #047857;
+    }
+    * { box-sizing: border-box; }
+    body.offline-standalone-body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at 18% 15%, rgba(26, 42, 110, 0.06), transparent 46%),
+                  radial-gradient(circle at 82% 85%, rgba(245, 158, 11, 0.07), transparent 44%),
+                  var(--paper);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    .offline-standalone-shell {
+      width: 100%;
+      max-width: 540px;
+    }
+    .offline-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 32px 28px 28px;
+      text-align: center;
+      box-shadow: 0 22px 48px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+    .offline-watermark {
+      position: absolute;
+      inset: -30% -20%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.24em;
+      color: rgba(26, 42, 110, 0.032);
+      transform: rotate(-16deg);
+      white-space: nowrap;
+      pointer-events: none;
+      user-select: none;
+    }
+    .offline-scene {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .offline-radar {
+      position: relative;
+      width: 108px;
+      height: 108px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .offline-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      border: 1.5px solid rgba(26, 42, 110, 0.14);
+      animation: offline-radar-pulse 2.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    }
+    .offline-ring-2 { animation-delay: 0.9s; }
+    .offline-ring-3 { animation-delay: 1.8s; }
+    @keyframes offline-radar-pulse {
+      0% { transform: scale(0.56); opacity: 0.65; }
+      100% { transform: scale(1.06); opacity: 0; }
+    }
+    .offline-emblem-core {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #1a2a6e 0%, #2b42a6 100%);
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 24px rgba(26, 42, 110, 0.24);
+    }
+    .offline-signal-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 24px;
+      height: 24px;
+      border-radius: 9999px;
+      background: var(--gold);
+      color: #0f172a;
+      border: 2.5px solid #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .offline-status-pill {
+      position: relative;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #b45309;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .offline-status-pill.is-online {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #047857;
+    }
+    .offline-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .offline-title {
+      position: relative;
+      z-index: 1;
+      margin: 0 0 8px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .offline-desc {
+      position: relative;
+      z-index: 1;
+      margin: 0 auto 20px;
+      max-width: 42ch;
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+    .offline-meta-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .offline-meta-tile {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .offline-meta-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .offline-meta-val {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .offline-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 9px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--line-strong);
+      background: var(--panel);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: var(--ink-hover);
+    }
+    @media (max-width: 520px) {
+      .offline-meta-grid { grid-template-columns: 1fr; }
+      .offline-card { padding: 26px 18px 22px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .offline-ring { animation: none; opacity: 0.35; }
+    }
+    @media print {
+      .offline-actions { display: none !important; }
+    }
+  </style>
+</head>
+<body class="offline-standalone-body">
+  <main class="offline-standalone-shell" aria-label="Oflayn holat">
+    {% include "web/parts/_offline_karta.html" with is_modal=False %}
+  </main>
+  <script>
+    (function () {
+      const card = document.querySelector('[data-offline-card]');
+      const pill = card?.querySelector('[data-offline-pill]');
+      const statusText = card?.querySelector('[data-offline-status-text]');
+      const stateVal = card?.querySelector('[data-offline-state-val]');
+      const retryBtn = card?.querySelector('[data-offline-retry]');
+      const backBtn = card?.querySelector('[data-offline-back]');
+
+      function markOnlineAndReload() {
+        if (pill) pill.classList.add('is-online');
+        if (statusText) statusText.textContent = 'Aloqa tiklandi! Sahifa yangilanmoqda…';
+        if (stateVal) stateVal.textContent = 'Onlayn';
+        window.setTimeout(() => window.location.reload(), 380);
+      }
+
+      async function probeConnection() {
+        if (!retryBtn) return;
+        retryBtn.classList.add('is-probing');
+        retryBtn.disabled = true;
+        if (statusText) statusText.textContent = 'Aloqa tekshirilmoqda…';
+        try {
+          const ctrl = new AbortController();
+          const tid = window.setTimeout(() => ctrl.abort(), 3500);
+          const resp = await fetch('{% url "healthcheck" %}', {
+            cache: 'no-store',
+            credentials: 'same-origin',
+            signal: ctrl.signal,
+          });
+          window.clearTimeout(tid);
+          if (resp.status >= 200) {
+            markOnlineAndReload();
+            return;
+          }
+        } catch (_err) {
+          if (statusText) statusText.textContent = "Hali ham tarmoq yo'q";
+          if (stateVal) stateVal.textContent = 'Oflayn rejim';
+          card?.classList.remove('is-shake');
+          void card?.offsetWidth;
+          card?.classList.add('is-shake');
+        } finally {
+          retryBtn.classList.remove('is-probing');
+          retryBtn.disabled = false;
+        }
+      }
+
+      retryBtn?.addEventListener('click', probeConnection);
+      backBtn?.addEventListener('click', () => {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.assign('/');
+        }
+      });
+      window.addEventListener('online', markOnlineAndReload);
+    })();
+  </script>
+</body>
+</html>

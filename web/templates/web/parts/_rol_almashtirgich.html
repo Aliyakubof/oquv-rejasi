@@ -18,6 +18,18 @@
         <span>Parolni o'zgartirish</span>
       </a>
     </div>
-    <div id="rol-royxati" class="menu-holat">Yuklanmoqda…</div>
+    <div id="rol-royxati" class="menu-holat">
+      <div class="skeleton-watermark-shell skeleton-menu-list" aria-hidden="true">
+        {% include "web/parts/_skeleton_watermark.html" with wm_compact=True wm_text="Rollar…" %}
+        <div class="skeleton-menu-item">
+          <div class="skeleton-bar sk-w-60"></div>
+          <div class="skeleton-bar sk-sm sk-w-34"></div>
+        </div>
+        <div class="skeleton-menu-item">
+          <div class="skeleton-bar sk-w-45"></div>
+          <div class="skeleton-bar sk-sm sk-w-28"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

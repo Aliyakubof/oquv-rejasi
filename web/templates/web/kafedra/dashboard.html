@@ -74,7 +74,7 @@
         <option value="{{ my }}">{{ my }}/{{ my|add:1 }} dan</option>
         {% endfor %}
       </select>
-      <button type="submit" class="btn">O'tgan yildan ko'chirish</button>
+      <button type="submit" class="btn btn-sm">O'tgan yildan ko'chirish</button>
     </form>
     {% endif %}
     <form method="post" action="{% url 'kafedra:tasdiqqa_yuborish' %}"
@@ -124,15 +124,21 @@
       <div class="search">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input type="text" placeholder="Fan nomi, kodi yoki yo'nalish" aria-label="Fan nomi, kodi yoki yo'nalish" x-model="qidiruv">
-        <button type="button" class="search-clear" x-show="qidiruv !== ''" x-cloak @click="qidiruv = ''" aria-label="Qidiruvni tozalash" title="Tozalash">
+        <button type="button" class="search-clear" x-show="qidiruv !== ''" x-cloak x-transition.opacity.duration.150ms @click="qidiruv = ''" aria-label="Qidiruvni tozalash" title="Tozalash">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <button type="button" class="chip-btn" :class="faqat_qoldiq && 'active'" @click="faqat_qoldiq = !faqat_qoldiq">Faqat qoldiq soati borlar</button>
+      <label class="chip-btn chip-toggle" :class="faqat_qoldiq && 'active'">
+        <input type="checkbox" class="chip-check-native" x-model="faqat_qoldiq">
+        <span class="chip-check-box" aria-hidden="true">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <span>Faqat qoldiq soati borlar</span>
+      </label>
     </div>
     <div class="legend legend-inline">
-      <span><span class="dot" style="background:var(--mand);"></span>To'liq taqsimlangan</span>
-      <span><span class="dot" style="background:var(--unassigned);"></span>Qoldiq soat bor</span>
+      <span><span class="dot dot-mand"></span>To'liq taqsimlangan</span>
+      <span><span class="dot dot-unassigned"></span>Qoldiq soat bor</span>
     </div>
   </div>
   <div class="table-wrap cards">
@@ -156,9 +162,9 @@
         {% include "web/kafedra/_fs_qatori.html" %}
         <tr class="panel-row"
             data-nomi="{{ satr.fan_semestr.variant.nomi|lower }} {{ satr.fan_semestr.variant.kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_kodi|lower }} {{ satr.fan_semestr.variant.fan.reja.yonalish_nomi|lower }}"
-            x-show="(oobSikl >= 0) && (!faqat_qoldiq || document.getElementById('fs-qator-{{ satr.fan_semestr.pk }}')?.dataset.qoldiq === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))"><td colspan="10" style="padding:0;border-bottom:0;">
-          <div id="panel-yuk-{{ satr.fan_semestr.pk }}" class="htmx-indicator" style="padding:12px 16px;">
-            <div class="skeleton-bar" style="width:32%;height:12px;"></div>
+            x-show="(oobSikl >= 0) && (!faqat_qoldiq || document.getElementById('fs-qator-{{ satr.fan_semestr.pk }}')?.dataset.qoldiq === '1') && (qidiruv === '' || $el.dataset.nomi.includes(qidiruv.toLowerCase()))"><td colspan="10" class="panel-row-cell">
+          <div id="panel-yuk-{{ satr.fan_semestr.pk }}" class="htmx-indicator htmx-panel-skeleton">
+            {% include "web/parts/_skeleton_panel.html" %}
           </div>
           <div id="panel-{{ satr.fan_semestr.pk }}"></div>
         </td></tr>

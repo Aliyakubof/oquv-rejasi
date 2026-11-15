@@ -1,19 +1,41 @@
-{# Loading placeholder that mimics the table shape during HTMX swaps. #}
-<div class="skeleton-table" aria-hidden="true">
-  <div class="skeleton-row head">
-    <div class="skeleton-bar" style="width:12%;"></div>
-    <div class="skeleton-bar" style="width:30%;"></div>
-    <div class="skeleton-bar" style="width:14%;"></div>
-    <div class="skeleton-bar" style="width:14%;"></div>
-    <div class="skeleton-bar" style="width:18%;"></div>
+{# HTMX almashinuvi va sekin yuklanishda jadval hamda statistikalar o'rnini ko'rsatuvchi suv belgili skelet #}
+<div class="skeleton-watermark-shell" aria-hidden="true">
+  {% include "web/parts/_skeleton_watermark.html" with wm_text=wm_text|default:"Ma'lumot yuklanmoqda…" %}
+  {% if show_stats %}
+  <div class="skeleton-stat-grid">
+    {% for _ in "1234" %}
+    <div class="skeleton-stat-card">
+      <div class="skeleton-bar sk-lg sk-w-34"></div>
+      <div class="skeleton-bar sk-sm sk-w-60"></div>
+    </div>
+    {% endfor %}
   </div>
-  {% for _ in "123456" %}
-  <div class="skeleton-row">
-    <div class="skeleton-bar" style="width:10%;"></div>
-    <div class="skeleton-bar" style="width:34%;"></div>
-    <div class="skeleton-bar" style="width:12%;"></div>
-    <div class="skeleton-bar" style="width:12%;"></div>
-    <div class="skeleton-bar" style="width:20%;"></div>
+  {% endif %}
+  {% if show_toolbar %}
+  <div class="skeleton-toolbar">
+    <div class="skeleton-bar sk-btn sk-w-30"></div>
+    <div class="skeleton-toolbar-chips">
+      <div class="skeleton-bar sk-pill sk-w-14"></div>
+      <div class="skeleton-bar sk-pill sk-w-14"></div>
+    </div>
   </div>
-  {% endfor %}
+  {% endif %}
+  <div class="skeleton-table">
+    <div class="skeleton-row head">
+      <div class="skeleton-bar sk-w-12"></div>
+      <div class="skeleton-bar sk-w-30"></div>
+      <div class="skeleton-bar sk-w-14"></div>
+      <div class="skeleton-bar sk-w-14"></div>
+      <div class="skeleton-bar sk-w-18"></div>
+    </div>
+    {% for _ in "123456" %}
+    <div class="skeleton-row">
+      <div class="skeleton-bar sk-w-10"></div>
+      <div class="skeleton-bar sk-w-34"></div>
+      <div class="skeleton-bar sk-w-12"></div>
+      <div class="skeleton-bar sk-w-12"></div>
+      <div class="skeleton-bar sk-w-20"></div>
+    </div>
+    {% endfor %}
+  </div>
 </div>
