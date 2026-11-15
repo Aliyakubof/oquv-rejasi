@@ -3,13 +3,14 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import Department
-from plans.models import FanTuri, SoatTuri, Yuklama
+from plans.models import DasturTopshirish, FanTuri, SoatTuri, Yuklama
 from plans.tests.factories import (
     make_fan,
     make_fan_semestr,
     make_oqituvchi,
     make_reja,
 )
+from web.forms.yuklama import KursIshiYuklamaForm
 from web.tests.helpers import login, office_admin_yarat
 
 
@@ -182,3 +183,30 @@ class RejaTahrirTests(TestCase):
         self.assertRedirects(javob, reverse("office:reja_detail", args=[self.reja.pk]))
         self.reja.refresh_from_db()
         self.assertEqual(self.reja.guruhlar.count(), 3)
+
+    def test_dastur_topshirigi_bor_reja_ochirilmaydi(self) -> None:
+        kaf = Department.objects.create(nomi="Dasturiy")
+        fan = make_fan(self.reja, kafedra=kaf)
+        oqit = make_oqituvchi(kafedra=kaf)
+        DasturTopshirish.objects.create(
+            variant=fan.tanlangan_variant,
+            urinish_raqami=1,
+            oqituvchi=oqit,
+            fayl="dasturlar/test_delete_block.docx",
+        )
+        javob = self.client.post(reverse("office:reja_ochirish", args=[self.reja.pk]))
+        self.assertRedirects(javob, reverse("office:reja_list"))
+        self.assertTrue(self.reja.__class__.objects.filter(pk=self.reja.pk).exists())
+
+    def test_kurs_ishi_tahrir_formasi_ozini_inkor_qilmaydi(self) -> None:
+        kaf = Department.objects.create(nomi="Kafedra")
+        fan = make_fan(self.reja, kafedra=kaf)
+        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1, kurs_ishi_bor=True)
+        oqit = make_oqituvchi(kafedra=kaf)
+        y = Yuklama.objects.create(
+            fan_semestr=fs, tur=SoatTuri.KURS_ISHI, oqituvchi=oqit, talabalar_soni=20
+        )
+        forma = KursIshiYuklamaForm(
+            fs, kaf, data={"oqituvchi": oqit.pk, "talabalar_soni": 30}, instance=y
+        )
+        self.assertTrue(forma.is_valid(), forma.errors)

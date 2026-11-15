@@ -4,6 +4,7 @@ import secrets
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 
 from accounts.models import (
     Department,
@@ -77,6 +78,15 @@ def oqituvchi_yangilash(
     turi: OqituvchiTuri,
     yangi_parol: str | None = None,
 ) -> None:
+    if profil.kafedra_id != kafedra.pk and profil.yuklamalar.exists():
+        raise ValidationError(
+            {
+                "kafedra": (
+                    "O'qituvchiga joriy kafedrada yuklama biriktirilgan. "
+                    "Boshqa kafedraga o'tkazishdan oldin yuklamalarni bekor qiling."
+                )
+            }
+        )
     boshqa_kafedra = getattr(profil, "boshqarayotgan_kafedra", None)
     if boshqa_kafedra is not None and boshqa_kafedra.pk != kafedra.pk:
         mudir_tayinlash(boshqa_kafedra, None)
@@ -88,29 +98,49 @@ def oqituvchi_yangilash(
     yangilanadigan = ["telefon", "first_name", "last_name"]
     if yangi_parol:
         foydalanuvchi.set_password(yangi_parol)
-        yangilanadigan.append("password")
+        foydalanuvchi.parol_ozgartirish_kerak = False
+        yangilanadigan.extend(["password", "parol_ozgartirish_kerak"])
     foydalanuvchi.full_clean(exclude=["password"])
     foydalanuvchi.save(update_fields=yangilanadigan)
     profil.kafedra = kafedra
     profil.turi = turi
+    profil.full_clean()
     profil.save(update_fields=["kafedra", "turi"])
 
 
 @transaction.atomic
 def mudir_tayinlash(kafedra: Department, profil: OqituvchiProfil | None) -> None:
     """Set (or clear, with profil=None) the department head, syncing roles."""
-    kafedra_qulf = (
-        Department.objects.select_for_update()
-        .select_related("mudir__foydalanuvchi")
-        .get(pk=kafedra.pk)
-    )
+    shart = Q(pk=kafedra.pk)
     if profil is not None:
+        shart |= Q(mudir_id=profil.pk)
+    qulflangan = {
+        k.pk: k
+        for k in Department.objects.select_for_update()
+        .select_related("mudir__foydalanuvchi")
+        .filter(shart)
+        .order_by("pk")
+    }
+    kafedra_qulf = qulflangan[kafedra.pk]
+    if profil is not None:
+        profil = (
+            OqituvchiProfil.objects.select_for_update()
+            .select_related("foydalanuvchi")
+            .get(pk=profil.pk)
+        )
         if not profil.foydalanuvchi.is_active:
             raise ValidationError("Faolsizlantirilgan o'qituvchi mudir bo'la olmaydi.")
         if profil.kafedra_id != kafedra_qulf.pk:
             raise ValidationError("O'qituvchi boshqa kafedraga tegishli.")
-        boshqa = getattr(profil, "boshqarayotgan_kafedra", None)
-        if boshqa is not None and boshqa.pk != kafedra_qulf.pk:
+        boshqa = next(
+            (
+                k
+                for k in qulflangan.values()
+                if k.mudir_id == profil.pk and k.pk != kafedra_qulf.pk
+            ),
+            None,
+        )
+        if boshqa is not None:
             raise ValidationError(f"{profil} allaqachon {boshqa} mudiri.")
     _mudirlikdan_tushirish(kafedra_qulf, profil)
     kafedra_qulf.mudir = profil

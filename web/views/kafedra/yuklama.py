@@ -60,6 +60,8 @@ class PanelAsosView(KafedraMudiriTalabMixin, View):
         oqituvchilar = []
         for h in saralangan:
             p = h.oqituvchi
+            if not p.foydalanuvchi.is_active:
+                continue
             p.jami_soat = h.jami_soat
             p.kamomad = h.kamomad
             p.tolganmi = p.jami_soat >= p.turi.min_soat

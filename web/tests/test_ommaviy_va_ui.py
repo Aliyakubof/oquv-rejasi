@@ -181,8 +181,9 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
         for belgi in (
             'media="print" onload="this.media=\'all\'"',
             "<noscript>",
-            "app.css?v=59",
+            "app.css?v=64",
             "jonli.js?v=3",
+            "is-panel-refresh",
             "window.yopishTableModal",
             "btn-ripple",
             "is-closing",
@@ -399,6 +400,8 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
             settings.BASE_DIR / "web" / "static" / "web" / "css" / "app.css"
         ).read_text(encoding="utf-8")
         self.assertIn("table-wrap.anim-tugadi", css_matn)
+        self.assertIn("is-panel-refresh", css_matn)
+        self.assertIn(".anim-pop-start", css_matn)
         self.assertNotIn("table-wrap:has(.popover-ochiq)", css_matn)
 
     def test_kafedra_sahifalar_va_panel_shablonlari(self) -> None:
@@ -420,3 +423,106 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
             javob = self.client.get(url)
             self.assertEqual(javob.status_code, 200, url)
             self.assertContains(javob, 'stroke="currentColor"', msg_prefix=url)
+
+    def test_suv_belgili_skeleton_loading_va_print_himoyasi(self) -> None:
+        from django.conf import settings
+
+        yil = dashboard.joriy_akademik_yil()
+        kaf = Department.objects.create(nomi="Sun'iy intellekt kafedrasi")
+        mudir = mudir_yarat(kaf)
+        reja = make_reja(boshlanish_yili=yil, yonalish_kodi="60610700")
+        fan = make_fan(reja, kafedra=kaf)
+        assert fan.tanlangan_variant is not None
+        make_fan_semestr(fan.tanlangan_variant, semestr=1)
+
+        login(self.client, office_admin_yarat())
+        dash = self.client.get(reverse("office:dashboard"), {"yil": yil})
+        self.assertEqual(dash.status_code, 200)
+        for belgi in (
+            "office-dash-stage",
+            "page-loader-ghost",
+            'id="tpl-skeleton-watermark"',
+            "skeleton-watermark-seal",
+            "skeleton-stat-grid",
+            "skeleton-toolbar",
+            "window.SkeletonStage = SkeletonStage",
+        ):
+            self.assertContains(dash, belgi)
+
+        login(self.client, mudir)
+        kaf_dash = self.client.get(reverse("kafedra:dashboard"), {"yil": yil})
+        self.assertEqual(kaf_dash.status_code, 200)
+        for belgi in (
+            "skeleton-panel-box",
+            "skeleton-panel-grid",
+            "skeleton-watermark-seal",
+        ):
+            self.assertContains(kaf_dash, belgi)
+
+        css_dir = settings.BASE_DIR / "web" / "static" / "web" / "css"
+        app_css = (css_dir / "app.css").read_text(encoding="utf-8")
+        print_css = (css_dir / "print.css").read_text(encoding="utf-8")
+        for belgi in (
+            ".page-loader-ghost",
+            ".htmx-skeleton-stage",
+            ".skeleton-watermark-shell::before",
+            ".skeleton-watermark-seal",
+            "body.ui-kontrast .skeleton-wm-mark",
+            ".htmx-skeleton-stage,\n",
+        ):
+            self.assertIn(belgi, app_css)
+        self.assertIn(".htmx-skeleton-stage", print_css)
+        self.assertIn(".skeleton-watermark-seal", print_css)
+
+    def test_oflayn_oyna_service_worker_va_dizayn(self) -> None:
+        from django.conf import settings
+
+        offline_resp = self.client.get(reverse("offline_sahifa"))
+        self.assertEqual(offline_resp.status_code, 200)
+        for belgi in (
+            "offline-standalone-body",
+            "offline-radar",
+            "offline-emblem-core",
+            "offline-watermark",
+            "Tarmoqqa ulanish uzildi",
+            "Qayta ulanishni tekshirish",
+            "app.css?v=64",
+        ):
+            self.assertContains(offline_resp, belgi)
+
+        sw_resp = self.client.get(reverse("service_worker"))
+        self.assertEqual(sw_resp.status_code, 200)
+        self.assertIn("javascript", sw_resp["Content-Type"])
+        self.assertEqual(sw_resp["Service-Worker-Allowed"], "/")
+        self.assertContains(sw_resp, reverse("offline_sahifa"))
+        self.assertContains(sw_resp, "caches.match(OFFLINE_URL)")
+
+        # Bir martalik parol almashtirish majburiy bo'lgan foydalanuvchi ham
+        # /sw.js va /offline/ ga yo'naltirilmasdan kira olishi shart.
+        kaf = Department.objects.create(nomi="Oflayn test kafedrasi")
+        mudir = mudir_yarat(kaf)
+        mudir.parol_ozgartirish_kerak = True
+        mudir.save(update_fields=["parol_ozgartirish_kerak"])
+        login(self.client, mudir)
+        self.assertEqual(self.client.get(reverse("service_worker")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("offline_sahifa")).status_code, 200)
+
+        # Kirish sahifasi (base.html) ham OfflineGuard va SW registratsiyasini oladi.
+        self.client.logout()
+        kirish = self.client.get(reverse("kirish"))
+        self.assertEqual(kirish.status_code, 200)
+        for belgi in (
+            'id="offline-modal-overlay"',
+            'id="offline-mini-pill"',
+            'id="offline-toast-banner"',
+            "window.OfflineGuard = OfflineGuard",
+            reverse("service_worker"),
+        ):
+            self.assertContains(kirish, belgi)
+
+        css_dir = settings.BASE_DIR / "web" / "static" / "web" / "css"
+        app_css = (css_dir / "app.css").read_text(encoding="utf-8")
+        print_css = (css_dir / "print.css").read_text(encoding="utf-8")
+        self.assertIn(".offline-radar", app_css)
+        self.assertIn("#offline-modal-overlay", app_css)
+        self.assertIn("#offline-modal-overlay", print_css)

@@ -34,6 +34,9 @@ class DasturTopshirishlarView(OfficeAdminTalabMixin, ListView):
     def _kafedra_id(self) -> int | None:
         return musbat_int_yoki_none(self.request.GET.get("kafedra"))
 
+    def _yil(self) -> int | None:
+        return musbat_int_yoki_none(self.request.GET.get("yil"))
+
     def get_queryset(self) -> list[DasturTopshirish]:
         holat = self.request.GET.get("holat")
         if holat == "TOPSHIRILMAGAN":
@@ -47,6 +50,9 @@ class DasturTopshirishlarView(OfficeAdminTalabMixin, ListView):
         kafedra_id = self._kafedra_id()
         if kafedra_id is not None:
             qs = qs.filter(variant__kafedra_id=kafedra_id)
+        yil = self._yil()
+        if yil is not None:
+            qs = qs.filter(variant__fan__reja__boshlanish_yili=yil)
         topshirishlar = joriy_topshirishlar(qs)
         if holat:
             topshirishlar = [t for t in topshirishlar if t.holat == holat]
@@ -56,12 +62,15 @@ class DasturTopshirishlarView(OfficeAdminTalabMixin, ListView):
         context = super().get_context_data(**kwargs)
         holat = self.request.GET.get("holat", "")
         kafedra_id = self._kafedra_id()
+        yil = self._yil()
         if holat == "TOPSHIRILMAGAN":
-            topshirilmaganlar = topshirilmagan_dasturlar(kafedra_id=kafedra_id)
+            topshirilmaganlar = topshirilmagan_dasturlar(kafedra_id=kafedra_id, yil=yil)
             topshirilmagan_soni = len(topshirilmaganlar)
         else:
             topshirilmaganlar = []
-            topshirilmagan_soni = topshirilmagan_dasturlar_soni(kafedra_id=kafedra_id)
+            topshirilmagan_soni = topshirilmagan_dasturlar_soni(
+                kafedra_id=kafedra_id, yil=yil
+            )
         context.update(
             {
                 "holat": holat,
@@ -103,7 +112,12 @@ def _javob(
 @require_POST
 @office_admin_talab
 def dastur_qabul(request: HttpRequest, pk: int) -> HttpResponse:
-    topshirish = get_object_or_404(DasturTopshirish, pk=pk)
+    topshirish = get_object_or_404(
+        DasturTopshirish.objects.select_related(
+            "variant__fan__reja", "variant__kafedra", "oqituvchi__foydalanuvchi"
+        ),
+        pk=pk,
+    )
     xato = None
     try:
         with transaction.atomic():
@@ -123,7 +137,12 @@ def dastur_qabul(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 @office_admin_talab
 def dastur_rad(request: HttpRequest, pk: int) -> HttpResponse:
-    topshirish = get_object_or_404(DasturTopshirish, pk=pk)
+    topshirish = get_object_or_404(
+        DasturTopshirish.objects.select_related(
+            "variant__fan__reja", "variant__kafedra", "oqituvchi__foydalanuvchi"
+        ),
+        pk=pk,
+    )
     form = DasturRadEtishForm(request.POST)
     xato = None
     if form.is_valid():
@@ -156,7 +175,9 @@ def dastur_fayl(request: HttpRequest, pk: int) -> HttpResponse:
 
 @office_admin_talab
 def dastur_tarixi(request: HttpRequest, variant_id: int) -> HttpResponse:
-    variant = get_object_or_404(FanVariant, pk=variant_id)
+    variant = get_object_or_404(
+        FanVariant.objects.select_related("fan__reja", "kafedra"), pk=variant_id
+    )
     return render(
         request, "web/office/dasturlar/_tarix_panel.html", _panel_kontekst(variant)
     )

@@ -64,6 +64,7 @@ HEMIS_TIMEOUT = env.int("HEMIS_TIMEOUT", default=15)
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="").strip()
 LOGIN_MAX_URINISH = env.int("LOGIN_MAX_URINISH", default=5)
 LOGIN_BLOK_SONIYA = env.int("LOGIN_BLOK_SONIYA", default=300)
+API_MAX_SOROV_DAQIQA = env.int("API_MAX_SOROV_DAQIQA", default=120)
 
 INSTALLED_APPS = [
     "django.contrib.admin",

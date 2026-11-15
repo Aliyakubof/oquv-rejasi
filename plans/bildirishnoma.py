@@ -5,6 +5,7 @@ import logging
 import urllib.error
 import urllib.request
 from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor
 
 from django.conf import settings
 from django.db import transaction
@@ -21,6 +22,7 @@ from plans.models import (
 from plans.services import keshni_tozala
 
 _LOGGER = logging.getLogger(__name__)
+_TELEGRAM_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="telegram")
 
 
 def ofis_adminlar() -> list[Foydalanuvchi]:
@@ -80,7 +82,13 @@ def _telegramga_navbatla(
         for chat_id in chat_idlar:
             telegram_xabar_yubor(chat_id, xabar)
 
-    transaction.on_commit(_yuborish)
+    def _navbatlash() -> None:
+        if getattr(settings, "IS_TEST", False):
+            _yuborish()
+        else:
+            _TELEGRAM_EXECUTOR.submit(_yuborish)
+
+    transaction.on_commit(_navbatlash)
 
 
 def bildirishnoma_yubor(

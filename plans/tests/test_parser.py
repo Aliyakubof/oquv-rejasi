@@ -3,12 +3,17 @@ that mirror the real layouts documented in docs/oquv_reja_map.md."""
 
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import openpyxl
 from django.test import SimpleTestCase
 
-from parser.models import ParseError
+from parser import main as parser_main
+from parser.formatter import build_markdown
+from parser.models import Alternative, Course, ParseError, SelectiveSlot
 from parser.parser import parse_workbook
+
+_CREATED_WORKBOOKS: list[Path] = []
 
 
 def _write_workbook(
@@ -25,8 +30,14 @@ def _write_workbook(
     if sheet_names:
         ws.title = sheet_names[0]
     tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
-    wb.save(tmp.name)
-    return Path(tmp.name)
+    tmp.close()
+    try:
+        wb.save(tmp.name)
+    finally:
+        wb.close()
+    path = Path(tmp.name)
+    _CREATED_WORKBOOKS.append(path)
+    return path
 
 
 def _standard_layout(
@@ -83,6 +94,11 @@ def _standard_layout(
 
 
 class ParseWorkbookHappyPathTest(SimpleTestCase):
+    def tearDown(self) -> None:
+        while _CREATED_WORKBOOKS:
+            _CREATED_WORKBOOKS.pop().unlink(missing_ok=True)
+        super().tearDown()
+
     def test_toliq_varaqni_ochadi(self) -> None:
         path = _write_workbook(
             _standard_layout(
@@ -147,8 +163,11 @@ class ParseWorkbookHappyPathTest(SimpleTestCase):
         )
         path = _write_workbook(rows, sheet_names=["Kunduzgi", "Sirtqi"])
         wb = openpyxl.load_workbook(path)
-        wb.active = 1
-        wb.save(path)
+        try:
+            wb.active = 1
+            wb.save(path)
+        finally:
+            wb.close()
         result = parse_workbook(path)
         self.assertEqual(result.direction_code, "60110500")
         self.assertTrue(any("bir nechta varaq" in w for w in result.warnings))
@@ -236,6 +255,11 @@ class ParseWorkbookHappyPathTest(SimpleTestCase):
 
 
 class ParseWorkbookFailurePathTest(SimpleTestCase):
+    def tearDown(self) -> None:
+        while _CREATED_WORKBOOKS:
+            _CREATED_WORKBOOKS.pop().unlink(missing_ok=True)
+        super().tearDown()
+
     def test_1_00_belgisi_yoq_xato(self) -> None:
         # No course table at all: nothing in the sheet normalizes to a
         # section marker, so no anchor candidate exists.
@@ -269,3 +293,91 @@ class ParseWorkbookFailurePathTest(SimpleTestCase):
         path = _write_workbook(rows)
         with self.assertRaises(ParseError):
             parse_workbook(path)
+
+    def test_buzilgan_xlsx_parse_xato_beradi(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bad_path = Path(tmpdir) / "buzilgan.xlsx"
+            bad_path.write_bytes(b"not a zip archive")
+            with self.assertRaises(ParseError):
+                parse_workbook(bad_path)
+
+
+class FormatterVaCliTests(SimpleTestCase):
+    def tearDown(self) -> None:
+        while _CREATED_WORKBOOKS:
+            _CREATED_WORKBOOKS.pop().unlink(missing_ok=True)
+        super().tearDown()
+
+    def test_build_markdown_majburiy_va_tanlov_fanlar(self) -> None:
+        core = [
+            Course(
+                num="1.01",
+                code="FAN1",
+                name="Matematika",
+                hours=120,
+                classroom=60,
+                lecture=30,
+                practice=30,
+                lab=0,
+                seminar=0,
+                course_proj=0,
+                semester_credits={1: 4},
+                semester_weekly_hours={1: 4},
+            )
+        ]
+        slots = [
+            SelectiveSlot(
+                num="2.01",
+                hours=90,
+                alternatives=[
+                    Alternative(
+                        code="T1",
+                        name="Algoritmlar",
+                        classroom=45,
+                        lecture=15,
+                        practice=30,
+                        lab=0,
+                        seminar=0,
+                        course_proj=0,
+                    )
+                ],
+                semester_credits={2: 3},
+                semester_weekly_hours={2: 3},
+            )
+        ]
+        md = build_markdown(
+            "Dasturiy injiniring", "2024", "BAKALAVR", "4 yil", "Kunduzgi", core, slots
+        )
+        self.assertIn("# Oquv Reja: Dasturiy injiniring", md)
+        self.assertIn("## Majburiy Fanlar", md)
+        self.assertIn("Matematika", md)
+        self.assertIn("## Tanlov Fanlar", md)
+        self.assertIn("Algoritmlar", md)
+        self.assertIn("**O'quv yili:** 2024", md)
+
+    def test_parser_main_cli_kodlari(self) -> None:
+        xlsx = _write_workbook(
+            _standard_layout(
+                8,
+                "Ta'lim yo'nalishi: 60610100 - Axborot texnologiyalari",
+                "4 yil",
+                "2024-2025",
+            )
+        )
+        with tempfile.TemporaryDirectory() as out_dir:
+            with patch.object(parser_main, "OUTPUT_DIR", Path(out_dir)):
+                with patch("sys.argv", ["parser.main", str(xlsx)]):
+                    self.assertEqual(parser_main.main(), 0)
+                yozilgan = list(Path(out_dir).glob("*.md"))
+                self.assertEqual(len(yozilgan), 1)
+                self.assertIn("Axborot texnologiyalari", yozilgan[0].read_text("utf-8"))
+
+                with patch(
+                    "sys.argv", ["parser.main", str(Path(out_dir) / "yoq.xlsx")]
+                ):
+                    self.assertEqual(parser_main.main(), 1)
+
+                bad = Path(out_dir) / "bad.xlsx"
+                bad.write_bytes(b"corrupt")
+                with patch("sys.argv", ["parser.main", str(bad)]):
+                    self.assertEqual(parser_main.main(), 1)

@@ -38,9 +38,11 @@ def largest_remainder_split(total: int, weights: dict[int, int]) -> dict[int, in
 
 def semester_weights(weekly: dict[int, int], credits: dict[int, int]) -> dict[int, int]:
     """Weekly contact hours are the preferred weight per semester; a semester
-    present only in `credits` still gets a weight (and so a FanSemestr row)
-    instead of silently losing its credits."""
-    return {s: weekly.get(s, credits.get(s, 0)) for s in weekly.keys() | credits.keys()}
+    with 0 weekly hours or present only in `credits` still gets a weight
+    (and so a FanSemestr row) instead of silently losing its credits."""
+    return {
+        s: weekly.get(s) or credits.get(s, 0) for s in weekly.keys() | credits.keys()
+    }
 
 
 def split_breakdown(

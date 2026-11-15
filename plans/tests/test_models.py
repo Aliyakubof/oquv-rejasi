@@ -208,6 +208,21 @@ class FanTest(TestCase):
             fan.full_clean()
 
 
+class YuklamaKafedraCleanTest(TestCase):
+    def test_boshqa_kafedra_oqituvchisi_rad_etiladi(self) -> None:
+        from accounts.models import Department
+
+        kaf1 = Department.objects.create(nomi="Birinchi")
+        kaf2 = Department.objects.create(nomi="Ikkinchi")
+        fan = make_fan(make_reja(), kafedra=kaf1)
+        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        oqit2 = make_oqituvchi(kafedra=kaf2)
+        yuklama = Yuklama(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=oqit2)
+        with self.assertRaises(ValidationError) as ctx:
+            yuklama.full_clean()
+        self.assertIn("oqituvchi", ctx.exception.message_dict)
+
+
 class FanSemestrTest(TestCase):
     def test_oquv_va_akademik_yil(self) -> None:
         # DI2024, 3-semestr: 2-kurs, 2025/2026 akademik yil.

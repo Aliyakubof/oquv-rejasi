@@ -1,10 +1,14 @@
 import math
 import re
+import xml.etree.ElementTree as ET
 from collections.abc import Iterator, Sequence
 from pathlib import Path
+from zipfile import BadZipFile
 
 import openpyxl
 from openpyxl.cell.cell import Cell
+from openpyxl.utils.exceptions import InvalidFileException
+from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
 from parser.models import (
@@ -748,8 +752,11 @@ def parse_selective_courses(
         code_str = str(code).strip() if code is not None else ""
         name_str = _clean_name(name)
 
-        if is_course_number(num_str) and section_prefix(num_str) == "2":
-            assert num_str is not None
+        if (
+            num_str is not None
+            and is_course_number(num_str)
+            and section_prefix(num_str) == "2"
+        ):
             current, slot_breakdown = _tanlov_sloti_yarat(
                 row, num_str, layout, semester_map, weekly_map, warnings
             )
@@ -934,13 +941,21 @@ def _hours_column_all_blank(
     return True
 
 
+def _xlsx_kitobni_och(path: Path, *, data_only: bool) -> Workbook:
+    """Open an .xlsx workbook, converting ZIP/XML/IO failures to ParseError."""
+    try:
+        return openpyxl.load_workbook(path, data_only=data_only)
+    except (BadZipFile, InvalidFileException, ET.ParseError, OSError) as exc:
+        raise ParseError(f"Excel faylini o'qib bo'lmadi ({path.name}): {exc}") from exc
+
+
 def _check_uncalculated_formulas(
     path: Path, layout: ColumnLayout, start_row: int, warnings: list[str]
 ) -> None:
     """A workbook never recalculated by Excel caches formula cells as None
     under data_only=True — reopen without it to tell "genuinely blank" from
     "formula Excel never evaluated"."""
-    wb_raw = openpyxl.load_workbook(path, data_only=False)
+    wb_raw = _xlsx_kitobni_och(path, data_only=False)
     try:
         ws_raw = wb_raw.worksheets[0]
         has_formula = any(
@@ -1004,7 +1019,7 @@ def parse_workbook(path: Path) -> ParseResult:
     """Parse one o'quv reja .xlsx into a ParseResult. The single entry point
     both `parser.main` and `plans.importer` build on."""
     warnings: list[str] = []
-    wb = openpyxl.load_workbook(path, data_only=True)
+    wb = _xlsx_kitobni_och(path, data_only=True)
     try:
         if not wb.worksheets:
             raise ParseError("Excel faylida varaqlar topilmadi")

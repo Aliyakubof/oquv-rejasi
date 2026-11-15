@@ -19,7 +19,7 @@ from plans.models import (
     TalimYonalishi,
     Yuklama,
 )
-from plans.services import keshni_tozala
+from plans.services import keshni_tozala, reja_qulflanganmi
 from plans.split import split_breakdown
 
 
@@ -119,6 +119,11 @@ def _mavjud_rejani_tekshir(reja: OquvReja, replace: bool) -> None:
         raise ImportXato(
             f"{reja} allaqachon import qilingan; --replace bilan qayta yuklang"
         )
+    if reja_qulflanganmi(reja):
+        raise ImportXato(
+            f"{reja} bo'yicha kafedra yuklamasi qulflangan; "
+            "avval tasdiqni qaytarib oling"
+        )
     yuklamalar = Yuklama.objects.filter(fan_semestr__variant__fan__reja=reja).count()
     if yuklamalar:
         raise ImportXato(
@@ -158,6 +163,7 @@ def _rejani_tayyorlash(
     )
     if yaratildi:
         return reja, True, None
+    reja = OquvReja.objects.select_for_update().get(pk=reja.pk)
     _mavjud_rejani_tekshir(reja, replace)
     holat = _manual_holatni_saqlash(reja)
     reja.fanlar.all().delete()

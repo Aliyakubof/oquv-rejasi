@@ -113,6 +113,13 @@ def _sarlavha_qatorini_top(table: Table, label: str):
     return None
 
 
+def _tbl_grid(table: Table):
+    grid = table._tbl.find(qn("w:tblGrid"))
+    if grid is None:
+        raise ValueError("1-jadvalda w:tblGrid topilmadi.")
+    return grid
+
+
 def _jadval1(hujjat: Document) -> Table:
     if len(hujjat.tables) != JADVAL_SONI:
         raise ValueError(
@@ -120,7 +127,7 @@ def _jadval1(hujjat: Document) -> Table:
             "Shablon tuzilishi o‘zgargan bo‘lsa, SOAT_USTUNLARI ham yangilanishi kerak."
         )
     table = hujjat.tables[JADVAL_INDEKSI]
-    ustunlar = len(table._tbl.find(qn("w:tblGrid")).findall(qn("w:gridCol")))
+    ustunlar = len(_tbl_grid(table).findall(qn("w:gridCol")))
     if ustunlar != GRID_USTUNLARI:
         raise ValueError(
             f"1-jadvalda {GRID_USTUNLARI} ta grid ustuni kutilgan, topildi: {ustunlar}."
@@ -131,7 +138,7 @@ def _jadval1(hujjat: Document) -> Table:
 def _ustunni_ochir(table: Table, ustun: int) -> int:
     """Removes one grid column, returning the width it freed. A cell covering
     the column alone is dropped; one spanning further loses a grid span."""
-    grid = table._tbl.find(qn("w:tblGrid"))
+    grid = _tbl_grid(table)
     gridcol = grid.findall(qn("w:gridCol"))[ustun]
     bosh_kenglik = int(gridcol.get(qn("w:w")))
     grid.remove(gridcol)
@@ -144,7 +151,14 @@ def _ustunni_ochir(table: Table, ustun: int) -> int:
                 if span == 1:
                     tr.remove(tc)
                 else:
-                    tc.tcPr.find(qn("w:gridSpan")).set(qn("w:val"), str(span - 1))
+                    gridspan = (
+                        tc.tcPr.find(qn("w:gridSpan")) if tc.tcPr is not None else None
+                    )
+                    if gridspan is None:
+                        raise ValueError(
+                            "Birlashtirilgan katakda w:gridSpan topilmadi."
+                        )
+                    gridspan.set(qn("w:val"), str(span - 1))
                 break
             joriy += span
     return bosh_kenglik
@@ -157,7 +171,7 @@ def _ustunlarni_kengaytir(
     table still spans the full page width; the remainder goes leftmost."""
     if not omon_qolganlar:
         return
-    gridcols = table._tbl.find(qn("w:tblGrid")).findall(qn("w:gridCol"))
+    gridcols = _tbl_grid(table).findall(qn("w:gridCol"))
     ulush, qoldiq = divmod(bosh_kenglik, len(omon_qolganlar))
     for tartib, ustun in enumerate(omon_qolganlar):
         gridcol = gridcols[ustun]
@@ -170,7 +184,7 @@ def _kengliklarni_qayta_hisobla(table: Table) -> None:
     with the table about where its column boundaries fall."""
     kengliklar = [
         int(gridcol.get(qn("w:w")))
-        for gridcol in table._tbl.find(qn("w:tblGrid")).findall(qn("w:gridCol"))
+        for gridcol in _tbl_grid(table).findall(qn("w:gridCol"))
     ]
     for tr in table._tbl.findall(qn("w:tr")):
         joriy = 0

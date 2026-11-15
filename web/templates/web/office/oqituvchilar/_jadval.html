@@ -70,11 +70,12 @@
                           data-modal-subtitle="{{ holat.oqituvchi.kafedra.nomi }} · {{ holat.oqituvchi.turi.nomi|capfirst }}"
                           data-modal-url="{% url 'office:oqituvchi_yuklama' holat.oqituvchi.pk %}?yil={{ yil }}"
                           data-modal-url-label="1-shakl yuklama varaqasi"
-                          data-modal-edit-url="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}"
+                          {% if holat.oqituvchi.foydalanuvchi.rol != 'SUPERADMIN' or request.user.rol == 'SUPERADMIN' %}data-modal-edit-url="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}"{% endif %}
                           data-row-modal="F.I.Sh::{{ holat.oqituvchi }}||Telefon::{{ holat.oqituvchi.foydalanuvchi.telefon }}||Kafedra::{{ holat.oqituvchi.kafedra.nomi }}||Lavozim::{{ holat.oqituvchi.turi.nomi|capfirst }}||Minimal norma::{{ holat.min_soat }} soat||Joriy yuklama::{{ holat.jami_soat }} soat||Kamomad::{{ holat.kamomad }} soat||Qoplanish::{{ holat.jami_soat|foiz:holat.min_soat }}%">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                     <div class="action-text"><span class="action-title">Ko'rish</span></div>
                   </button>
+                  {% if holat.oqituvchi.foydalanuvchi.rol != 'SUPERADMIN' or request.user.rol == 'SUPERADMIN' %}
                   <a class="action-item" href="{% url 'office:oqituvchi_tahrir' holat.oqituvchi.pk %}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     <div class="action-text"><span class="action-title">Tahrirlash</span></div>
@@ -92,6 +93,7 @@
                       <div class="action-text"><span class="action-title">Parolni tiklash</span></div>
                     </button>
                   </form>
+                  {% if holat.oqituvchi.foydalanuvchi_id != request.user.pk %}
                   <div class="action-divider"></div>
                   <form method="post" action="{% url 'office:oqituvchi_ochirish' holat.oqituvchi.pk %}"
                         data-modal-title="O'qituvchini o'chirish"
@@ -106,6 +108,8 @@
                       <div class="action-text"><span class="action-title">O'chirish</span></div>
                     </button>
                   </form>
+                  {% endif %}
+                  {% endif %}
                 </div>
               </div>
             </div>

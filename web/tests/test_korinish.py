@@ -96,3 +96,32 @@ class KorinishOnboardingTests(TestCase):
             "  color: #1a2a6e !important;"
         )
         self.assertNotIn(eski_badge_xato, css_matn)
+
+    def test_korinish_yopish_transition_va_ui_keng_sinxron(self) -> None:
+        modal_html = (
+            Path(settings.BASE_DIR)
+            / "web"
+            / "templates"
+            / "web"
+            / "parts"
+            / "_korinish_modal.html"
+        ).read_text(encoding="utf-8")
+        css_matn = (
+            Path(settings.BASE_DIR) / "web" / "static" / "web" / "css" / "app.css"
+        ).read_text(encoding="utf-8")
+        base_html = (
+            Path(settings.BASE_DIR) / "web" / "templates" / "web" / "base.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('x-transition:enter="onb-tr-enter"', modal_html)
+        self.assertIn('x-transition:leave="onb-tr-leave"', modal_html)
+        self.assertEqual(modal_html.count('x-show="ochiq"'), 1)
+        self.assertNotIn("onb-card-enter", modal_html)
+        self.assertNotIn("onb-card-leave", modal_html)
+
+        self.assertIn(".onb-tr-leave {", css_matn)
+        self.assertIn("pointer-events: none;", css_matn)
+        self.assertIn("animation-delay: 0ms !important;", css_matn)
+        self.assertNotIn("onb-card-enter", css_matn)
+        self.assertNotIn("onb-card-leave", css_matn)
+        self.assertIn("clearTimeout(this._bekorTimer)", base_html)

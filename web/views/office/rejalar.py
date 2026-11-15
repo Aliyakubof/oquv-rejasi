@@ -15,7 +15,7 @@ from accounts.models import Department
 from plans import dashboard, services
 from plans.audit import audit_yoz
 from plans.importer import ImportNatija, ImportXato
-from plans.models import AuditAmali, FanTuri, OquvReja, Yuklama
+from plans.models import AuditAmali, DasturTopshirish, FanTuri, OquvReja, Yuklama
 from plans.services import SemestrTahrir, semestrovka_yangilash
 from plans.uploads import fayldan_import_qilish
 from web.forms.reja import RejaImportForm, RejaTahrirForm
@@ -36,19 +36,23 @@ class RejaImportView(OfficeAdminTalabMixin, FormView):
 
     def form_valid(self, form: RejaImportForm) -> HttpResponse:
         try:
-            natija = fayldan_import_qilish(
-                form.cleaned_data["fayl"], form.parametrlar()
-            )
+            with transaction.atomic():
+                natija = fayldan_import_qilish(
+                    form.cleaned_data["fayl"], form.parametrlar()
+                )
+                amal = (
+                    AuditAmali.YARATILDI if natija.yaratildi else AuditAmali.TAHRIRLANDI
+                )
+                audit_yoz(
+                    amal,
+                    f"O'quv reja import qilindi: {natija.reja} "
+                    f"({natija.fan_soni} fan).",
+                    obyekt=natija.reja,
+                    request=self.request,
+                )
         except ImportXato as xato:
             form.add_error(None, str(xato))
             return self.form_invalid(form)
-        amal = AuditAmali.YARATILDI if natija.yaratildi else AuditAmali.TAHRIRLANDI
-        audit_yoz(
-            amal,
-            f"O'quv reja import qilindi: {natija.reja} ({natija.fan_soni} fan).",
-            obyekt=natija.reja,
-            request=self.request,
-        )
         self._xabarlar(natija)
         return redirect("office:reja_detail", pk=natija.reja.pk)
 
@@ -114,14 +118,16 @@ class RejaTahrirView(OfficeAdminTalabMixin, UpdateView):
     context_object_name = "reja"
 
     def form_valid(self, form: RejaTahrirForm) -> HttpResponse:
-        javob = super().form_valid(form)
-        services.guruhlarni_sinxronlash(self.object)
-        audit_yoz(
-            AuditAmali.TAHRIRLANDI,
-            f"O'quv reja tahrirlandi: {self.object}.",
-            obyekt=self.object,
-            request=self.request,
-        )
+        with transaction.atomic():
+            OquvReja.objects.select_for_update().filter(pk=self.object.pk).first()
+            javob = super().form_valid(form)
+            services.guruhlarni_sinxronlash(self.object)
+            audit_yoz(
+                AuditAmali.TAHRIRLANDI,
+                f"O'quv reja tahrirlandi: {self.object}.",
+                obyekt=self.object,
+                request=self.request,
+            )
         messages.success(self.request, "Reja saqlandi, guruhlar yangilandi.")
         return javob
 
@@ -134,6 +140,13 @@ class RejaTahrirView(OfficeAdminTalabMixin, UpdateView):
 def reja_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     with transaction.atomic():
         reja = get_object_or_404(OquvReja.objects.select_for_update(), pk=pk)
+        if services.reja_qulflanganmi(reja):
+            messages.error(
+                request,
+                f"{reja} rejasida kafedra yuklamasi qulflangan — "
+                "avval tasdiqni qaytarib oling.",
+            )
+            return redirect("office:reja_list")
         if Yuklama.objects.filter(fan_semestr__variant__fan__reja=reja).exists():
             messages.error(
                 request,
@@ -141,9 +154,17 @@ def reja_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
                 "avval ularni bekor qiling.",
             )
             return redirect("office:reja_list")
+        if DasturTopshirish.objects.filter(variant__fan__reja=reja).exists():
+            messages.error(
+                request,
+                f"{reja} rejasida fan dasturi topshiriqlari mavjud — "
+                "avval ularni ko'rib chiqing.",
+            )
+            return redirect("office:reja_list")
         nom = str(reja)
         reja_id = reja.pk
         reja.delete()
+        services.keshni_tozala()
         audit_yoz(
             AuditAmali.OCHIRILDI,
             f"O'quv reja o'chirildi: {nom}.",

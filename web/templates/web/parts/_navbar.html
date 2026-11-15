@@ -5,8 +5,8 @@
       O'quv yuklamasi
     </a>
     <button type="button" class="navbar-toggle" @click="menyuOchiq = !menyuOchiq" :aria-expanded="menyuOchiq.toString()" aria-label="Menyuni ochish">
-      <svg x-show="!menyuOchiq" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      <svg x-show="menyuOchiq" x-cloak width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <svg x-show="!menyuOchiq" x-transition:enter.opacity.duration.150ms width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <svg x-show="menyuOchiq" x-cloak x-transition:enter.opacity.duration.150ms width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div class="navbar-nav" :class="menyuOchiq && 'ochiq'" @click="if ($event.target.closest('a')) menyuOchiq = false">
       {% if user.is_office_admin or user.is_superadmin %}

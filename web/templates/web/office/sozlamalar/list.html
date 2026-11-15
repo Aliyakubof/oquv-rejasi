@@ -129,7 +129,7 @@
     <div class="search">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input type="text" name="q" x-model="val" x-ref="qInput" value="{{ yonalish_q }}" placeholder="Kod, yo'nalish yoki soha nomi..." aria-label="Yo'nalish qidirish">
-      <button type="button" class="search-clear" x-show="(val || '').length > 0" x-cloak
+      <button type="button" class="search-clear" x-show="(val || '').length > 0" x-cloak x-transition.opacity.duration.150ms
               @click="val = ''; $nextTick(() => $refs.qInput.dispatchEvent(new Event('input', { bubbles: true })))"
               aria-label="Qidiruvni tozalash" title="Tozalash">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -138,6 +138,7 @@
     <a class="btn btn-sm"
        href="{% url 'office:sozlamalar' %}"
        x-show="(val || '').trim() !== ''"
+       x-transition.opacity.duration.150ms
        {% if not yonalish_q %}x-cloak{% endif %}
        @click.prevent="val = ''; $nextTick(() => $el.closest('form').requestSubmit())">Tozalash</a>
   </form>

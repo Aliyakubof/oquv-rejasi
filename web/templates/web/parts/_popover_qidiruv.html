@@ -1,7 +1,7 @@
 <div class="popover-search-wrap">
   <div class="popover-input-box">
     <input type="text" placeholder="{{ placeholder|default:'Qidirish' }}" aria-label="{{ aria_label|default:placeholder|default:'Qidirish' }}" x-model="{{ model|default:'q' }}" x-ref="qidiruvInput">
-    <button type="button" class="search-clear" x-show="{{ model|default:'q' }} !== ''" x-cloak @click.stop="{{ model|default:'q' }} = ''; $nextTick(() => $refs.qidiruvInput?.focus())" aria-label="Qidiruvni tozalash" title="Tozalash">
+    <button type="button" class="search-clear" x-show="{{ model|default:'q' }} !== ''" x-cloak x-transition.opacity.duration.150ms @click.stop="{{ model|default:'q' }} = ''; $nextTick(() => $refs.qidiruvInput?.focus())" aria-label="Qidiruvni tozalash" title="Tozalash">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>

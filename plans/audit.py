@@ -32,7 +32,7 @@ def sorovdan_ip(request: HttpRequest) -> str | None:
     ishonchli_proksilar = {
         ip.strip() for ip in getattr(settings, "TRUSTED_PROXY_IPS", ()) if ip.strip()
     }
-    if ishonchli_proksilar and remote_ip not in ishonchli_proksilar:
+    if not ishonchli_proksilar or remote_ip not in ishonchli_proksilar:
         return remote_ip
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:

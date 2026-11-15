@@ -31,7 +31,7 @@
     <div class="popover-input-box">
       <input type="text" x-ref="qidiruvInput" placeholder="O'qituvchi qidirish..." aria-label="O'qituvchi qidirish"
         x-model="q">
-      <button type="button" class="search-clear" x-show="q !== ''" x-cloak @click="q = ''; $refs.qidiruvInput?.focus()"
+      <button type="button" class="search-clear" x-show="q !== ''" x-cloak x-transition.opacity.duration.150ms @click="q = ''; $refs.qidiruvInput?.focus()"
         aria-label="Qidiruvni tozalash" title="Tozalash">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"
           aria-hidden="true">

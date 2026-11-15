@@ -33,14 +33,17 @@ TURLAR_METRIKASI = [
 
 def _dashboard_konteksti(yil: int) -> dict[str, object]:
     taqsimot = services.ofis_taqsimoti(yil)
+    qamrovlar = dashboard.kafedra_qamrovi(
+        yil, taqsimot=taqsimot, oqituvchilar_bilan=False
+    )
     return {
         "yil": yil,
         "manba_yillar": nusxalash.manba_yillar_royxati(yil),
         "stat": dashboard.statlarni_hisoblash(taqsimot),
         "jami_talabalar": dashboard.jami_talabalar(yil),
         "fan_satrlari": dashboard.ofis_fan_satrlari(yil),
-        "kafedralar": Department.objects.all(),
-        "qamrovlar": dashboard.kafedra_qamrovi(yil, taqsimot=taqsimot),
+        "kafedralar": [q.kafedra for q in qamrovlar],
+        "qamrovlar": qamrovlar,
         "turlar_metrikasi": TURLAR_METRIKASI,
     }
 
@@ -185,14 +188,17 @@ def _qator_javobi(request: HttpRequest, fan: Fan, xato: str | None) -> HttpRespo
         satr = None
     else:
         taqsimot = services.ofis_taqsimoti(yil)
+        qamrovlar = dashboard.kafedra_qamrovi(
+            yil, taqsimot=taqsimot, oqituvchilar_bilan=False
+        )
         satrlar = dashboard.ofis_fan_satrlari(yil, fan_id=fan.pk)
         satr = satrlar[0] if satrlar else None
         kontekst = {
             "yil": yil,
             "stat": dashboard.statlarni_hisoblash(taqsimot),
             "jami_talabalar": dashboard.jami_talabalar(yil),
-            "kafedralar": Department.objects.all(),
-            "qamrovlar": dashboard.kafedra_qamrovi(yil, taqsimot=taqsimot),
+            "kafedralar": [q.kafedra for q in qamrovlar],
+            "qamrovlar": qamrovlar,
             "turlar_metrikasi": TURLAR_METRIKASI,
         }
     kontekst.update({"satr": satr, "xato": xato})
@@ -209,17 +215,18 @@ def taqsimot_nusxalash_view(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Manba o'quv yilini tanlang.")
         return redirect(f"{reverse('office:dashboard')}?yil={maqsad_yil}")
     try:
-        natija = nusxalash.ofis_taqsimotini_nusxalash(manba_yil, maqsad_yil)
-        audit_yoz(
-            AuditAmali.TAHRIRLANDI,
-            (
-                f"{manba_yil}/{manba_yil + 1} dan {maqsad_yil}/{maqsad_yil + 1} ga "
-                f"nusxa: {natija.tanlangan_variantlar} ta variant, "
-                f"{natija.biriktirilgan_kafedralar} ta kafedra biriktirildi."
-            ),
-            model_nomi="FanVariant",
-            request=request,
-        )
+        with transaction.atomic():
+            natija = nusxalash.ofis_taqsimotini_nusxalash(manba_yil, maqsad_yil)
+            audit_yoz(
+                AuditAmali.TAHRIRLANDI,
+                (
+                    f"{manba_yil}/{manba_yil + 1} dan {maqsad_yil}/{maqsad_yil + 1} ga "
+                    f"nusxa: {natija.tanlangan_variantlar} ta variant, "
+                    f"{natija.biriktirilgan_kafedralar} ta kafedra biriktirildi."
+                ),
+                model_nomi="FanVariant",
+                request=request,
+            )
         xabar = (
             f"{manba_yil}/{manba_yil + 1} yildan {natija.tanlangan_variantlar} ta "
             f"tanlov fani va {natija.biriktirilgan_kafedralar} ta kafedra ko'chirildi."

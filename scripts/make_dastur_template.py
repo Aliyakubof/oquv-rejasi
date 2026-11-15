@@ -158,6 +158,21 @@ def _tc_span(tc) -> int:
     return int(gridspan.get(qn("w:val"))) if gridspan is not None else 1
 
 
+def _tbl_grid(table: Table):
+    grid = table._tbl.find(qn("w:tblGrid"))
+    if grid is None:
+        raise ValueError("w:tblGrid topilmadi")
+    return grid
+
+
+def _tc_span_oshir(tc, span: int) -> None:
+    pr = tc.find(qn("w:tcPr"))
+    gridspan = pr.find(qn("w:gridSpan")) if pr is not None else None
+    if gridspan is None:
+        raise ValueError("w:gridSpan topilmadi")
+    gridspan.set(qn("w:val"), str(span + 1))
+
+
 def insert_grid_column(
     table: Table,
     after_col: int,
@@ -182,7 +197,7 @@ def insert_grid_column(
     after it) but still needs to reach the new final column — its *last*
     cell grows by one, regardless of where `after_col` falls.
     """
-    grid = table._tbl.find(qn("w:tblGrid"))
+    grid = _tbl_grid(table)
     gridcols = grid.findall(qn("w:gridCol"))
     old_width = int(gridcols[after_col].get(qn("w:w")))
     gridcols[after_col].set(qn("w:w"), str(old_width - width))
@@ -194,8 +209,7 @@ def insert_grid_column(
     for row_idx, tr in enumerate(table._tbl.findall(qn("w:tr")), start=1):
         if row_idx in widen_last_cell_rows:
             tc = tr.findall(qn("w:tc"))[-1]
-            span = _tc_span(tc)
-            tc.find(qn("w:tcPr")).find(qn("w:gridSpan")).set(qn("w:val"), str(span + 1))
+            _tc_span_oshir(tc, _tc_span(tc))
             continue
         if row_idx not in targets:
             continue
@@ -204,8 +218,7 @@ def insert_grid_column(
             span = _tc_span(tc)
             if col <= after_col < col + span:
                 if row_idx in widen_rows:
-                    tcPr = tc.find(qn("w:tcPr"))
-                    tcPr.find(qn("w:gridSpan")).set(qn("w:val"), str(span + 1))
+                    _tc_span_oshir(tc, span)
                 else:
                     new_tc = copy.deepcopy(tc)
                     for p in new_tc.findall(qn("w:p")):
@@ -225,13 +238,14 @@ def _recompute_widths(table: Table) -> None:
     cell's own stored width."""
     widths = [
         int(gridcol.get(qn("w:w")))
-        for gridcol in table._tbl.find(qn("w:tblGrid")).findall(qn("w:gridCol"))
+        for gridcol in _tbl_grid(table).findall(qn("w:gridCol"))
     ]
     for tr in table._tbl.findall(qn("w:tr")):
         col = 0
         for tc in tr.findall(qn("w:tc")):
             span = _tc_span(tc)
-            tcW = tc.find(qn("w:tcPr")).find(qn("w:tcW"))
+            pr = tc.find(qn("w:tcPr"))
+            tcW = pr.find(qn("w:tcW")) if pr is not None else None
             if tcW is not None:
                 tcW.set(qn("w:w"), str(sum(widths[col : col + span])))
             col += span

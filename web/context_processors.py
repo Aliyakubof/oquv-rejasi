@@ -7,9 +7,13 @@ from plans.models import Bildirishnoma
 
 
 def debug_rejim(request: HttpRequest) -> dict[str, object]:
-    """Expose DEBUG flag and recent notifications for authenticated users."""
+    """Expose DEBUG flag and recent notifications for full/boosted page renders."""
     user = getattr(request, "user", None)
-    if user is None or not user.is_authenticated:
+    qisman_htmx = (
+        request.headers.get("HX-Request") == "true"
+        and request.headers.get("HX-Boosted") != "true"
+    )
+    if user is None or not user.is_authenticated or qisman_htmx:
         return {
             "debug_rejim": settings.DEBUG,
             "oqilmagan_xabarlar_soni": 0,

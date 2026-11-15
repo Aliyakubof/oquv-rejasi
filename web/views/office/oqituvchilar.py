@@ -1,5 +1,6 @@
 """Office-wide teacher administration, coverage list, detail and Excel export."""
 
+import time
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -53,22 +54,34 @@ __all__ = [
 ]
 
 
+_VAQTINCHALIK_PAROL_TTL = 300
+
+
+def _sessionga_muddatli_qoyish(
+    request: HttpRequest, kalit: str, qiymat: object
+) -> None:
+    request.session[kalit] = {
+        "data": qiymat,
+        "exp": int(time.time()) + _VAQTINCHALIK_PAROL_TTL,
+    }
+
+
+def _sessiondan_muddatli_olish(request: HttpRequest, kalit: str) -> object | None:
+    yozuv = request.session.pop(kalit, None)
+    if not isinstance(yozuv, dict):
+        return yozuv
+    if "data" in yozuv and "exp" in yozuv:
+        if int(time.time()) > int(yozuv["exp"]):
+            return None
+        return yozuv["data"]
+    return yozuv
+
+
 def _tanlangan_kafedra(sorov: HttpRequest) -> Department | None:
     kafedra_pk = musbat_int_yoki_none(sorov.GET.get("kafedra"))
     if kafedra_pk is None:
         return None
     return Department.objects.filter(pk=kafedra_pk).first()
-
-
-def _oqituvchi_qidiruvga_mosmi(holat: services.YuklamaHolati, q: str) -> bool:
-    kalit = q.lower()
-    oqit = holat.oqituvchi
-    foy = oqit.foydalanuvchi
-    matn = (
-        f"{oqit} {foy.last_name} {foy.first_name} {foy.telefon} "
-        f"{oqit.kafedra.nomi} {oqit.turi.nomi}"
-    ).lower()
-    return kalit in matn
 
 
 class OqituvchiListView(OfficeAdminTalabMixin, YilTanlovMixin, TemplateView):
@@ -78,9 +91,7 @@ class OqituvchiListView(OfficeAdminTalabMixin, YilTanlovMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         kafedra = _tanlangan_kafedra(self.request)
         q = self.request.GET.get("q", "").strip()
-        barcha = services.yuklama_kamomadi(self.yil, kafedra=kafedra)
-        if q:
-            barcha = [h for h in barcha if _oqituvchi_qidiruvga_mosmi(h, q)]
+        barcha = services.yuklama_kamomadi(self.yil, kafedra=kafedra, q=q)
         page_obj = Paginator(barcha, 30).get_page(self.request.GET.get("page"))
         paramlar: dict[str, str] = {"yil": str(self.yil)}
         if kafedra:
@@ -95,8 +106,8 @@ class OqituvchiListView(OfficeAdminTalabMixin, YilTanlovMixin, TemplateView):
                 "page_obj": page_obj,
                 "qidiruv_q": q,
                 "query_prefix": urlencode(paramlar),
-                "vaqtinchalik_parol": self.request.session.pop(
-                    "vaqtinchalik_parol_natija", None
+                "vaqtinchalik_parol": _sessiondan_muddatli_olish(
+                    self.request, "vaqtinchalik_parol_natija"
                 ),
             }
         )
@@ -171,6 +182,12 @@ def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
         if profil.foydalanuvchi_id == request.user.pk:
             messages.error(request, "O'z hisobingizni o'chira olmaysiz.")
             return xavfsiz_qaytish(request, "office:oqituvchi_list")
+        if (
+            profil.foydalanuvchi.rol == Rol.SUPERADMIN
+            and request.user.rol != Rol.SUPERADMIN
+        ):
+            messages.error(request, "Superadmin hisobini o'chirishga ruxsat yo'q.")
+            return xavfsiz_qaytish(request, "office:oqituvchi_list")
         nom = str(profil)
         profil_id = profil.pk
         bogliq_bormi = (
@@ -214,11 +231,15 @@ def oqituvchi_vaqtinchalik_parol(request: HttpRequest, pk: int) -> HttpResponse:
         obyekt=profil,
         request=request,
     )
-    request.session["vaqtinchalik_parol_natija"] = {
-        "ism": str(profil),
-        "telefon": target.telefon,
-        "parol": parol,
-    }
+    _sessionga_muddatli_qoyish(
+        request,
+        "vaqtinchalik_parol_natija",
+        {
+            "ism": str(profil),
+            "telefon": target.telefon,
+            "parol": parol,
+        },
+    )
     messages.success(request, f"{profil} uchun yangi vaqtinchalik parol yaratildi.")
     return xavfsiz_qaytish(request, "office:oqituvchi_list")
 
@@ -243,7 +264,9 @@ class OqituvchiImportView(OfficeAdminTalabMixin, View):
             return render(request, self.template_name, {"xatolar": exc.messages})
         parollar_mavjud = bool(natija.yaratilganlar)
         if parollar_mavjud:
-            request.session["oqituvchi_import_parollar"] = natija.yaratilganlar
+            _sessionga_muddatli_qoyish(
+                request, "oqituvchi_import_parollar", natija.yaratilganlar
+            )
             audit_yoz(
                 AuditAmali.YARATILDI,
                 f"Excel dan {len(natija.yaratilganlar)} ta o'qituvchi import qilindi.",
@@ -275,8 +298,8 @@ def oqituvchi_namuna_excel_view(request: HttpRequest) -> HttpResponse:
 
 @office_admin_talab
 def oqituvchi_import_parollar_view(request: HttpRequest) -> HttpResponse:
-    yaratilganlar = request.session.pop("oqituvchi_import_parollar", None)
-    if not yaratilganlar:
+    yaratilganlar = _sessiondan_muddatli_olish(request, "oqituvchi_import_parollar")
+    if not yaratilganlar or not isinstance(yaratilganlar, list):
         raise Http404("Yuklab olish uchun yangi import parollari topilmadi.")
     return FileResponse(
         oqituvchi_import_natija_excel(yaratilganlar),
