@@ -9,7 +9,7 @@ import environ
 
 # Loyiha ildiz katalogi: BASE_DIR / 'ichki_papka' shaklida yo'l tuziladi.
 BASE_DIR = Path(__file__).resolve().parent.parent
-IS_TEST = "test" in sys.argv
+IS_TEST = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env", overwrite=True)

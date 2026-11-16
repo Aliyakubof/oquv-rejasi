@@ -44,13 +44,14 @@ class KafedraYangiView(OfisAdminTalabMixin, CreateView):
     success_url = reverse_lazy("office:kafedra_list")
 
     def form_valid(self, form: KafedraForm) -> HttpResponse:
-        javob = super().form_valid(form)
-        audit_yoz(
-            AuditAmali.YARATILDI,
-            f"Kafedra yaratildi: {self.object.nomi}.",
-            obyekt=self.object,
-            request=self.request,
-        )
+        with transaction.atomic():
+            javob = super().form_valid(form)
+            audit_yoz(
+                AuditAmali.YARATILDI,
+                f"Kafedra yaratildi: {self.object.nomi}.",
+                obyekt=self.object,
+                request=self.request,
+            )
         messages.success(self.request, "Kafedra yaratildi.")
         return javob
 
@@ -62,13 +63,14 @@ class KafedraTahrirView(OfisAdminTalabMixin, UpdateView):
     success_url = reverse_lazy("office:kafedra_list")
 
     def form_valid(self, form: KafedraForm) -> HttpResponse:
-        javob = super().form_valid(form)
-        audit_yoz(
-            AuditAmali.TAHRIRLANDI,
-            f"Kafedra tahrirlandi: {self.object.nomi}.",
-            obyekt=self.object,
-            request=self.request,
-        )
+        with transaction.atomic():
+            javob = super().form_valid(form)
+            audit_yoz(
+                AuditAmali.TAHRIRLANDI,
+                f"Kafedra tahrirlandi: {self.object.nomi}.",
+                obyekt=self.object,
+                request=self.request,
+            )
         messages.success(self.request, "Kafedra saqlandi.")
         return javob
 

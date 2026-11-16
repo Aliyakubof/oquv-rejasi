@@ -16,9 +16,9 @@ from accounts.models import Department, OqituvchiProfil
 from plans.hemis_client import hemis_elementlarni_sinxronlash, json_royxatni_ajrat
 from plans.models import FanVariant, OquvReja, Yuklama
 from web.security import (
+    api_kalit_bloklanganmi,
+    api_kalit_xatosini_qayd_et,
     api_sorov_limitdan_oshdimi,
-    kirish_bloklanganmi,
-    kirish_xatosini_qayd_et,
 )
 
 _XAVFSIZ_METODLAR = ("GET", "HEAD", "OPTIONS", "TRACE")
@@ -44,17 +44,20 @@ def _kalit_mosmi(request: HttpRequest) -> bool:
 
 def _api_kirish_tekshir(request: HttpRequest) -> tuple[bool, int, str]:
     """API kaliti yoki CSRF-himoyalangan ofis/superadmin sessiyasini tekshiradi."""
-    bloklangan, _ = kirish_bloklanganmi(request)
-    if bloklangan:
-        return (
-            False,
-            429,
-            "Juda ko'p noto'g'ri urinish. Birozdan so'ng qayta urinib ko'ring.",
-        )
-    if _kalit_mosmi(request):
-        return True, 200, ""
-    if request.headers.get("Authorization") or request.headers.get("X-API-KEY"):
-        kirish_xatosini_qayd_et(request)
+    kalit_sarlavhasi = bool(
+        request.headers.get("Authorization") or request.headers.get("X-API-KEY")
+    )
+    if kalit_sarlavhasi:
+        bloklangan, _ = api_kalit_bloklanganmi(request)
+        if bloklangan:
+            return (
+                False,
+                429,
+                "Juda ko'p noto'g'ri urinish. Birozdan so'ng qayta urinib ko'ring.",
+            )
+        if _kalit_mosmi(request):
+            return True, 200, ""
+        api_kalit_xatosini_qayd_et(request)
         return False, 401, "API kalit noto'g'ri yoki yaroqsiz."
     if not (request.user.is_authenticated and request.user.is_active):
         return False, 401, "Avtorizatsiyadan o'tilmagan yoki API kalit noto'g'ri."

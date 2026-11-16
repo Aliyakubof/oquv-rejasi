@@ -166,9 +166,11 @@ def holat_versiyasi() -> str:
         keshdagi = cache.get(_KESH_KALITI)
         if isinstance(keshdagi, str):
             return keshdagi
+        epoch_boshi = cache.get(JONLI_EPOCH_KALITI)
         xom = repr(_jadval_qismlari()).encode("utf-8")
         versiya = hashlib.sha256(xom).hexdigest()[:16]
-        cache.set(_KESH_KALITI, versiya, timeout=_kesh_muddati())
+        if cache.get(JONLI_EPOCH_KALITI) == epoch_boshi:
+            cache.set(_KESH_KALITI, versiya, timeout=_kesh_muddati())
         return versiya
 
 

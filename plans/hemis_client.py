@@ -5,7 +5,7 @@ import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-from http.client import HTTPMessage
+from http.client import HTTPException, HTTPMessage
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -93,7 +93,15 @@ def sync_rejani_top(item: dict[str, object]) -> OquvReja | None:
             if not isinstance(item["talim_shakli"], str):
                 raise ValueError("talim_shakli matn bo'lishi kerak")
             filtr["talim_shakli"] = item["talim_shakli"].strip()
-        return OquvReja.objects.select_for_update().filter(**filtr).first()
+        rejalar = list(
+            OquvReja.objects.select_for_update().filter(**filtr).order_by("pk")[:2]
+        )
+        if len(rejalar) > 1:
+            raise ValueError(
+                "yonalish_kodi va boshlanish_yili bo'yicha bir nechta reja topildi; "
+                "talim_shakli ko'rsating."
+            )
+        return rejalar[0] if rejalar else None
     return None
 
 
@@ -147,8 +155,8 @@ def sync_rejani_yangila(
     ozgardi, talabalar, guruhlar = _reja_maydonlarini_yangila(reja, item)
     if not ozgardi:
         return None
-    list(reja.guruhlar.select_for_update().order_by("pk"))
     list(FanSemestr.objects.reja_uchun(reja).select_for_update().order_by("pk"))
+    list(reja.guruhlar.select_for_update().order_by("pk"))
     _sync_cheklovlarini_tekshir(reja, talabalar, guruhlar)
     reja.full_clean()
     reja.save()
@@ -266,8 +274,19 @@ def hemis_dan_yuklash(
     kutish = timeout or int(getattr(settings, "HEMIS_TIMEOUT", 15))
     try:
         xom = _http_ochish(sorov, kutish).decode("utf-8")
-    except urllib.error.URLError as err:
-        raise ConnectionError(f"HEMIS serveriga ulanib bo'lmadi: {err}") from err
+    except (
+        urllib.error.URLError,
+        HTTPException,
+        TimeoutError,
+        OSError,
+        UnicodeDecodeError,
+    ) as err:
+        xato_info = (
+            f"HTTP {err.code}"
+            if isinstance(err, urllib.error.HTTPError)
+            else type(err).__name__
+        )
+        raise ConnectionError(f"HEMIS serveriga ulanib bo'lmadi: {xato_info}") from err
     try:
         malumot = json.loads(xom)
     except json.JSONDecodeError as err:

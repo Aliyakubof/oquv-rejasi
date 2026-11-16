@@ -203,7 +203,7 @@ def _ofis_nusxa_yigish(
 ) -> tuple[list[Fan], list[FanVariant], int]:
     fanlar_yangilash: dict[int, Fan] = {}
     variantlar_yangilash: dict[int, FanVariant] = {}
-    otkazildi = 0
+    otkazildi_kafedralar: set[int] = set()
     for fs in maqsad_fs:
         topildi = _top_manba_ofis(fs, toliq, nom)
         if topildi is None:
@@ -212,18 +212,22 @@ def _ofis_nusxa_yigish(
         v = variantlar[fs.variant_id]
         fan = fanlar[v.fan_id]
         if manba_tanlangan and fan.tanlangan_variant_id is None:
+            maqsad_kaf_id = v.kafedra_id if v.kafedra_id is not None else manba_kaf_id
+            if maqsad_kaf_id is not None and maqsad_kaf_id in qulflangan_ids:
+                otkazildi_kafedralar.add(maqsad_kaf_id)
+                continue
             fan.tanlangan_variant_id = v.pk
             fanlar_yangilash[fan.pk] = fan
         if manba_kaf_id and v.kafedra_id is None and fan.tanlangan_variant_id == v.pk:
             if manba_kaf_id in qulflangan_ids:
-                otkazildi += 1
+                otkazildi_kafedralar.add(manba_kaf_id)
             else:
                 v.kafedra_id = manba_kaf_id
                 variantlar_yangilash[v.pk] = v
     return (
         list(fanlar_yangilash.values()),
         list(variantlar_yangilash.values()),
-        otkazildi,
+        len(otkazildi_kafedralar),
     )
 
 

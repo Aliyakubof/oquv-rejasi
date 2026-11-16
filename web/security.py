@@ -101,3 +101,38 @@ def api_sorov_limitdan_oshdimi(request: HttpRequest) -> bool:
     ip = sorovdan_ip(request) or "lokal"
     kalit = _kalit("api_rl", ip)
     return kesh_hisoblagichni_oshir(kalit, 60) > limit
+
+
+def _api_kalit_cheklov_kaliti(request: HttpRequest) -> tuple[str, int] | None:
+    chegara = _max_urinish()
+    if chegara <= 0:
+        return None
+    ip = sorovdan_ip(request) or "lokal"
+    return _kalit("api_ip", ip), max(chegara * 4, 20)
+
+
+def api_kalit_bloklanganmi(request: HttpRequest) -> tuple[bool, int]:
+    """API kalit brute-force urinishlari IP bo'yicha oshsa True qaytaradi."""
+    juft = _api_kalit_cheklov_kaliti(request)
+    if juft is None:
+        return False, 0
+    kalit, limit = juft
+    if int(cache.get(kalit, 0)) >= limit:
+        return True, _blok_soniya()
+    return False, 0
+
+
+def api_kalit_xatosini_qayd_et(request: HttpRequest) -> int:
+    """Noto'g'ri API kalit urinishlarini veb login cheklovidan alohida sanaydi."""
+    juft = _api_kalit_cheklov_kaliti(request)
+    if juft is None:
+        return 0
+    kalit, limit = juft
+    yangi = kesh_hisoblagichni_oshir(kalit, _blok_soniya())
+    if yangi >= limit:
+        _LOGGER.warning(
+            "API kalit urinishlari vaqtincha bloklandi (ip=%s, urinishlar=%s)",
+            sorovdan_ip(request),
+            yangi,
+        )
+    return yangi

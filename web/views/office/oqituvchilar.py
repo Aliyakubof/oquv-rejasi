@@ -172,13 +172,32 @@ def _oqituvchini_faolsizlantir(
     )
 
 
+def _oqituvchini_qulflab_olish(pk: int) -> OqituvchiProfil:
+    kaf_idlar = sorted(
+        set(Department.objects.filter(mudir_id=pk).values_list("pk", flat=True))
+        | set(
+            OqituvchiProfil.objects.filter(pk=pk, kafedra_id__isnull=False).values_list(
+                "kafedra_id", flat=True
+            )
+        )
+    )
+    if kaf_idlar:
+        list(
+            Department.objects.select_for_update()
+            .filter(pk__in=kaf_idlar)
+            .order_by("pk")
+        )
+    return get_object_or_404(
+        OqituvchiProfil.objects.select_related("foydalanuvchi").select_for_update(),
+        pk=pk,
+    )
+
+
 @require_POST
 @ofis_admin_talab
 def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     with transaction.atomic():
-        profil = get_object_or_404(
-            OqituvchiProfil.objects.bilan_foydalanuvchi().select_for_update(), pk=pk
-        )
+        profil = _oqituvchini_qulflab_olish(pk)
         if profil.foydalanuvchi_id == request.user.pk:
             messages.error(request, "O'z hisobingizni o'chira olmaysiz.")
             return xavfsiz_qaytish(request, "office:oqituvchi_list")
@@ -216,21 +235,22 @@ def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 @ofis_admin_talab
 def oqituvchi_vaqtinchalik_parol(request: HttpRequest, pk: int) -> HttpResponse:
-    profil = get_object_or_404(OqituvchiProfil.objects.bilan_foydalanuvchi(), pk=pk)
-    target = profil.foydalanuvchi
-    if target.pk == request.user.pk:
-        messages.error(request, "O'z parolingizni Parol sahifasidan o'zgartiring.")
-        return xavfsiz_qaytish(request, "office:oqituvchi_list")
-    if target.rol == Rol.SUPERADMIN and request.user.rol != Rol.SUPERADMIN:
-        messages.error(request, "Superadmin parolini tiklashga ruxsat yo'q.")
-        return xavfsiz_qaytish(request, "office:oqituvchi_list")
-    parol = vaqtinchalik_parol_yarat(target)
-    audit_yoz(
-        AuditAmali.TAHRIRLANDI,
-        f"Vaqtinchalik parol yaratildi: {profil}.",
-        obyekt=profil,
-        request=request,
-    )
+    with transaction.atomic():
+        profil = _oqituvchini_qulflab_olish(pk)
+        target = profil.foydalanuvchi
+        if target.pk == request.user.pk:
+            messages.error(request, "O'z parolingizni Parol sahifasidan o'zgartiring.")
+            return xavfsiz_qaytish(request, "office:oqituvchi_list")
+        if target.rol == Rol.SUPERADMIN and request.user.rol != Rol.SUPERADMIN:
+            messages.error(request, "Superadmin parolini tiklashga ruxsat yo'q.")
+            return xavfsiz_qaytish(request, "office:oqituvchi_list")
+        parol = vaqtinchalik_parol_yarat(target)
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            f"Vaqtinchalik parol yaratildi: {profil}.",
+            obyekt=profil,
+            request=request,
+        )
     _sessionga_muddatli_qoyish(
         request,
         "vaqtinchalik_parol_natija",

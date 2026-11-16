@@ -15,7 +15,15 @@ from accounts.models import Department
 from plans import dashboard, services
 from plans.audit import audit_yoz
 from plans.importer import ImportNatija, ImportXato
-from plans.models import AuditAmali, DasturTopshirish, FanTuri, OquvReja, Yuklama
+from plans.models import (
+    AuditAmali,
+    DasturTopshirish,
+    FanSemestr,
+    FanTuri,
+    FanVariant,
+    OquvReja,
+    Yuklama,
+)
 from plans.services import SemestrTahrir, semestrovka_yangilash
 from plans.uploads import fayldan_import_qilish
 from web.forms.reja import RejaImportForm, RejaTahrirForm
@@ -117,9 +125,38 @@ class RejaTahrirView(OfisAdminTalabMixin, UpdateView):
     queryset = OquvReja.objects.all()
     context_object_name = "reja"
 
+    def _reja_qulflarini_olish(self, pk: int) -> OquvReja:
+        kaf_idlar = sorted(
+            set(
+                FanVariant.objects.filter(
+                    fan__reja_id=pk, kafedra_id__isnull=False
+                ).values_list("kafedra_id", flat=True)
+            )
+        )
+        if kaf_idlar:
+            list(
+                Department.objects.select_for_update()
+                .filter(pk__in=kaf_idlar)
+                .order_by("pk")
+            )
+        reja = get_object_or_404(OquvReja.objects.select_for_update(), pk=pk)
+        list(FanSemestr.objects.reja_uchun(reja).select_for_update().order_by("pk"))
+        list(reja.guruhlar.select_for_update().order_by("pk"))
+        return reja
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        with transaction.atomic():
+            self.object = self._reja_qulflarini_olish(int(self.kwargs["pk"]))
+            form = self.get_form()
+            if form.is_valid():
+                return self.form_valid(form)
+            return self.form_invalid(form)
+
     def form_valid(self, form: RejaTahrirForm) -> HttpResponse:
         with transaction.atomic():
-            OquvReja.objects.select_for_update().filter(pk=self.object.pk).first()
+            self._reja_qulflarini_olish(self.object.pk)
             javob = super().form_valid(form)
             services.guruhlarni_sinxronlash(self.object)
             audit_yoz(

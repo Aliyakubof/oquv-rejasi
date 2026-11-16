@@ -2,9 +2,10 @@
 
 from dataclasses import dataclass
 
+from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
 
@@ -30,14 +31,25 @@ JONLI_KESH_KALITI = "jonli_holat_versiyasi"
 JONLI_EPOCH_KALITI = "jonli_holat_epoch"
 
 
-def keshni_tozala(**_kwargs: object) -> None:
-    """Jonli yangilanish hisoblagichini oshiradi va keshdagi versiyani tozalaydi."""
+def _keshni_darhol_tozala() -> None:
     if not cache.add(JONLI_EPOCH_KALITI, 1, timeout=None):
         try:
             cache.incr(JONLI_EPOCH_KALITI)
         except ValueError:
             cache.set(JONLI_EPOCH_KALITI, 1, timeout=None)
     cache.delete(JONLI_KESH_KALITI)
+
+
+def keshni_tozala(**_kwargs: object) -> None:
+    """Jonli yangilanish hisoblagichini oshiradi va keshdagi versiyani tozalaydi.
+
+    Ishlab chiqarish muhitida tranzaksiya ichida chaqirilsa commit dan keyingina
+    tozalaydi — pre-commit holat Redis ga muhrlanib qolmasligi uchun.
+    """
+    if connection.in_atomic_block and not getattr(settings, "IS_TEST", False):
+        transaction.on_commit(_keshni_darhol_tozala)
+        return
+    _keshni_darhol_tozala()
 
 
 @dataclass(frozen=True)
@@ -455,13 +467,19 @@ def variantni_tanlash(fan: Fan, variant: FanVariant) -> None:
         raise ValidationError("Faqat tanlov fanlari uchun variant tanlanadi.")
     if variant.fan_id != fan.pk:
         raise ValidationError("Variant boshqa fanga tegishli.")
-    if fan.tanlangan_variant_id is not None and fan.tanlangan_variant_id != variant.pk:
-        if Yuklama.objects.filter(
-            fan_semestr__variant_id=fan.tanlangan_variant_id
-        ).exists():
+    if fan.tanlangan_variant_id != variant.pk:
+        if (
+            fan.tanlangan_variant_id is not None
+            and Yuklama.objects.filter(
+                fan_semestr__variant_id=fan.tanlangan_variant_id
+            ).exists()
+        ):
             raise ValidationError("Fanda yuklamalar bor — avval ularni bekor qiling.")
         variant = FanVariant.objects.select_for_update().get(pk=variant.pk)
-        yillar_map = _variant_yillari([fan.tanlangan_variant_id, variant.pk])
+        variant_idlar = [
+            vid for vid in (fan.tanlangan_variant_id, variant.pk) if vid is not None
+        ]
+        yillar_map = _variant_yillari(variant_idlar)
         juftliklar: set[tuple[int, int]] = set()
         if fan.tanlangan_variant and fan.tanlangan_variant.kafedra_id is not None:
             for y in yillar_map.get(fan.tanlangan_variant_id, set()):
@@ -615,6 +633,7 @@ def reja_qulflanganmi(reja: OquvReja) -> bool:
     """Rejadagi biror kafedra yuklamani tasdiqqa yuborgan bo'lsa True qaytaradi."""
     fslar = (
         FanSemestr.objects.reja_uchun(reja)
+        .effektiv()
         .filter(variant__kafedra__isnull=False)
         .values_list("variant__kafedra_id", "semestr")
     )
