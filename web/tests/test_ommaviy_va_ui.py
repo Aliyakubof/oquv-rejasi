@@ -555,3 +555,12 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
         self.assertIn("body.ui-font-yirik table", print_css)
         self.assertIn("body.ui-font-juda_yirik table", print_css)
         self.assertIn("body.ui-kontrast th", print_css)
+        self.assertIn(
+            ".btn:not(.btn-primary):not(.btn-danger):not(.btn-success):not(.auth-submit).is-loading::after",
+            app_css,
+        )
+        self.assertIn(".navbar .nav-notif-btn:hover", app_css)
+        self.assertIn(".onb-save-btn {", app_css)
+        self.assertNotIn(
+            "pointer-events: none;\n}\n\nbody.ui-font-yirik .btn-icon-sm", app_css
+        )
