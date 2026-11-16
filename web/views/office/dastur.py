@@ -53,10 +53,7 @@ class DasturTopshirishlarView(OfisAdminTalabMixin, ListView):
         yil = self._yil()
         if yil is not None:
             qs = qs.filter(variant__fan__reja__boshlanish_yili=yil)
-        topshirishlar = joriy_topshirishlar(qs)
-        if holat:
-            topshirishlar = [t for t in topshirishlar if t.holat == holat]
-        return topshirishlar
+        return joriy_topshirishlar(qs, holat=holat)
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
         context = super().get_context_data(**kwargs)

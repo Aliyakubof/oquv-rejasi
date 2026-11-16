@@ -85,6 +85,11 @@ class Foydalanuvchi(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "telefon"
     REQUIRED_FIELDS = ["first_name", "last_name"]
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["rol", "is_active"]),
+        ]
+
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}".strip() or self.telefon
 

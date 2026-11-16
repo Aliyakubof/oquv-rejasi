@@ -480,6 +480,8 @@ class DasturTopshirish(models.Model):
         ordering = ["-yuborilgan_vaqt", "-pk"]
         indexes = [
             models.Index(fields=["variant", "-yuborilgan_vaqt", "-id"]),
+            models.Index(fields=["-yuborilgan_vaqt", "-id"]),
+            models.Index(fields=["holat", "-yuborilgan_vaqt"]),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -538,6 +540,9 @@ class KafedraYuklamaTasdiq(models.Model):
                 name="uniq_kafedra_yil_tasdiq",
             )
         ]
+        indexes = [
+            models.Index(fields=["akademik_yil", "holat"]),
+        ]
         verbose_name = "Kafedra yuklama tasdig'i"
         verbose_name_plural = "Kafedra yuklama tasdiqlari"
 
@@ -576,6 +581,7 @@ class AuditYozuvi(models.Model):
         verbose_name_plural = "Audit jurnali"
         ordering = ["-vaqt"]
         indexes = [
+            models.Index(fields=["-vaqt", "-id"]),
             models.Index(fields=["model_nomi", "-vaqt"]),
             models.Index(fields=["model_nomi", "obyekt_id"]),
             models.Index(fields=["amal", "-vaqt", "-id"]),

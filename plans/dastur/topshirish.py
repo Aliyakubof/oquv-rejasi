@@ -118,11 +118,14 @@ def eng_songi_urinish(variant: FanVariant) -> DasturTopshirish | None:
 
 def joriy_topshirishlar(
     qs: "QuerySet[DasturTopshirish] | None" = None,
+    *,
+    holat: str | None = None,
 ) -> list[DasturTopshirish]:
     """Har bir fan bo'yicha faqat oxirgi urinishni AOH ro'yxati uchun oladi.
 
     Korrelyatsiyali ichki so'rov ishlatadi — SQLite da ham, PostgreSQL da ham
-    barcha tarixni Python xotirasiga tortmasdan tez ishlaydi.
+    barcha tarixni Python xotirasiga tortmasdan tez ishlaydi. `holat` filtri
+    ham oxirgi urinish aniqlangandan keyin SQL darajasida qo'llanadi.
     """
     if qs is None:
         qs = DasturTopshirish.objects.all()
@@ -131,7 +134,10 @@ def joriy_topshirishlar(
         .order_by("-yuborilgan_vaqt", "-pk")
         .values("pk")[:1]
     )
-    return list(qs.filter(pk=Subquery(oxirgi_id)).order_by("-yuborilgan_vaqt", "-pk"))
+    natija = qs.filter(pk=Subquery(oxirgi_id))
+    if holat:
+        natija = natija.filter(holat=holat)
+    return list(natija.order_by("-yuborilgan_vaqt", "-pk"))
 
 
 def _topshirilmagan_yuklamalar_qs(

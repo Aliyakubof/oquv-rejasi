@@ -237,6 +237,7 @@ class FanSemestrAdmin(admin.ModelAdmin):
 class GuruhAdmin(admin.ModelAdmin):
     list_display = ("nomi", "reja")
     list_filter = ("reja",)
+    list_select_related = ("reja",)
     # Yuklama.guruh autocomplete maydoni ishlashi uchun kerak.
     search_fields = ("nomi",)
 

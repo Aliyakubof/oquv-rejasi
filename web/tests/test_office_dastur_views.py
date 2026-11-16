@@ -80,6 +80,28 @@ class DasturTopshirishlarViewTests(TestCase):
         self.assertEqual(self.topshirish.holat, TopshirishHolati.RAD_ETILDI)
         self.assertEqual(self.topshirish.izoh, "Mavzular yetarli emas")
 
+    def test_holat_filtri_oxirgi_urinish_boyicha_ishlaydi(self) -> None:
+        from plans.dastur.topshirish import dastur_qabul_qilish
+
+        admin = ofis_admin_yarat()
+        dastur_rad_etish(self.topshirish, admin, "Birinchi rad")
+        ikkinchi = dastur_topshirish(
+            self.variant, self.egasi, SimpleUploadedFile("v2.docx", b"m")
+        )
+        dastur_qabul_qilish(ikkinchi, admin)
+
+        tizimga_kir(self.client, admin)
+        rad_javob = self.client.get(
+            reverse("office:dastur_topshirishlar"), {"holat": "RAD_ETILDI"}
+        )
+        qabul_javob = self.client.get(
+            reverse("office:dastur_topshirishlar"), {"holat": "QABUL_QILINDI"}
+        )
+        self.assertEqual(len(rad_javob.context["topshirishlar"]), 0)
+        self.assertEqual(
+            [t.pk for t in qabul_javob.context["topshirishlar"]], [ikkinchi.pk]
+        )
+
     def test_fayl_yuklab_olinadi(self) -> None:
         tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.get(
