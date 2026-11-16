@@ -384,3 +384,38 @@ class FormatlashVaCliTests(SimpleTestCase):
                 yomon.write_bytes(b"buzilgan")
                 with patch("sys.argv", ["parser.main", str(yomon)]):
                     self.assertEqual(parser_asosiy.asosiy(), 1)
+
+    def test_parser_bosh_boshliq_tanlov_qatori_va_kasr_intga(self) -> None:
+        from parser.parser import _intga
+
+        self.assertIsNone(_intga(1.5))
+        self.assertIsNone(_intga(-3))
+        self.assertEqual(_intga(72.0), 72)
+
+        qatorlar = _standart_jadval(
+            8,
+            "Ta'lim yo'nalishi: 60610100 - Axborot texnologiyalari",
+            "4 yil",
+            "2024-2025",
+        )
+        # 3-variant qatorining raqam katagida faqat bo'shliq bo'lsa ham o'qilishi shart.
+        qatorlar[(25, 1)] = "   "
+        qatorlar[(25, 2)] = "TV-2.2"
+        qatorlar[(25, 3)] = "Sun'iy intellekt"
+        qatorlar[(26, 1)] = "Jami:"
+        yol = _kitob_yozish(qatorlar)
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(len(natija.tanlov_fanlar), 1)
+        self.assertEqual(len(natija.tanlov_fanlar[0].variantlar), 3)
+        self.assertEqual(natija.tanlov_fanlar[0].variantlar[2].nom, "Sun'iy intellekt")
+
+    def test_buzilgan_xml_tahlil_xatosiga_otadi(self) -> None:
+        from zipfile import ZipFile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            yol = Path(tmp) / "xml_buzilgan.xlsx"
+            with ZipFile(yol, "w") as zf:
+                zf.writestr("[Content_Types].xml", "<Types><broken>")
+                zf.writestr("xl/workbook.xml", "<workbook/>")
+            with self.assertRaises(TahlilXatosi):
+                kitobni_tahlil_qil(yol)

@@ -72,23 +72,28 @@ def excel_reja_oqi(yol: Path, boshlanish_yili: int | None = None) -> TahlilQilin
             f" {davomiylik_yil} yilga yaxlitlandi"
         )
 
+    if len(natija.yonalish_kodi) > 20:
+        raise ImportXato("yo'nalish kodi 20 belgidan oshmasligi kerak")
     return TahlilQilinganReja(
         yonalish_kodi=natija.yonalish_kodi,
         boshlanish_yili=boshlanish_yili,
-        daraja=_bir_qatorga(natija.daraja, 100),
+        daraja=_bir_qatorga(natija.daraja, 100, "daraja"),
         davomiylik_yil=davomiylik_yil,
-        talim_shakli=_bir_qatorga(natija.talim_shakli, 100),
-        fayl_nomi=yol.name,
+        talim_shakli=_bir_qatorga(natija.talim_shakli, 100, "ta'lim shakli"),
+        fayl_nomi=yol.name[:255],
         majburiy_fanlar=natija.majburiy_fanlar,
         tanlov_fanlar=natija.tanlov_fanlar,
         ogohlantirishlar=ogohlantirishlar,
     )
 
 
-def _bir_qatorga(matn: str, uzunlik: int) -> str:
+def _bir_qatorga(matn: str, uzunlik: int, maydon: str = "matn") -> str:
     # Ba'zi varaqlarda katak ichiga bir nechta qator birlashtirilgan bo'ladi;
-    # bitta qatorga tushirib, maydon sig'imidan oshirmaymiz.
-    return " ".join(matn.split())[:uzunlik]
+    # bitta qatorga tushirib, maydon sig'imini tekshiramiz.
+    toza = " ".join(matn.split())
+    if len(toza) > uzunlik:
+        raise ImportXato(f"{maydon} {uzunlik} belgidan oshmasligi kerak")
+    return toza
 
 
 @transaction.atomic
@@ -191,10 +196,16 @@ def _noyob_raqam_toplamda(raqam: str, mavjud: set[str]) -> tuple[str, str | None
 def _variant_obyekti(
     fan: Fan, kodi: str, nomi: str, soatlar: MajburiyFan | TanlovVarianti
 ) -> FanVariant:
+    toza_kod = (kodi or "").strip()
+    toza_nom = nomi.strip()
+    if len(toza_kod) > 50:
+        raise ImportXato(f"{fan.raqam} fanining kodi 50 belgidan oshmasligi kerak")
+    if len(toza_nom) > 255:
+        raise ImportXato(f"{fan.raqam} fanining nomi 255 belgidan oshmasligi kerak")
     return FanVariant(
         fan=fan,
-        kodi=kodi or "",
-        nomi=nomi,
+        kodi=toza_kod,
+        nomi=toza_nom,
         auditoriya_soat=soatlar.auditoriya,
         maruza_soat=soatlar.maruza,
         amaliyot_soat=soatlar.amaliyot,

@@ -1,6 +1,7 @@
 """Brauzerdan yuklangan o'quv reja faylini tekshirib importga uzatish moduli."""
 
 import uuid
+import zlib
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from xml.etree import ElementTree as ET
@@ -50,7 +51,19 @@ def _arxiv_tarkibini_tekshir(
                 )
             if zarur_fayl and zarur_fayl not in arxiv.namelist():
                 raise ValidationError(f"Fayl yaroqli {kengaytma} hujjati emas.")
-    except (BadZipFile, EOFError, OSError, RuntimeError) as xato:
+            # Zip sarlavhadagi file_size aldanishi mumkin: amalda ochib o'lchaymiz.
+            jami_chiqarilgan = 0
+            for yozuv in yozuvlar:
+                if yozuv.is_dir():
+                    continue
+                with arxiv.open(yozuv) as ichki:
+                    while bolak := ichki.read(65_536):
+                        jami_chiqarilgan += len(bolak)
+                        if jami_chiqarilgan > max_chiqarilgan_hajm:
+                            raise ValidationError(
+                                "Faylning ochilgan hajmi xavfsiz chegaradan oshdi."
+                            )
+    except (BadZipFile, EOFError, OSError, RuntimeError, zlib.error) as xato:
         raise ValidationError(
             f"Fayl {kengaytma} formatida emas yoki buzilgan."
         ) from xato
@@ -115,7 +128,19 @@ def fayldan_import_qilish(
 
     yol = _faylni_saqlash(fayl)
     try:
-        tahlil = excel_reja_oqi(yol, parametrlar.boshlanish_yili)
+        try:
+            tahlil = excel_reja_oqi(yol, parametrlar.boshlanish_yili)
+        except (
+            BadZipFile,
+            InvalidFileException,
+            ET.ParseError,
+            XMLSyntaxError,
+            KeyError,
+            ValueError,
+            EOFError,
+            zlib.error,
+        ) as xato:
+            raise ImportXato("fayl .xlsx formatida emas yoki buzilgan") from xato
         with transaction.atomic():
             natija = import_reja(tahlil, almashtirish=parametrlar.almashtirish)
             reja = natija.reja
@@ -127,16 +152,6 @@ def fayldan_import_qilish(
                 update_fields=["talabalar_soni", "guruhlar_soni", "guruh_prefiksi"]
             )
             guruhlarni_sinxronlash(reja)
-    except (
-        BadZipFile,
-        InvalidFileException,
-        ET.ParseError,
-        XMLSyntaxError,
-        KeyError,
-        ValueError,
-        EOFError,
-    ) as xato:
-        raise ImportXato("fayl .xlsx formatida emas yoki buzilgan") from xato
     finally:
         yol.unlink(missing_ok=True)
     return natija

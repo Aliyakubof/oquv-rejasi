@@ -118,6 +118,8 @@ _EXCEL_XATOLARI = (
 def _excel_qatorlarini_oqi(wb) -> list[list[object]]:
     qatorlar: list[list[object]] = []
     ws = wb.active
+    if ws is None:
+        raise ValidationError("Excel faylida faol varaq topilmadi.")
     for indeks, qator in enumerate(ws.iter_rows(values_only=True)):
         if indeks > MAX_IMPORT_QATOR:
             raise ValidationError(
@@ -188,8 +190,8 @@ def oqituvchilar_namuna_excel() -> BytesIO:
             "Aliyev",
             "Vali",
             "+998901234567",
-            kaf.nomi if kaf else "Axborot texnologiyalari",
-            tur.nomi if tur else "Dotsent",
+            _xavfsiz(kaf.nomi if kaf else "Axborot texnologiyalari"),
+            _xavfsiz(tur.nomi if tur else "Dotsent"),
         ]
     )
     _jadvalni_bezash(ws, len(_OQITUVCHI_USTUNLAR), 2)
@@ -202,8 +204,8 @@ def oqituvchilar_namuna_excel() -> BytesIO:
     for i in range(jami):
         qollanma.append(
             [
-                kaflar[i] if i < len(kaflar) else "",
-                turlar[i] if i < len(turlar) else "",
+                _xavfsiz(kaflar[i]) if i < len(kaflar) else "",
+                _xavfsiz(turlar[i]) if i < len(turlar) else "",
             ]
         )
     _jadvalni_bezash(qollanma, 2, jami + 1)
@@ -254,27 +256,23 @@ def _oqituvchi_qatorini_oqish(
 
 def _oqituvchilarni_yigish(
     qatorlar: list[list[object]],
-) -> tuple[list[_TayyorOqituvchi], list[str]]:
+) -> list[_TayyorOqituvchi]:
     kaf_map = {_norm(k.nomi): k for k in Department.objects.all()}
     tur_map = {_norm(t.nomi): t for t in OqituvchiTuri.objects.all()}
-    mavjud_tel = set(Foydalanuvchi.objects.values_list("telefon", flat=True))
     korilgan: set[str] = set()
-    tayyor: list[_TayyorOqituvchi] = []
-    otkazildi: list[str] = []
+    nomzodlar: list[_TayyorOqituvchi] = []
     xatolar: list[str] = []
     for idx, qator in enumerate(qatorlar[1:], start=2):
-        yozuv, mavjud, xato = _oqituvchi_qatorini_oqish(
-            idx, qator, kaf_map, tur_map, korilgan, mavjud_tel
+        yozuv, _, xato = _oqituvchi_qatorini_oqish(
+            idx, qator, kaf_map, tur_map, korilgan, set()
         )
         if xato:
             xatolar.append(xato)
-        elif mavjud:
-            otkazildi.append(mavjud)
         elif yozuv is not None:
-            tayyor.append(yozuv)
+            nomzodlar.append(yozuv)
     if xatolar:
         raise ValidationError(xatolar[:15])
-    return tayyor, otkazildi
+    return nomzodlar
 
 
 def _yangi_oqituvchi_obyektlari(
@@ -299,13 +297,25 @@ def oqituvchilar_excel_import(fayl: UploadedFile) -> OqituvchiImportNatija:
     qatorlar = _excel_yuklash(fayl)
     if len(qatorlar) < 2:
         raise ValidationError("Excel faylida ma'lumot qatorlari topilmadi.")
-    tayyor, otkazildi = _oqituvchilarni_yigish(qatorlar)
-    if not tayyor:
-        return OqituvchiImportNatija(yaratilganlar=[], otkazildi_mavjud=otkazildi)
+    nomzodlar = _oqituvchilarni_yigish(qatorlar)
+    if not nomzodlar:
+        return OqituvchiImportNatija(yaratilganlar=[], otkazildi_mavjud=[])
 
-    parollar = [vaqtinchalik_parol_tasodifiy() for _ in tayyor]
-    yangi_userlar = _yangi_oqituvchi_obyektlari(tayyor, parollar)
+    telefonlar = [item.telefon for item in nomzodlar]
     with transaction.atomic():
+        mavjud_tel = set(
+            Foydalanuvchi.objects.select_for_update()
+            .filter(telefon__in=telefonlar)
+            .order_by("pk")
+            .values_list("telefon", flat=True)
+        )
+        tayyor = [item for item in nomzodlar if item.telefon not in mavjud_tel]
+        otkazildi = [item.telefon for item in nomzodlar if item.telefon in mavjud_tel]
+        if not tayyor:
+            return OqituvchiImportNatija(yaratilganlar=[], otkazildi_mavjud=otkazildi)
+
+        parollar = [vaqtinchalik_parol_tasodifiy() for _ in tayyor]
+        yangi_userlar = _yangi_oqituvchi_obyektlari(tayyor, parollar)
         saqlangan = Foydalanuvchi.objects.bulk_create(yangi_userlar, batch_size=200)
         OqituvchiProfil.objects.bulk_create(
             [
@@ -374,6 +384,39 @@ def yonalishlar_namuna_excel() -> BytesIO:
     return _varaqqa_bufferga(wb)
 
 
+def _yonalish_qatorini_tekshir(
+    idx: int, qator: list[object], korilgan_kod: set[str]
+) -> tuple[dict[str, str] | None, str | None]:
+    qiymatlar = [_matn(qator[i]) if i < len(qator) else "" for i in range(6)]
+    if not any(qiymatlar):
+        return None, None
+    if not all(qiymatlar):
+        return None, f"{idx}-qator: barcha 6 ustun to'ldirilishi shart."
+    kodi, nomi, bs_kod, bs_nom, ts_kod, ts_nom = qiymatlar
+    chegaralar = (
+        (kodi, 20, "yo'nalish kodi"),
+        (nomi, 255, "yo'nalish nomi"),
+        (bs_kod, 10, "bilim sohasi kodi"),
+        (bs_nom, 255, "bilim sohasi nomi"),
+        (ts_kod, 10, "ta'lim sohasi kodi"),
+        (ts_nom, 255, "ta'lim sohasi nomi"),
+    )
+    for qiymat, chegara, yorliq in chegaralar:
+        if len(qiymat) > chegara:
+            return None, f"{idx}-qator: {yorliq} {chegara} belgidan oshmasligi kerak."
+    if kodi in korilgan_kod:
+        return None, f"{idx}-qator: takroriy yo'nalish kodi ({kodi})."
+    korilgan_kod.add(kodi)
+    return {
+        "kodi": kodi,
+        "nomi": nomi,
+        "bilim_sohasi_kodi": bs_kod,
+        "bilim_sohasi_nomi": bs_nom,
+        "talim_sohasi_kodi": ts_kod,
+        "talim_sohasi_nomi": ts_nom,
+    }, None
+
+
 def _yonalish_qatorlarini_yigish(
     qatorlar: list[list[object]],
 ) -> list[dict[str, str]]:
@@ -381,28 +424,11 @@ def _yonalish_qatorlarini_yigish(
     xatolar: list[str] = []
     korilgan_kod: set[str] = set()
     for idx, qator in enumerate(qatorlar[1:], start=2):
-        qiymatlar = [_matn(qator[i]) if i < len(qator) else "" for i in range(6)]
-        if not any(qiymatlar):
-            continue
-        kodi, nomi, bs_kod, bs_nom, ts_kod, ts_nom = qiymatlar
-        if not all(qiymatlar):
-            xatolar.append(f"{idx}-qator: barcha 6 ustun to'ldirilishi shart.")
-            continue
-        kodi = kodi[:20]
-        if kodi in korilgan_kod:
-            xatolar.append(f"{idx}-qator: takroriy yo'nalish kodi ({kodi}).")
-            continue
-        korilgan_kod.add(kodi)
-        yozuvlar.append(
-            {
-                "kodi": kodi,
-                "nomi": nomi[:255],
-                "bilim_sohasi_kodi": bs_kod[:10],
-                "bilim_sohasi_nomi": bs_nom[:255],
-                "talim_sohasi_kodi": ts_kod[:10],
-                "talim_sohasi_nomi": ts_nom[:255],
-            }
-        )
+        yozuv, xato = _yonalish_qatorini_tekshir(idx, qator, korilgan_kod)
+        if xato:
+            xatolar.append(xato)
+        elif yozuv is not None:
+            yozuvlar.append(yozuv)
     if xatolar:
         raise ValidationError(xatolar[:15])
     if not yozuvlar:
@@ -427,9 +453,9 @@ def yonalishlar_excel_import(fayl: UploadedFile) -> tuple[int, int]:
     with transaction.atomic():
         mavjud = {
             obj.kodi: obj
-            for obj in TalimYonalishi.objects.select_for_update().filter(
-                kodi__in=kodlar
-            )
+            for obj in TalimYonalishi.objects.select_for_update()
+            .filter(kodi__in=kodlar)
+            .order_by("pk")
         }
         yangi: list[TalimYonalishi] = []
         ozgargan: list[TalimYonalishi] = []

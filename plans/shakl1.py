@@ -47,6 +47,9 @@ def shakl1_satrlarini_yigish(
     """1-shakl ko'rinishi uchun yuklama qatorlarini fan-semestr va guruhga jamlaydi."""
     tur_jami: dict[str, int] = defaultdict(int)
     shakl1_qatorlar: dict[tuple[int, int | None], dict[str, object]] = {}
+    tur_talaba: dict[tuple[int, int | None], dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
     for y in yuklamalar:
         tur_jami[y.tur] += y.soat
         kalit = (y.fan_semestr_id, y.guruh_id)
@@ -54,7 +57,8 @@ def shakl1_satrlarini_yigish(
             shakl1_qatorlar[kalit] = _yangi_shakl1_qator(y)
         qator = shakl1_qatorlar[kalit]
         if y.talabalar_soni:
-            qator["_talabalar_soni"] = int(qator["_talabalar_soni"]) + y.talabalar_soni
+            tur_talaba[kalit][y.tur] += y.talabalar_soni
+            qator["_talabalar_soni"] = max(tur_talaba[kalit].values())
         tur_kalit = y.tur.lower()
         if tur_kalit in qator:
             qator[tur_kalit] = int(qator[tur_kalit]) + y.soat

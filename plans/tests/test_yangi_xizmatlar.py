@@ -7,10 +7,12 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 from zipfile import ZipFile
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import transaction
 from django.db.models import ProtectedError
 from django.test import TestCase, override_settings
 from docx import Document
@@ -611,3 +613,240 @@ class Stage2BiznesVaQulflashTests(TestCase):
         self.assertEqual(
             topshirilmagan_dasturlar_soni(kafedra_id=kaf.pk, yil=yil + 5), 0
         )
+
+
+class Batch1QulfVaKeshTests(TestCase):
+    def tearDown(self) -> None:
+        cache.clear()
+        super().tearDown()
+
+    def test_birinchi_variantni_tanlash_qulflangan_kafedrani_tekshiradi(self) -> None:
+        reja = reja_yasa(boshlanish_yili=2025)
+        kaf = Department.objects.create(nomi="Qulflangan Kafedra")
+        KafedraYuklamaTasdiq.objects.create(
+            kafedra=kaf, akademik_yil=2025, holat=KafedraTasdiqHolati.TASDIQLANGAN
+        )
+        fan = fan_yasa(reja, turi=FanTuri.TANLOV, kafedra=kaf)
+        variant = fan.variantlar.get()
+        fan_semestr_yasa(variant, semestr=1)
+
+        with self.assertRaises(ValidationError):
+            services.variantni_tanlash(fan, variant)
+        fan.refresh_from_db()
+        self.assertIsNone(fan.tanlangan_variant_id)
+
+    def test_reja_qulflanganmi_faqat_tanlangan_variantni_hisoblaydi(self) -> None:
+        reja = reja_yasa(boshlanish_yili=2025)
+        qulf_kaf = Department.objects.create(nomi="Qulf Kaf")
+        ochiq_kaf = Department.objects.create(nomi="Ochiq Kaf")
+        KafedraYuklamaTasdiq.objects.create(
+            kafedra=qulf_kaf,
+            akademik_yil=2025,
+            holat=KafedraTasdiqHolati.TASDIQLANGAN,
+        )
+        fan = fan_yasa(reja, turi=FanTuri.TANLOV, kafedra=qulf_kaf)
+        tanlanmagan_v = fan.variantlar.get()
+        tanlangan_v = variant_yasa(fan, kodi="K1.01-2", kafedra=ochiq_kaf)
+        fan_semestr_yasa(tanlanmagan_v, semestr=1)
+        fan_semestr_yasa(tanlangan_v, semestr=1)
+
+        fan.tanlangan_variant = tanlangan_v
+        fan.save(update_fields=["tanlangan_variant"])
+        self.assertFalse(services.reja_qulflanganmi(reja))
+
+        fan.tanlangan_variant = tanlanmagan_v
+        fan.save(update_fields=["tanlangan_variant"])
+        self.assertTrue(services.reja_qulflanganmi(reja))
+
+    def test_ofis_nusxa_tanlov_fani_va_kop_semestrli_sanoq(self) -> None:
+        qulf_kaf = Department.objects.create(nomi="Nusxa Qulf Kaf")
+        manba = reja_yasa(boshlanish_yili=2024, yonalish_kodi="60610101")
+        tanlov_manba = fan_yasa(
+            manba,
+            raqam="2.01",
+            turi=FanTuri.TANLOV,
+            kafedra=qulf_kaf,
+            kodi="TV-201",
+            nomi="Tanlov A",
+        )
+        tv_m = tanlov_manba.variantlar.get()
+        tanlov_manba.tanlangan_variant = tv_m
+        tanlov_manba.save(update_fields=["tanlangan_variant"])
+        fan_semestr_yasa(tv_m, semestr=1)
+
+        majb_manba = fan_yasa(
+            manba,
+            raqam="1.02",
+            turi=FanTuri.MAJBURIY,
+            kafedra=qulf_kaf,
+            kodi="MJ-102",
+            nomi="Majburiy B",
+        )
+        fan_semestr_yasa(majb_manba.tanlangan_variant, semestr=1)
+        fan_semestr_yasa(majb_manba.tanlangan_variant, semestr=2)
+
+        maqsad = reja_yasa(boshlanish_yili=2025, yonalish_kodi="60610101")
+        tanlov_maqsad = fan_yasa(
+            maqsad,
+            raqam="2.01",
+            turi=FanTuri.TANLOV,
+            kodi="TV-201",
+            nomi="Tanlov A",
+        )
+        fan_semestr_yasa(tanlov_maqsad.variantlar.get(), semestr=1)
+        majb_maqsad = fan_yasa(
+            maqsad,
+            raqam="1.02",
+            turi=FanTuri.MAJBURIY,
+            kodi="MJ-102",
+            nomi="Majburiy B",
+        )
+        fan_semestr_yasa(majb_maqsad.tanlangan_variant, semestr=1)
+        fan_semestr_yasa(majb_maqsad.tanlangan_variant, semestr=2)
+
+        KafedraYuklamaTasdiq.objects.create(
+            kafedra=qulf_kaf,
+            akademik_yil=2025,
+            holat=KafedraTasdiqHolati.TASDIQLANGAN,
+        )
+        natija = nusxalash.ofis_taqsimotini_nusxalash(2024, 2025)
+        tanlov_maqsad.refresh_from_db()
+        majb_maqsad.tanlangan_variant.refresh_from_db()
+        self.assertIsNone(tanlov_maqsad.tanlangan_variant_id)
+        self.assertIsNone(majb_maqsad.tanlangan_variant.kafedra_id)
+        self.assertEqual(natija.otkazildi_qulflangan, 1)
+
+    @override_settings(IS_TEST=False)
+    def test_keshni_tozala_tranzaksiyada_on_commitga_otadi(self) -> None:
+        with transaction.atomic():
+            with self.captureOnCommitCallbacks(execute=False) as callbacks:
+                services.keshni_tozala()
+            self.assertEqual(len(callbacks), 1)
+
+
+class Batch4IntegratsiyaVaImportTests(TestCase):
+    def test_telegram_xabar_yubor_ok_va_uzunlik_chegarasi(self) -> None:
+        from plans.bildirishnoma import telegram_xabar_yubor
+
+        cm = MagicMock()
+        cm.__enter__.return_value.status = 200
+        cm.__enter__.return_value.read.return_value = json.dumps(
+            {"ok": False, "description": "Bad Request"}
+        ).encode("utf-8")
+        with override_settings(TELEGRAM_BOT_TOKEN="tok123"):
+            with patch(
+                "plans.bildirishnoma._TELEGRAM_OPENER.open", return_value=cm
+            ) as op:
+                self.assertFalse(telegram_xabar_yubor("12345", "A" * 5000))
+                req = op.call_args.args[0]
+                yuk = json.loads(req.data.decode("utf-8"))
+                self.assertEqual(len(yuk["text"]), 4096)
+
+    def test_sync_rejani_top_ikki_reja_bolsa_xato_beradi(self) -> None:
+        from plans.hemis_client import sync_rejani_top
+
+        reja_yasa(
+            yonalish_kodi="60610100", boshlanish_yili=2025, talim_shakli="Kunduzgi"
+        )
+        reja_yasa(yonalish_kodi="60610100", boshlanish_yili=2025, talim_shakli="Sirtqi")
+        with transaction.atomic():
+            with self.assertRaises(ValueError):
+                sync_rejani_top({"yonalish_kodi": "60610100", "boshlanish_yili": 2025})
+
+    def test_shakl1_talaba_soni_turlar_boyicha_ikkilanmaydi(self) -> None:
+        from plans.shakl1 import shakl1_satrlarini_yigish
+
+        kaf = Department.objects.create(nomi="Shakl1 Kaf")
+        oqit1 = oqituvchi_yasa(kafedra=kaf)
+        oqit2 = oqituvchi_yasa(kafedra=kaf)
+        reja = reja_yasa(boshlanish_yili=2025)
+        fan = fan_yasa(reja, kafedra=kaf)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        y1 = Yuklama.objects.create(
+            fan_semestr=fs,
+            tur=SoatTuri.MARUZA,
+            oqituvchi=oqit1,
+            soat=30,
+        )
+        y2 = Yuklama.objects.create(
+            fan_semestr=fs,
+            tur=SoatTuri.KURS_ISHI,
+            oqituvchi=oqit1,
+            soat=50,
+            talabalar_soni=25,
+        )
+        y3 = Yuklama.objects.create(
+            fan_semestr=fs,
+            tur=SoatTuri.KURS_ISHI,
+            oqituvchi=oqit2,
+            soat=100,
+            talabalar_soni=50,
+        )
+        # Xotirada talabalar_soni yozilgan ma'ruza qatori kelsa ham
+        # kurs ishi bilan qo'shilmaydi.
+        y1.talabalar_soni = 75
+        satrlar, _ = shakl1_satrlarini_yigish([y1, y2, y3])
+        self.assertEqual(len(satrlar), 1)
+        self.assertEqual(satrlar[0]["_talabalar_soni"], 75)
+
+    def test_namuna_excel_formula_injectionni_zararsizlantiradi(self) -> None:
+        Department.objects.create(nomi="=cmd|' /C calc'!A0")
+        OqituvchiTuri.objects.create(nomi="@SUM(1+1)", min_soat=500)
+        buf = oqituvchilar_namuna_excel()
+        wb = load_workbook(buf)
+        ref = wb["Ma'lumotnoma"]
+        vals = [row[0] for row in ref.iter_rows(min_row=2, values_only=True)]
+        t_vals = [row[1] for row in ref.iter_rows(min_row=2, values_only=True)]
+        wb.close()
+        self.assertTrue(any(str(v).startswith("'=") for v in vals if v))
+        self.assertTrue(any(str(v).startswith("'@") for v in t_vals if v))
+
+    def test_yonalish_import_uzun_kodni_qisqartirmaydi(self) -> None:
+        wb = Workbook()
+        ws = wb.active
+        ws.append(["Kodi", "Nomi", "BS kod", "BS nom", "TS kod", "TS nom"])
+        ws.append(["123456789012345678901", "Nomi", "60", "BS", "61", "TS"])
+        buf = BytesIO()
+        wb.save(buf)
+        wb.close()
+        fayl = SimpleUploadedFile("uzun_kod.xlsx", buf.getvalue())
+        with self.assertRaises(ValidationError):
+            yonalishlar_excel_import(fayl)
+
+    def test_hemis_qulf_tartibi_fansemestr_guruhdan_oldin(self) -> None:
+        from django.conf import settings
+
+        manba = (Path(settings.BASE_DIR) / "plans" / "hemis_client.py").read_text(
+            encoding="utf-8"
+        )
+        fs_pos = manba.index("FanSemestr.objects.reja_uchun(reja).select_for_update()")
+        g_pos = manba.index("reja.guruhlar.select_for_update()")
+        self.assertLess(fs_pos, g_pos)
+
+    def test_vaqtinchalik_parol_audit_xato_bolsa_qaytariladi(self) -> None:
+        from unittest.mock import patch
+
+        from django.test import Client
+        from django.urls import reverse
+
+        from plans.tests.factories import oqituvchi_yasa
+        from web.tests.helpers import ofis_admin_yarat
+
+        admin = ofis_admin_yarat()
+        profil = oqituvchi_yasa()
+        oqit = profil.foydalanuvchi
+        eski_parol = oqit.parol_ozgartirish_kerak
+        eski_hash = oqit.password
+        c = Client()
+        c.force_login(admin)
+        with (
+            patch(
+                "web.views.office.oqituvchilar.audit_yoz",
+                side_effect=RuntimeError("audit xato"),
+            ),
+            self.assertRaises(RuntimeError),
+        ):
+            c.post(reverse("office:oqituvchi_vaqtinchalik_parol", args=[profil.pk]))
+        oqit.refresh_from_db()
+        self.assertEqual(oqit.parol_ozgartirish_kerak, eski_parol)
+        self.assertEqual(oqit.password, eski_hash)

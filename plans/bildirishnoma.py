@@ -35,6 +35,31 @@ def ofis_adminlar() -> list[Foydalanuvchi]:
     )
 
 
+class _YoqRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Redirect zanjiri orqali Telegram bot tokeni sizib chiqishini taqiqlaydi."""
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: object,
+        code: int,
+        msg: str,
+        headers: object,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        return None
+
+
+_TELEGRAM_OPENER = urllib.request.build_opener(_YoqRedirectHandler)
+_TELEGRAM_MAX_BELGI = 4096
+
+
+def _matnni_qisqartir(matn: str) -> str:
+    if len(matn) <= _TELEGRAM_MAX_BELGI:
+        return matn
+    return matn[: _TELEGRAM_MAX_BELGI - 1] + "…"
+
+
 def telegram_xabar_yubor(chat_id: str, matn: str) -> bool:
     """Bot tokeni sozlangan bo'lsa, Telegram Bot API orqali xabar yuboradi."""
     token = getattr(settings, "TELEGRAM_BOT_TOKEN", "").strip()
@@ -45,7 +70,7 @@ def telegram_xabar_yubor(chat_id: str, matn: str) -> bool:
     yuk = json.dumps(
         {
             "chat_id": manzil_id,
-            "text": matn,
+            "text": _matnni_qisqartir(matn),
             "disable_web_page_preview": True,
         }
     ).encode("utf-8")
@@ -56,10 +81,26 @@ def telegram_xabar_yubor(chat_id: str, matn: str) -> bool:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(sorov, timeout=5) as javob:
-            return 200 <= javob.status < 300
-    except (urllib.error.URLError, OSError) as err:
-        _LOGGER.warning("Telegram xabari yuborilmadi (chat_id=%s): %s", manzil_id, err)
+        with _TELEGRAM_OPENER.open(sorov, timeout=5) as javob:
+            if not (200 <= javob.status < 300):
+                return False
+            tana = javob.read(65_536).decode("utf-8", errors="replace")
+            malumot = json.loads(tana) if tana else {}
+            if not isinstance(malumot, dict) or malumot.get("ok") is not True:
+                _LOGGER.warning(
+                    "Telegram API xato qaytardi (chat_id=%s, status=%s)",
+                    manzil_id,
+                    javob.status,
+                )
+                return False
+            return True
+    except (urllib.error.URLError, OSError, TimeoutError, ValueError) as err:
+        xato_nomi = type(err).__name__
+        _LOGGER.warning(
+            "Telegram xabari yuborilmadi (chat_id=%s): %s",
+            manzil_id,
+            xato_nomi,
+        )
         return False
 
 
@@ -80,7 +121,12 @@ def _telegramga_navbatla(
 
     def _yuborish() -> None:
         for chat_id in chat_idlar:
-            telegram_xabar_yubor(chat_id, xabar)
+            try:
+                telegram_xabar_yubor(chat_id, xabar)
+            except Exception:
+                _LOGGER.exception(
+                    "Telegram navbatida kutilmagan xato (chat_id=%s)", chat_id
+                )
 
     def _navbatlash() -> None:
         if getattr(settings, "IS_TEST", False):

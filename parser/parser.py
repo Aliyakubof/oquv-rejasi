@@ -6,6 +6,7 @@ from pathlib import Path
 from zipfile import BadZipFile
 
 import openpyxl
+from lxml.etree import XMLSyntaxError
 from openpyxl.cell.cell import Cell
 from openpyxl.utils.exceptions import InvalidFileException
 from openpyxl.workbook.workbook import Workbook
@@ -274,7 +275,9 @@ def _floatga(qiymat: object) -> float | None:
 
 def _intga(qiymat: object) -> int | None:
     son = _floatga(qiymat)
-    return None if son is None else int(son)
+    if son is None or son < 0 or not son.is_integer():
+        return None
+    return int(son)
 
 
 def _int_yoki_belgi(xom: object) -> int | object | None:
@@ -451,13 +454,14 @@ def _kod_nom_ustunlarini_top(
     for qator in varaq.iter_rows(
         min_row=bosh_qator + 1, max_row=bosh_qator + 10, values_only=True
     ):
-        if not qator or qator[raqam_ustun] is None:
+        if not qator or len(qator) <= raqam_ustun or qator[raqam_ustun] is None:
             continue
         if not re.match(r"^\d+\.\d+", str(qator[raqam_ustun]).strip().rstrip(".")):
             continue
         topildi = []
         for i in range(raqam_ustun + 1, len(qator)):
-            if qator[i] is not None and len(topildi) < 2:
+            katak = qator[i]
+            if katak is not None and str(katak).strip() and len(topildi) < 2:
                 topildi.append(i)
         if len(topildi) >= 2:
             kod_ustun, nom_ustun = topildi[0], topildi[1]
@@ -611,6 +615,12 @@ def semestr_qiymatlarini_yig(
         son = _floatga(xom)
         if not son:
             continue
+        if son < 0:
+            ogohlantirishlar.append(
+                f"{yorliq}: {sem_raqami}-sem. manfiy qiymat ({xom!r})"
+                " e'tiborsiz qoldirildi"
+            )
+            continue
         yaxlit = _yarim_yaxlitla(son)
         if yaxlit != son:
             ogohlantirishlar.append(
@@ -646,7 +656,8 @@ def _bolim_qatorlari(
     bolim_ichida = False
     for qator in varaq.iter_rows(min_row=bosh_qator, values_only=True):
         raqam = qator[raqam_ustun] if len(qator) > raqam_ustun else None
-        raqam_matn = str(raqam).strip().rstrip(".") if raqam is not None else None
+        toza_raqam = str(raqam).strip().rstrip(".") if raqam is not None else ""
+        raqam_matn = toza_raqam or None
         belgi = _bolim_belgisini_ol(raqam)
 
         if not bolim_ichida:
@@ -971,7 +982,14 @@ def _xlsx_kitobni_och(yol: Path, *, data_only: bool) -> Workbook:
     """Excel faylini ochadi; shikastlangan fayl bo'lsa TahlilXatosi ko'taradi."""
     try:
         return openpyxl.load_workbook(yol, data_only=data_only)
-    except (BadZipFile, InvalidFileException, ET.ParseError, OSError) as exc:
+    except (
+        BadZipFile,
+        InvalidFileException,
+        ET.ParseError,
+        XMLSyntaxError,
+        EOFError,
+        OSError,
+    ) as exc:
         raise TahlilXatosi(f"Excel faylini o'qib bo'lmadi ({yol.name}): {exc}") from exc
 
 
