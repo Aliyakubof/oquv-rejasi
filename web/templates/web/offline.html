@@ -265,10 +265,11 @@
             signal: ctrl.signal,
           });
           window.clearTimeout(tid);
-          if (resp.status >= 200) {
+          if (resp.ok) {
             markOnlineAndReload();
             return;
           }
+          throw new Error('health_' + resp.status);
         } catch (_err) {
           if (statusText) statusText.textContent = "Hali ham tarmoq yo'q";
           if (stateVal) stateVal.textContent = 'Oflayn rejim';

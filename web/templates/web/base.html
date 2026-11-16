@@ -208,13 +208,25 @@
         ochish() {
           clearTimeout(this._bekorTimer);
           this._bekorTimer = null;
+          if (!this.ochiq && document.activeElement instanceof HTMLElement) {
+            this._lastFocus = document.activeElement;
+          }
           this.shrift = this.asl.shrift;
           this.yuqoriKontrast = this.asl.yuqoriKontrast;
           this.kengRejim = this.asl.kengRejim;
           this.qollash();
           this.xato = '';
           this.ochiq = true;
+          setTimeout(() => {
+            const card = document.querySelector('#korinish-sozlash-modal .onb-card');
+            if (!card) return;
+            const first = Array.from(card.querySelectorAll('button:not([disabled])')).find(
+              (el) => el.offsetParent !== null
+            );
+            first?.focus?.();
+          }, 40);
         },
+        _lastFocus: null,
         qollash() {
           const b = document.body;
           b.classList.remove('ui-font-standart', 'ui-font-yirik', 'ui-font-juda_yirik');
@@ -227,9 +239,12 @@
           const ozgardi = this.shrift !== this.asl.shrift
             || this.yuqoriKontrast !== this.asl.yuqoriKontrast
             || this.kengRejim !== this.asl.kengRejim;
-          const tezkor = document.body?.classList.contains('ui-keng')
-            || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          const tezkor = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
           this.ochiq = false;
+          if (this._lastFocus && document.contains(this._lastFocus)) {
+            this._lastFocus.focus();
+          }
+          this._lastFocus = null;
           if (!ozgardi) return;
           clearTimeout(this._bekorTimer);
           const tiklash = () => {
@@ -243,25 +258,7 @@
           this._bekorTimer = setTimeout(tiklash, tezkor ? 30 : 220);
         },
         _toastKorsat(matn) {
-          const joy = document.getElementById('app-messages');
-          if (!joy) return;
-          let box = joy.querySelector('ul.messages');
-          if (!box) {
-            box = document.createElement('ul');
-            box.className = 'messages';
-            joy.appendChild(box);
-          }
-          const el = document.createElement('li');
-          el.className = 'success';
-          const text = document.createElement('span');
-          text.className = 'msg-text';
-          text.textContent = matn;
-          el.appendChild(text);
-          box.appendChild(el);
-          setTimeout(() => {
-            el.classList.add('is-leaving');
-            setTimeout(() => el.remove(), 260);
-          }, 3500);
+          window.showAppToast?.(matn, 'success');
         },
         async saqlash() {
           clearTimeout(this._bekorTimer);
@@ -295,6 +292,10 @@
             };
             this.majburiy = false;
             this.ochiq = false;
+            if (this._lastFocus && document.contains(this._lastFocus)) {
+              this._lastFocus.focus();
+            }
+            this._lastFocus = null;
             this._toastKorsat("Ko'rinish sozlamalari saqlandi.");
           } catch (_e) {
             this.xato = "Server bilan aloqa uzildi. Qayta urinib ko'ring.";
@@ -303,14 +304,42 @@
           }
         },
       }));
+      window.addEventListener('korinish:escape', () => {
+        const modalEl = document.getElementById('korinish-sozlash-modal');
+        if (!modalEl || !window.Alpine) return;
+        const data = window.Alpine.$data(modalEl);
+        if (data && data.ochiq && !data.majburiy) data.yopish();
+      });
     });
+
+    function showAppToast(matn, tur = 'success') {
+      const joy = document.getElementById('app-messages');
+      if (!joy || !matn) return;
+      let box = joy.querySelector('ul.messages');
+      if (!box) {
+        box = document.createElement('ul');
+        box.className = 'messages';
+        joy.appendChild(box);
+      }
+      const el = document.createElement('li');
+      el.className = tur;
+      const text = document.createElement('span');
+      text.className = 'msg-text';
+      text.textContent = matn;
+      el.appendChild(text);
+      box.appendChild(el);
+      setTimeout(() => {
+        el.classList.add('is-leaving');
+        setTimeout(() => el.remove(), 260);
+      }, 3500);
+    }
+    window.showAppToast = showAppToast;
 
     // ================= 1. Markaziy Yuklanish (Breandli 3-sekundlik Page Loader) =================
     const PageLoader = {
       el: null,
       safetyTimer: null,
       delayTimer: null,
-      lockedUntil: 0,
       init() {
         this.el = document.getElementById('main-page-loader');
       },
@@ -326,7 +355,6 @@
         if (!this.el) return;
         clearTimeout(this.delayTimer);
         clearTimeout(this.safetyTimer);
-        this.lockedUntil = 0;
         this.el.classList.remove('is-timed');
         const reveal = () => {
           if (!this.el) return;
@@ -340,28 +368,25 @@
           reveal();
         }
       },
-      playFor(ms = 3000) {
+      playFor(ms = 320) {
         if (!this.el) this.init();
         if (!this.el) return;
         window.__pageLoaderYopilgan = false;
         clearTimeout(this.delayTimer);
         clearTimeout(this.safetyTimer);
-        this.lockedUntil = Date.now() + ms;
+        const muddat = Math.min(Math.max(Number(ms) || 320, 80), 450);
         document.body?.classList.add('is-page-loading');
         this.el.classList.add('is-timed');
         this.el.classList.remove('is-hidden');
         this._progressQayta();
         this.safetyTimer = setTimeout(() => {
-          this.lockedUntil = 0;
           this.hide(true);
-        }, ms);
+        }, muddat);
       },
-      hide(force = false) {
+      hide() {
         if (!this.el) this.init();
-        if (!force && Date.now() < this.lockedUntil) return;
         clearTimeout(this.delayTimer);
         clearTimeout(this.safetyTimer);
-        this.lockedUntil = 0;
         if (this.el) {
           this.el.classList.add('is-hidden');
           this.el.classList.remove('is-timed');
@@ -557,6 +582,7 @@
     // ================= 1.3. Oflayn Rejim va Tarmoq Tiklanish Oynasi =================
     const OfflineGuard = {
       toastTimer: null,
+      lastTrigger: null,
       _overlay() {
         return document.getElementById('offline-modal-overlay');
       },
@@ -583,6 +609,9 @@
       show() {
         const el = this._overlay();
         if (!el) return;
+        if (!this.isOpen() && document.activeElement instanceof HTMLElement) {
+          this.lastTrigger = document.activeElement;
+        }
         PageLoader.hide(true);
         SkeletonStage.clearAll();
         resetLoadingButtons();
@@ -600,11 +629,20 @@
         if (!navigator.onLine) {
           this._pill()?.classList.remove('is-hidden');
         }
+        if (this.lastTrigger && document.contains(this.lastTrigger)) {
+          this.lastTrigger.focus();
+        }
+        this.lastTrigger = null;
       },
       handleOnline() {
-        const wasOffline = this.isOpen() || !this._pill()?.classList.contains('is-hidden');
+        const wasOpen = this.isOpen();
+        const wasOffline = wasOpen || !this._pill()?.classList.contains('is-hidden');
         this._overlay()?.classList.add('is-hidden');
         this._pill()?.classList.add('is-hidden');
+        if (wasOpen && this.lastTrigger && document.contains(this.lastTrigger)) {
+          this.lastTrigger.focus();
+        }
+        this.lastTrigger = null;
         if (wasOffline) {
           this.showOnlineToast();
           window.dispatchEvent(new Event('focus'));
@@ -629,7 +667,7 @@
             signal: ctrl.signal,
           });
           window.clearTimeout(tid);
-          return resp.status >= 200;
+          return resp.ok;
         } catch (_err) {
           window.clearTimeout(tid);
           if (silent) this.show();
@@ -675,9 +713,6 @@
         }
         window.addEventListener('offline', () => this.show());
         window.addEventListener('online', () => this.handleOnline());
-        document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && this.isOpen()) this.minimize();
-        });
         if (typeof navigator.onLine === 'boolean' && !navigator.onLine) {
           this.show();
         }
@@ -707,7 +742,7 @@
         }
       } catch (_e) {}
       if (yangiKirish) {
-        const muddat = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 400 : 3000;
+        const muddat = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 120 : 320;
         PageLoader.playFor(muddat);
       } else {
         PageLoader.hide(true);
@@ -720,8 +755,7 @@
         el.style.background = el.getAttribute('data-bg');
       });
       if (document.body?.classList.contains('is-page-loading')) return;
-      const reduced = document.body?.classList.contains('ui-keng')
-        || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       scope.querySelectorAll('[data-width]').forEach((el) => {
         const w = Math.min(100, Math.max(0, Number(el.getAttribute('data-width')) || 0));
         if (!reduced && !el.style.width) {
@@ -741,10 +775,7 @@
 
     function animateCounters(root) {
       if (document.body?.classList.contains('is-page-loading')) return;
-      if (
-        document.body?.classList.contains('ui-keng')
-        || window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         return;
       }
       const scope = root && root.querySelectorAll ? root : document;
@@ -780,87 +811,26 @@
       animateCounters(document);
     });
 
-    // ================= Status Bar Link Masking (Sichqoncha borganda URL yo'nalishi ko'rinmasligi) =================
-    document.addEventListener('pointerover', (e) => {
-      const a = e.target.closest('a[href]');
-      if (a) {
-        const href = a.getAttribute('href');
-        if (href && href !== '#' && !href.startsWith('javascript:')) {
-          a.dataset.maskedHref = href;
-          a.removeAttribute('href');
-          if (!a.hasAttribute('role')) a.setAttribute('role', 'link');
-          if (!a.hasAttribute('tabindex')) a.setAttribute('tabindex', '0');
-        }
-      }
-    }, true);
-
-    document.addEventListener('pointerout', (e) => {
-      const a = e.target.closest('a[data-masked-href]');
-      if (a && a.dataset.maskedHref) {
-        a.setAttribute('href', a.dataset.maskedHref);
-        delete a.dataset.maskedHref;
-      }
-    }, true);
-
-    document.addEventListener('contextmenu', (e) => {
-      const a = e.target.closest('a[data-masked-href]');
-      if (a && a.dataset.maskedHref) {
-        a.setAttribute('href', a.dataset.maskedHref);
-      }
-    }, true);
-
-    document.addEventListener('auxclick', (e) => {
-      if (e.button === 1) {
-        const a = e.target.closest('a[data-masked-href], a[href]');
-        if (a) {
-          const href = a.dataset.maskedHref || a.getAttribute('href');
-          if (href && href !== '#' && !href.startsWith('javascript:')) {
-            e.preventDefault();
-            window.open(href, '_blank');
-          }
-        }
-      }
-    }, true);
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const a = e.target.closest('a[data-masked-href]');
-        if (a) {
-          e.preventDefault();
-          a.click();
-        }
-      }
-    }, true);
-
+    // To'liq sahifaga o'tishda yuklash indikatorini ko'rsatish (native href saqlanadi)
     document.addEventListener('click', (e) => {
-      const a = e.target.closest('a[data-masked-href]');
-      if (!a) return;
-      const href = a.dataset.maskedHref;
-      if (!href) return;
-
-      if (a.hasAttribute('hx-get') || a.hasAttribute('hx-post') || a.hasAttribute('hx-delete') || a.hasAttribute('hx-patch')) {
-        a.setAttribute('href', href);
+      if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      const a = e.target.closest('a[href]');
+      if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
+      if (
+        a.hasAttribute('hx-get')
+        || a.hasAttribute('hx-post')
+        || a.hasAttribute('hx-delete')
+        || a.hasAttribute('hx-patch')
+      ) {
         return;
       }
-
-      if (e.ctrlKey || e.metaKey || a.target === '_blank') {
-        e.preventDefault();
-        window.open(href, '_blank');
-        return;
-      }
-
-      if (a.hasAttribute('download')) {
-        a.setAttribute('href', href);
-        return;
-      }
-
-      e.preventDefault();
+      const href = a.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
       const yuklabOlish = /(\/(excel|zip|shakl1-docx|shakl1-zip|namuna|parollar|fayl|dastur)\/?|_excel|_zip|\.(xlsx|docx|pdf|zip))(\?|$)/i.test(href);
       if (!yuklabOlish) {
-        PageLoader.show(3500, 150);
+        PageLoader.show(3500, 180);
       }
-      window.location.assign(href);
-    }, true);
+    });
 
     function resetLoadingButtons() {
       document.querySelectorAll('.is-loading').forEach((b) => {
@@ -893,7 +863,17 @@
       animateCounters(document);
     });
 
+    let lastTableModalTrigger = null;
+
     document.addEventListener('htmx:beforeRequest', (evt) => {
+      if (!document.querySelector('.table-modal-backdrop')) {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && active !== document.body) {
+          lastTableModalTrigger = active;
+        } else if (evt.detail?.elt instanceof HTMLElement) {
+          lastTableModalTrigger = evt.detail.elt;
+        }
+      }
       SkeletonStage.start(evt);
     });
 
@@ -916,16 +896,26 @@
         target.querySelectorAll('.table-modal-backdrop').forEach((el) => {
           el.classList.add('is-panel-refresh');
         });
-      } else if (
-        target &&
-        target.classList &&
-        !target.matches('body, .app, main, #kontent, [id$="-jonli"], [id$="-bolim"]') &&
-        !target.querySelector('.table-modal-backdrop')
-      ) {
-        target.classList.remove('is-htmx-updated');
-        void target.offsetWidth;
-        target.classList.add('is-htmx-updated');
-        window.setTimeout(() => target.classList.remove('is-htmx-updated'), 720);
+      } else {
+        const yangiDialog = target?.querySelector?.('.table-modal-backdrop .table-modal-dialog');
+        if (yangiDialog) {
+          setTimeout(() => {
+            const first = Array.from(
+              yangiDialog.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])')
+            ).find((el) => el.offsetParent !== null);
+            first?.focus?.();
+          }, 30);
+        } else if (
+          target &&
+          target.classList &&
+          !target.matches('body, .app, main, #kontent, [id$="-jonli"], [id$="-bolim"]') &&
+          !target.querySelector('.table-modal-backdrop')
+        ) {
+          target.classList.remove('is-htmx-updated');
+          void target.offsetWidth;
+          target.classList.add('is-htmx-updated');
+          window.setTimeout(() => target.classList.remove('is-htmx-updated'), 720);
+        }
       }
       applyDynamicStyles(document);
       animateCounters(document);
@@ -958,6 +948,13 @@
       PageLoader.hide();
       SkeletonStage.finish(evt);
       resetLoadingButtons();
+      const status = evt.detail?.xhr?.status;
+      const xabar = status === 403
+        ? "Ushbu amalni bajarishga ruxsat yo'q (403)."
+        : status === 429
+          ? "Juda ko'p so'rov yuborildi. Birozdan so'ng qayta urinib ko'ring."
+          : "Server bilan aloqa yoki ma'lumotni saqlashda xatolik yuz berdi.";
+      window.showAppToast?.(xabar, 'error');
     });
     document.addEventListener('htmx:abort', (evt) => {
       SkeletonStage.finish(evt);
@@ -984,7 +981,7 @@
           this.closeTimer = null;
         }
         if (overlay.classList.contains('is-hidden') || overlay.classList.contains('is-closing')) {
-          this.lastTrigger = document.activeElement;
+          this.lastTrigger = opts.triggerEl || document.activeElement;
         }
         const card = overlay.querySelector('.app-modal-card');
         const iconEl = document.getElementById('app-modal-icon');
@@ -1167,10 +1164,7 @@
       close() {
         const overlay = document.getElementById('app-global-modal');
         if (!overlay || overlay.classList.contains('is-hidden') || overlay.classList.contains('is-closing')) return;
-        if (
-          document.body?.classList.contains('ui-keng')
-          || window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        ) {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
           this._yakunlash();
           return;
         }
@@ -1180,6 +1174,15 @@
     };
     window.AppModal = AppModal;
 
+    function _tableModalFokusiniTikla() {
+      if (!document.querySelector('.table-modal-backdrop') && lastTableModalTrigger) {
+        if (document.contains(lastTableModalTrigger)) {
+          lastTableModalTrigger.focus();
+        }
+        lastTableModalTrigger = null;
+      }
+    }
+
     window.yopishTableModal = (target) => {
       const el = typeof target === 'string' ? document.getElementById(target) : target;
       if (!el) return;
@@ -1187,51 +1190,87 @@
       const box = bd ? bd.parentElement : el;
       if (!bd || !box) {
         if (el) el.innerHTML = '';
+        _tableModalFokusiniTikla();
         return;
       }
       if (bd.classList.contains('is-closing')) return;
-      if (
-        document.body?.classList.contains('ui-keng')
-        || window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         box.innerHTML = '';
+        _tableModalFokusiniTikla();
         return;
       }
       bd.classList.add('is-closing');
       setTimeout(() => {
         if (box.contains(bd)) box.innerHTML = '';
+        _tableModalFokusiniTikla();
       }, 240);
     };
 
-    // Escape va Focus Trap boshqaruvi (ustma-ust modallarni navbat bilan yopish)
+    function _onbModalOchiqmi() {
+      const onb = document.getElementById('korinish-sozlash-modal');
+      return Boolean(onb && window.getComputedStyle(onb).display !== 'none');
+    }
+
+    function _yuqoriModalHududi() {
+      if (OfflineGuard.isOpen()) {
+        return document.querySelector('#offline-modal-overlay .offline-modal-wrap');
+      }
+      if (_onbModalOchiqmi()) {
+        return document.querySelector('#korinish-sozlash-modal .onb-card');
+      }
+      if (AppModal.isOpen()) {
+        return document.querySelector('#app-global-modal .app-modal-card');
+      }
+      const backdrops = document.querySelectorAll('.table-modal-backdrop');
+      if (backdrops.length) {
+        const topBd = backdrops[backdrops.length - 1];
+        return topBd.querySelector('.table-modal-dialog') || topBd;
+      }
+      return null;
+    }
+
+    // Escape va Focus Trap boshqaruvi (ustma-ust modallarni z-index tartibi bilan boshqarish)
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if (OfflineGuard.isOpen()) {
+          e.preventDefault();
+          OfflineGuard.minimize();
+          return;
+        }
+        if (_onbModalOchiqmi()) {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent('korinish:escape'));
+          return;
+        }
         if (AppModal.isOpen()) {
           e.preventDefault();
           AppModal.close();
           return;
         }
-        // Agar ochiq popover mavjud bo'lsa, avval faqat shu popover yopilsin
-        if (document.querySelector('.popover-ochiq')) {
+        if (document.querySelector('.popover-ochiq, .dropdown-ochiq')) {
           return;
         }
         const backdrops = document.querySelectorAll('.table-modal-backdrop');
         if (backdrops.length) {
           e.preventDefault();
-          const topBd = backdrops[backdrops.length - 1];
-          window.yopishTableModal(topBd);
+          window.yopishTableModal(backdrops[backdrops.length - 1]);
         }
         return;
       }
 
-      if (e.key === 'Tab' && AppModal.isOpen()) {
-        const card = document.querySelector('#app-global-modal .app-modal-card');
+      if (e.key === 'Tab') {
+        const card = _yuqoriModalHududi();
         if (!card) return;
-        const focusables = card.querySelectorAll('button:not([disabled]), a[href], a[data-masked-href], textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])');
+        const focusables = Array.from(
+          card.querySelectorAll('button:not([disabled]), a[href], textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        ).filter((el) => el.offsetParent !== null || window.getComputedStyle(el).position === 'fixed');
         if (!focusables.length) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
+        if (!card.contains(document.activeElement)) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+        } else if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last.focus();
         } else if (!e.shiftKey && document.activeElement === last) {
@@ -1241,7 +1280,7 @@
       }
     });
 
-    // Intercept forms with data-modal-confirm / data-modal-prompt and buttons with data-row-modal
+    // Intercept buttons with data-row-modal
     document.addEventListener('click', (e) => {
       const viewBtn = e.target.closest('[data-row-modal]');
       if (viewBtn) {
@@ -1264,24 +1303,32 @@
           links.push({ url: viewBtn.dataset.modalEditUrl, label: viewBtn.dataset.modalEditLabel || "Tahrirlash", primary: !viewBtn.dataset.modalUrl });
         }
         AppModal.open({
+          triggerEl: viewBtn,
           title,
           subtitle,
           rows,
           links,
           cancelText: 'Yopish'
         });
+      }
+    }, true);
+
+    // Intercept form submissions with data-modal-confirm / data-modal-prompt (click + Enter)
+    document.addEventListener('submit', (e) => {
+      const form = e.target instanceof HTMLFormElement ? e.target : null;
+      if (!form || (!form.hasAttribute('data-modal-confirm') && !form.hasAttribute('data-modal-prompt'))) {
         return;
       }
-
-      const btn = e.target.closest('button[type="submit"], input[type="submit"]');
-      if (!btn) return;
-      const form = btn.closest('form[data-modal-confirm], form[data-modal-prompt]');
-      if (!form || form.dataset.modalConfirmed === 'true') return;
+      if (form.dataset.modalConfirmed === 'true') {
+        delete form.dataset.modalConfirmed;
+        return;
+      }
 
       window.dispatchEvent(new CustomEvent('action-menu:yopish'));
       e.preventDefault();
       e.stopImmediatePropagation();
 
+      const submitter = e.submitter || document.activeElement;
       const metaRaw = form.dataset.modalMeta || '';
       const meta = metaRaw ? metaRaw.split('||').map((p) => {
         const idx = p.indexOf('::');
@@ -1289,6 +1336,7 @@
       }).filter(Boolean) : [];
 
       AppModal.open({
+        triggerEl: submitter instanceof HTMLElement ? submitter : null,
         title: form.dataset.modalTitle || 'Amalni tasdiqlash',
         subtitle: form.dataset.modalSubtitle || '',
         message: form.dataset.modalConfirm || '',
@@ -1320,6 +1368,7 @@
             AppModal.close();
             window.htmx.trigger(form, 'submit');
           } else {
+            delete form.dataset.modalConfirmed;
             HTMLFormElement.prototype.submit.call(form);
           }
         }
@@ -1341,7 +1390,6 @@
     document.addEventListener('pointerdown', (e) => {
       if (
         e.button > 0
-        || document.body?.classList.contains('ui-keng')
         || window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ) return;
       const btn = e.target.closest('.btn, .chip-btn, .logout-btn, .btn-modal-view, .btn-dots, .teacher-chip, .app-modal-close, .seg-tab, .nav-link, .nav-pref-btn, .action-item, .menu-item, .nav-notif-item, .opt');

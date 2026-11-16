@@ -1,9 +1,11 @@
-{% load static %}
-const CACHE_NAME = "oquv-yuklamasi-offline-v1";
+/* {% load static %} */
+const CACHE_NAME = "oquv-yuklamasi-offline-v2";
 const OFFLINE_URL = "{% url 'offline_sahifa' %}";
 const PRECACHE_URLS = [
   OFFLINE_URL,
   "{% static 'web/css/app.css' %}?v=64",
+  "{% static 'web/css/print.css' %}?v=6",
+  "{% static 'web/js/jonli.js' %}?v=3",
 ];
 
 self.addEventListener("install", (event) => {

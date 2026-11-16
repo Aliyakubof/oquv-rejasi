@@ -531,3 +531,27 @@ class SamaradorlikVaUiYaxshilashTests(TestCase):
         self.assertIn(".offline-radar", app_css)
         self.assertIn("#offline-modal-overlay", app_css)
         self.assertIn("#offline-modal-overlay", print_css)
+
+    def test_ux_va_a11y_yaxshilanishlari_saqlangan(self) -> None:
+        from django.conf import settings
+
+        tpl_dir = settings.BASE_DIR / "web" / "templates" / "web"
+        css_dir = settings.BASE_DIR / "web" / "static" / "web" / "css"
+        base_html = (tpl_dir / "base.html").read_text(encoding="utf-8")
+        kaf_oqit_html = (tpl_dir / "kafedra" / "oqituvchilar" / "list.html").read_text(
+            encoding="utf-8"
+        )
+        app_css = (css_dir / "app.css").read_text(encoding="utf-8")
+        print_css = (css_dir / "print.css").read_text(encoding="utf-8")
+
+        self.assertNotIn("maskedHref", base_html)
+        self.assertNotIn("data-masked-href", base_html)
+        self.assertNotIn("? 400 : 3000", base_html)
+        self.assertIn("kafedra.mudir_id", kaf_oqit_html)
+        self.assertIn("top: 70px;", app_css)
+        self.assertNotIn("520ms both", app_css)
+        self.assertEqual(app_css.count("body.ui-keng *,"), 1)
+        self.assertIn("body.ui-keng .btn.is-loading::after", app_css)
+        self.assertIn("body.ui-font-yirik table", print_css)
+        self.assertIn("body.ui-font-juda_yirik table", print_css)
+        self.assertIn("body.ui-kontrast th", print_css)

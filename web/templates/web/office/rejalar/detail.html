@@ -55,12 +55,12 @@
   {% include "web/parts/_biriktirilmagan_statlar.html" %}
 </div>
 
-<div class="legend" x-show="tab === 'jadval'" x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
+<div class="legend" x-show="tab === 'jadval'" x-cloak x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
   <span class="legend-pill"><span class="dot" style="background:var(--accent);"></span>Semestrdagi haftalik soat</span>
   <span class="legend-pill"><span class="dot" style="background:var(--unassigned);"></span>Kafedraga biriktirilmagan</span>
 </div>
 
-<div class="filter-toolbar" x-show="tab === 'jadval'" x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
+<div class="filter-toolbar" x-show="tab === 'jadval'" x-cloak x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
   <div class="filter-toolbar-left">
     {% include "web/parts/_qidiruv.html" with placeholder="Fan nomi yoki kodi..." aria_label="Fan nomi yoki kodi" %}
     <button type="button" class="chip-btn chip-toggle" :class="faqat && 'active'" @click="faqat = !faqat">
@@ -72,7 +72,7 @@
   </div>
 </div>
 
-<div class="table-wrap cards" x-show="tab === 'jadval'"
+<div class="table-wrap cards" x-show="tab === 'jadval'" x-cloak
      x-transition:enter="anim-tab-enter" x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
   <table>
     <thead>

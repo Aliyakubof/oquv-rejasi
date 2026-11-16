@@ -6,16 +6,16 @@ context. Each hour input posts as fs-<pk>-<tur>.{% endcomment %}
 <tr x-show="{{ guruh_flag|default:'true' }}" class="{% if satr.biriktirilmagan %}qator-biriktirilmagan{% endif %}">
   <td class="col-idx{% if not forloop.first %} mobile-empty-cell{% endif %}" data-label="№">{% if forloop.first %}{{ satr.fan.raqam }}{% endif %}</td>
   <td class="col-code{% if not forloop.first %} mobile-empty-cell{% endif %}" data-label="Kod">{% if forloop.first %}<span class="code">{{ satr.variant.kodi|default:"—" }}</span>{% endif %}</td>
-  <td class="col-name{% if not forloop.first %} mobile-empty-cell{% endif %}" data-label="Fan">{% if forloop.first %}<span class="cell-val">{{ satr.variant.nomi }}{% if satr.tanlanmagan %} <span class="tag tag-elec">TANLANMAGAN</span>{% endif %}</span>{% endif %}</td>
+  <td class="col-name" data-label="Fan"><span class="cell-val{% if not forloop.first %} mobile-only-val{% endif %}">{{ satr.variant.nomi }}{% if satr.tanlanmagan %} <span class="tag tag-elec">TANLANMAGAN</span>{% endif %}</span></td>
   <td data-label="Semestr"><strong>S{{ fs.semestr }}</strong></td>
   <td class="credits num" data-label="Kredit">{% if fs.kredit %}{{ fs.kredit }} kr{% else %}—{% endif %}</td>
   <td class="sem-cell" data-label="Haftalik">{% if fs.haftalik_soat %}<div class="sem-fill">{{ fs.haftalik_soat }}</div>{% else %}<div class="sem-empty"></div>{% endif %}</td>
-  <td class="sem-cell" data-label="Ma'ruza"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-maruza" value="{{ fs.maruza_soat }}" title="Ma'ruza — butun oqimga"></td>
-  <td class="sem-cell" data-label="Amaliyot"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-amaliyot" value="{{ fs.amaliyot_soat }}" title="Amaliyot — bitta guruh uchun (× {{ reja.guruhlar_soni|default:'?' }})"></td>
-  <td class="sem-cell" data-label="Laboratoriya"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-lab" value="{{ fs.laboratoriya_soat }}" title="Laboratoriya — bitta guruh uchun (× {{ reja.guruhlar_soni|default:'?' }})"></td>
-  <td class="sem-cell" data-label="Seminar"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-seminar" value="{{ fs.seminar_soat }}" title="Seminar — bitta guruh uchun (× {{ reja.guruhlar_soni|default:'?' }})"></td>
-  <td class="sem-cell col-center" data-label="Kurs ishi"><input type="checkbox" class="row-check" name="fs-{{ fs.pk }}-kursishi" title="Kurs ishi" aria-label="Kurs ishi" {% if fs.kurs_ishi_bor %}checked{% endif %}></td>
-  <td class="assign-cell" data-label="Kafedra">
+  <td class="sem-cell" data-label="Ma'ruza"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-maruza" value="{{ fs.maruza_soat }}" title="Ma'ruza — butun oqimga" aria-label="{{ satr.variant.nomi }} ({{ fs.semestr }}-semestr) — Ma'ruza soati"></td>
+  <td class="sem-cell" data-label="Amaliyot"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-amaliyot" value="{{ fs.amaliyot_soat }}" title="Amaliyot — bitta guruh uchun (× {{ reja.guruhlar_soni|default:'?' }})" aria-label="{{ satr.variant.nomi }} ({{ fs.semestr }}-semestr) — Amaliyot soati"></td>
+  <td class="sem-cell" data-label="Laboratoriya"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-lab" value="{{ fs.laboratoriya_soat }}" title="Laboratoriya — bitta guruh uchun (× {{ reja.guruhlar_soni|default:'?' }})" aria-label="{{ satr.variant.nomi }} ({{ fs.semestr }}-semestr) — Laboratoriya soati"></td>
+  <td class="sem-cell" data-label="Seminar"><input type="number" min="0" class="soat-input" name="fs-{{ fs.pk }}-seminar" value="{{ fs.seminar_soat }}" title="Seminar — bitta guruh uchun (× {{ reja.guruhlar_soni|default:'?' }})" aria-label="{{ satr.variant.nomi }} ({{ fs.semestr }}-semestr) — Seminar soati"></td>
+  <td class="sem-cell col-center" data-label="Kurs ishi"><input type="checkbox" class="row-check" name="fs-{{ fs.pk }}-kursishi" title="Kurs ishi" aria-label="{{ satr.variant.nomi }} ({{ fs.semestr }}-semestr) — Kurs ishi" {% if fs.kurs_ishi_bor %}checked{% endif %}></td>
+  <td class="assign-cell{% if not forloop.first %} mobile-empty-cell{% endif %}" data-label="Kafedra">
     {% if forloop.first %}
     {% include "web/parts/_kafedra_chip.html" with kafedra=satr.kafedra %}
     {% endif %}

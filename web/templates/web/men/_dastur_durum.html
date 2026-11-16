@@ -40,7 +40,7 @@
 
   {# 3-dots action menu #}
   <div class="action-dropdown" :class="ochiq && 'dropdown-ochiq'" @click.outside="yopish()">
-    <button type="button" class="btn-dots" :class="ochiq && 'active'" @click="ochish($el)" title="Amallar" aria-label="Amallar">
+    <button type="button" class="btn-dots" :class="ochiq && 'active'" @click="ochish($el)" :aria-expanded="ochiq.toString()" title="Amallar" aria-label="Amallar">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
         <circle cx="12" cy="5" r="2"/>
         <circle cx="12" cy="12" r="2"/>

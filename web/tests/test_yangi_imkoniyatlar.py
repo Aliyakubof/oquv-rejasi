@@ -1,8 +1,11 @@
 import json
 from io import BytesIO
+from pathlib import Path
+from unittest.mock import patch
 
 import openpyxl
 from django.conf import settings
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
@@ -32,6 +35,7 @@ from web.tests.helpers import (
     oqituvchi_yarat,
     tizimga_kir,
 )
+from web.views.jonli import _KESH_KALITI, JONLI_EPOCH_KALITI, holat_versiyasi
 
 
 class ParolOzgartirishTests(TestCase):
@@ -488,3 +492,163 @@ class RestApiTests(TestCase):
         self.assertTrue(
             AuditYozuvi.objects.filter(amal=AuditAmali.TAHRIRLANDI).exists()
         )
+
+
+class Batch1XavfsizlikVaQulfTests(TestCase):
+    def tearDown(self) -> None:
+        cache.clear()
+        super().tearDown()
+
+    def test_api_brute_force_veb_kirishni_bloklamaydi(self) -> None:
+        user = oqituvchi_yarat()
+        for _ in range(21):
+            r_api = self.client.get(
+                reverse("api:kafedralar"),
+                HTTP_AUTHORIZATION="Bearer notogri-kalit",
+            )
+        self.assertEqual(r_api.status_code, 429)
+
+        r_login = self.client.post(
+            reverse("kirish"),
+            {"username": user.telefon, "password": PAROL},
+        )
+        self.assertEqual(r_login.status_code, 302)
+
+    def test_jonli_holat_eski_epoch_bilan_keshga_yozmaydi(self) -> None:
+        cache.clear()
+        cache.set(JONLI_EPOCH_KALITI, "epoch-1", timeout=60)
+
+        def poyga_qiluvchi() -> list[str]:
+            cache.set(JONLI_EPOCH_KALITI, "epoch-2", timeout=60)
+            return ["eski:1"]
+
+        with patch("web.views.jonli._jadval_qismlari", side_effect=poyga_qiluvchi):
+            eski = holat_versiyasi()
+        self.assertIsNone(cache.get(_KESH_KALITI))
+
+        yangi = holat_versiyasi()
+        self.assertNotEqual(eski, yangi)
+        self.assertEqual(cache.get(_KESH_KALITI), yangi)
+
+    def test_oqituvchi_ochirish_mudirni_xavfsiz_boshatadi(self) -> None:
+        admin = ofis_admin_yarat()
+        kaf = Department.objects.create(nomi="Kaf-Mudir")
+        mudir = mudir_yarat(kaf)
+        kaf.refresh_from_db()
+        profil = kaf.mudir
+        assert profil is not None
+        reja = reja_yasa(boshlanish_yili=2025)
+        fan = fan_yasa(reja, kafedra=kaf)
+        fs = fan_semestr_yasa(fan.tanlangan_variant)
+        Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=profil)
+
+        tizimga_kir(self.client, admin)
+        javob = self.client.post(reverse("office:oqituvchi_ochirish", args=[profil.pk]))
+        self.assertEqual(javob.status_code, 302)
+        kaf.refresh_from_db()
+        mudir.refresh_from_db()
+        self.assertIsNone(kaf.mudir_id)
+        self.assertFalse(mudir.is_active)
+
+    def test_reja_tahrir_post_va_validatsiya(self) -> None:
+        admin = ofis_admin_yarat()
+        kaf = Department.objects.create(nomi="Reja Kaf")
+        reja = reja_yasa(boshlanish_yili=2025, guruhlar_soni=3)
+        g3 = reja.guruhlar.create(raqam=3, nomi="DI-3")
+        fan = fan_yasa(reja, kafedra=kaf)
+        fs = fan_semestr_yasa(fan.tanlangan_variant)
+        oqit = oqituvchi_yasa(kafedra=kaf)
+        Yuklama.objects.create(
+            fan_semestr=fs, tur=SoatTuri.AMALIYOT, guruh=g3, oqituvchi=oqit
+        )
+
+        tizimga_kir(self.client, admin)
+        yomon = self.client.post(
+            reverse("office:reja_tahrir", args=[reja.pk]),
+            {
+                "bilim_sohasi_kodi": reja.bilim_sohasi_kodi,
+                "bilim_sohasi_nomi": reja.bilim_sohasi_nomi,
+                "talim_sohasi_kodi": reja.talim_sohasi_kodi,
+                "talim_sohasi_nomi": reja.talim_sohasi_nomi,
+                "yonalish_kodi": reja.yonalish_kodi,
+                "yonalish_nomi": reja.yonalish_nomi,
+                "talim_shakli": reja.talim_shakli,
+                "daraja": reja.daraja,
+                "talabalar_soni": 50,
+                "guruhlar_soni": 2,
+                "guruh_prefiksi": reja.guruh_prefiksi,
+            },
+        )
+        self.assertEqual(yomon.status_code, 200)
+        reja.refresh_from_db()
+        self.assertEqual(reja.guruhlar_soni, 3)
+
+        yaxshi = self.client.post(
+            reverse("office:reja_tahrir", args=[reja.pk]),
+            {
+                "bilim_sohasi_kodi": reja.bilim_sohasi_kodi,
+                "bilim_sohasi_nomi": reja.bilim_sohasi_nomi,
+                "talim_sohasi_kodi": reja.talim_sohasi_kodi,
+                "talim_sohasi_nomi": reja.talim_sohasi_nomi,
+                "yonalish_kodi": reja.yonalish_kodi,
+                "yonalish_nomi": reja.yonalish_nomi,
+                "talim_shakli": reja.talim_shakli,
+                "daraja": reja.daraja,
+                "talabalar_soni": 80,
+                "guruhlar_soni": 4,
+                "guruh_prefiksi": reja.guruh_prefiksi,
+            },
+        )
+        self.assertEqual(yaxshi.status_code, 302)
+        reja.refresh_from_db()
+        self.assertEqual(reja.talabalar_soni, 80)
+        self.assertEqual(reja.guruhlar_soni, 4)
+
+
+class Batch2Va3UiA11yTests(TestCase):
+    def test_css_va_sw_va_jonli_tuzatishlar(self) -> None:
+        css_matn = (Path(settings.BASE_DIR) / "web/static/web/css/app.css").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(".navbar .nav-notif-btn", css_matn)
+        self.assertIn(".msg-warning", css_matn)
+        self.assertIn("\n.muted {", css_matn)
+        self.assertIn("@keyframes spin", css_matn)
+        self.assertIn(".mobile-only-val", css_matn)
+
+        jonli_matn = (Path(settings.BASE_DIR) / "web/static/web/js/jonli.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("function normHtml(el)", jonli_matn)
+        self.assertIn(".nav-notif-menu", jonli_matn)
+        self.assertIn(
+            'document.dispatchEvent(new CustomEvent("jonli:yangilandi"', jonli_matn
+        )
+        self.assertIn('verb === "get"', jonli_matn)
+
+        sw = self.client.get(reverse("service_worker"))
+        self.assertEqual(sw.status_code, 200)
+        self.assertContains(sw, "print.css?v=6")
+        self.assertContains(sw, "jonli.js?v=3")
+
+    def test_semestrovka_bosh_holat_va_a11y(self) -> None:
+        admin = ofis_admin_yarat()
+        reja = reja_yasa(boshlanish_yili=2025)
+        tizimga_kir(self.client, admin)
+
+        bosh = self.client.get(
+            f"{reverse('office:reja_detail', args=[reja.pk])}?tab=semestrovka"
+        )
+        self.assertEqual(bosh.status_code, 200)
+        self.assertContains(bosh, "Semestrovka bo'sh")
+        self.assertContains(bosh, "resp.ok")
+        self.assertContains(bosh, "showAppToast")
+
+        fan = fan_yasa(reja)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=2)
+        toldi = self.client.get(
+            f"{reverse('office:reja_detail', args=[reja.pk])}?tab=semestrovka"
+        )
+        self.assertContains(toldi, "mobile-only-val")
+        self.assertContains(toldi, "Ma'ruza soati")
