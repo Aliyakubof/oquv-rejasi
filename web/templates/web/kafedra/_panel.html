@@ -54,6 +54,7 @@
           <span class="chip-label">{{ holat.maruza_yuklama.oqituvchi }} · {{ holat.maruza_yuklama.soat }} soat</span>
           {% if not qulflangan %}
           <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
+                  aria-label="Biriktirishni bekor qilish"
                   hx-post="{% url 'kafedra:yuklama_ochirish' holat.maruza_yuklama.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                   hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -61,7 +62,7 @@
           {% endif %}
         </span>
         {% elif not qulflangan %}
-        <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
+        <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq" :aria-expanded="ochiq.toString()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           <span>O'qituvchi biriktirish ({{ holat.talab_soat }} soat)</span>
         </button>
@@ -82,7 +83,7 @@
         <div class="guruh-bulk-actions">
           {% if holat.qoldiq_soat > 0 %}
           <div class="cell-relative" x-data="popover" :class="ochiq && 'popover-ochiq'" @click.outside="ochiq = false" @keydown.escape.window="ochiq = false">
-            <button type="button" class="btn btn-sm btn-outline btn-compact-xs" @click="ochiq = !ochiq">
+            <button type="button" class="btn btn-sm btn-outline btn-compact-xs" @click="ochiq = !ochiq" :aria-expanded="ochiq.toString()">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
               <span>Bo'sh guruhlarga biriktirish</span>
             </button>
@@ -128,6 +129,7 @@
             <span class="chip-label">{{ slot.yuklama.oqituvchi }}</span>
             {% if not qulflangan %}
             <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
+                    aria-label="Biriktirishni bekor qilish"
                     hx-post="{% url 'kafedra:yuklama_ochirish' slot.yuklama.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                     hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -135,7 +137,7 @@
             {% endif %}
           </span>
           {% elif not qulflangan %}
-          <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq">
+          <button type="button" class="teacher-chip empty" @click="ochiq = !ochiq" :aria-expanded="ochiq.toString()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             <span>O'qituvchi biriktirish</span>
           </button>
@@ -160,6 +162,7 @@
             <span class="chip-label">{{ yuklama.oqituvchi }} · {{ yuklama.talabalar_soni }} talaba · {{ yuklama.soat }} soat</span>
             {% if not qulflangan %}
             <button type="button" class="chip-remove-btn" title="Biriktirishni bekor qilish"
+                    aria-label="Biriktirishni bekor qilish"
                     hx-post="{% url 'kafedra:yuklama_ochirish' yuklama.pk %}" hx-indicator="#panel-yuk-{{ fs.pk }}"
                     hx-target="#panel-{{ fs.pk }}" hx-swap="innerHTML" hx-disabled-elt="this">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

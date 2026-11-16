@@ -34,7 +34,7 @@
       @click.outside="yopish()" @keydown.escape.window="yopish()"
       @scroll.window.capture="skrollYopish($event)" @resize.window="yopish()">
     {% if satr.tanlanmagan %}
-    <button type="button" class="teacher-chip empty" @click="ochishYopish($el)">Variant tanlanmagan</button>
+    <button type="button" class="teacher-chip empty" @click="ochishYopish($el)" :aria-expanded="ochiq.toString()">Variant tanlanmagan</button>
     <div class="popover popover-fixed" :class="tepagaOchil && 'popover-up'" :style="posStyle" x-ref="popoverOyna" x-show="ochiq"
          x-transition:enter="anim-pop-enter" x-transition:enter-start="anim-pop-start" x-transition:enter-end="anim-pop-end"
          x-transition:leave="anim-pop-leave" x-transition:leave-start="anim-pop-end" x-transition:leave-end="anim-pop-start"
@@ -54,11 +54,11 @@
     </div>
     {% else %}
     {% if satr.kafedra %}
-    <button type="button" class="teacher-chip" @click="ochishYopish($el)">
+    <button type="button" class="teacher-chip" @click="ochishYopish($el)" :aria-expanded="ochiq.toString()">
       <span class="avatar">{{ satr.kafedra.nomi|bosh_harflar }}</span>{{ satr.kafedra.nomi }}
     </button>
     {% else %}
-    <button type="button" class="teacher-chip empty" @click="ochishYopish($el)">
+    <button type="button" class="teacher-chip empty" @click="ochishYopish($el)" :aria-expanded="ochiq.toString()">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       <span>Kafedra biriktirish</span>
     </button>

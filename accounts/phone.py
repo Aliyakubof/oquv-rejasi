@@ -1,20 +1,23 @@
-"""Uzbek phone number validation and normalization for login (`telefon`)."""
+"""Kirishda (`telefon`) ishlatiladigan O'zbekiston raqamini tekshirish va tozalash."""
 
 import re
 
 from django.core.exceptions import ValidationError
 
-UZBEK_PHONE_RE = re.compile(r"^\+998\d{9}$")
+OZBEK_TELEFON_RE = re.compile(r"^\+998\d{9}$")
 
 
-def normalize_phone(raw: str) -> str:
-    """Strip whitespace so "+998 91 268 12 60" and "+998912681260" are equal."""
-    return re.sub(r"\s+", "", raw)
+def telefonni_normallashtir(xom: str) -> str:
+    """Bo'shliqlarni olib tashlaydi: masalan '+998 91 268 12 60' -> '+998912681260'."""
+    return re.sub(r"\s+", "", xom)
 
 
 def validate_uzbek_phone(value: str) -> None:
-    """Reject anything not in canonical +998XXXXXXXXX form (9 digits after code)."""
-    if not UZBEK_PHONE_RE.match(value):
+    """Faqat +998XXXXXXXXX (9 ta raqam) ko'rinishidagi raqamni qabul qiladi.
+
+    Eslatma: funksiya nomi migratsiya tarixi bilan bog'liq bo'lgani uchun saqlanadi.
+    """
+    if not OZBEK_TELEFON_RE.match(value):
         raise ValidationError(
             "%(value)s — O'zbekiston telefon raqami formati noto'g'ri "
             "(+998XXXXXXXXX ko'rinishida bo'lishi kerak).",

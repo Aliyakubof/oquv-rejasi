@@ -1,10 +1,7 @@
 """
-WSGI config for oquv_reja project.
+oquv_reja loyihasi uchun WSGI sozlamalari.
 
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
+Modul darajasidagi ``application`` nomli WSGI obyektini taqdim etadi.
 """
 
 import os

@@ -1,4 +1,4 @@
-"""Forms for teacher submission and AOH decline of an O'quv Dastur."""
+"""O'qituvchining o'quv dastur topshirishi va AOH rad etishi uchun formalar."""
 
 from django import forms
 from django.core.files.uploadedfile import UploadedFile

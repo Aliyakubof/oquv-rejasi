@@ -1,4 +1,4 @@
-"""Forms for managing institution name, position norms and major classifier."""
+"""OTM nomi, lavozim me'yorlari va yo'nalish klassifikatori formalari."""
 
 from django import forms
 

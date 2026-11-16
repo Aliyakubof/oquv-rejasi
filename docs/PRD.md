@@ -1,6 +1,6 @@
 # PRD: O'quv Reja Platform
 
-This is the product requirements document — what the tool does, who it's for, and where it's headed. For implementation guidance, see `CLAUDE.md`. For current implementation state, see `status.md`.
+This is the product requirements document — what the tool does, who it's for, and where it's headed. For engineering guidelines, see `GEMINI.md`. For current implementation state, see `status.md`.
 
 ---
 

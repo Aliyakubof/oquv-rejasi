@@ -1,4 +1,4 @@
-"""Office-wide teacher administration, coverage list, detail and Excel export."""
+"""Ofis miqyosida o'qituvchilar ro'yxati, batafsil yuklama va Excel eksport."""
 
 import time
 from urllib.parse import urlencode
@@ -28,10 +28,10 @@ from plans.models import AuditAmali
 from plans.shakl1_doc import shakl1_docx_render
 from web.forms.oqituvchi import OqituvchiTahrirForm, OqituvchiYaratishForm
 from web.mixins import (
-    OfficeAdminTalabMixin,
+    OfisAdminTalabMixin,
     YilTanlovMixin,
     musbat_int_yoki_none,
-    office_admin_talab,
+    ofis_admin_talab,
     xavfsiz_qaytish,
 )
 from web.views.oqituvchi_base import (
@@ -41,7 +41,7 @@ from web.views.oqituvchi_base import (
     oqituvchi_yuklama_konteksti,
 )
 
-# Re-export for any external consumers
+# Tashqi modullar uchun qayta eksport qilamiz
 __all__ = [
     "OqituvchiListView",
     "OqituvchiTahrirView",
@@ -84,7 +84,7 @@ def _tanlangan_kafedra(sorov: HttpRequest) -> Department | None:
     return Department.objects.filter(pk=kafedra_pk).first()
 
 
-class OqituvchiListView(OfficeAdminTalabMixin, YilTanlovMixin, TemplateView):
+class OqituvchiListView(OfisAdminTalabMixin, YilTanlovMixin, TemplateView):
     template_name = "web/office/oqituvchilar/list.html"
 
     def get_context_data(self, **kwargs: object) -> dict[str, object]:
@@ -114,7 +114,7 @@ class OqituvchiListView(OfficeAdminTalabMixin, YilTanlovMixin, TemplateView):
         return context
 
 
-class OqituvchiYuklamaView(OfficeAdminTalabMixin, OqituvchiYuklamaAsosView):
+class OqituvchiYuklamaView(OfisAdminTalabMixin, OqituvchiYuklamaAsosView):
     orqaga_url = "office:oqituvchi_list"
     docx_url_name = "office:oqituvchi_shakl1_docx"
 
@@ -125,7 +125,7 @@ class OqituvchiYuklamaView(OfficeAdminTalabMixin, OqituvchiYuklamaAsosView):
         )
 
 
-@office_admin_talab
+@ofis_admin_talab
 def oqituvchilar_excel_view(request: HttpRequest) -> HttpResponse:
     _, yil = yilni_tanlash(request.GET.get("yil"))
     yil = yil or dashboard.joriy_akademik_yil()
@@ -138,13 +138,13 @@ def oqituvchilar_excel_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-class OqituvchiYangiView(OfficeAdminTalabMixin, OqituvchiYangiAsosView):
+class OqituvchiYangiView(OfisAdminTalabMixin, OqituvchiYangiAsosView):
     template_name = "web/office/oqituvchilar/form.html"
     form_class = OqituvchiYaratishForm
     success_url_name = "office:oqituvchi_list"
 
 
-class OqituvchiTahrirView(OfficeAdminTalabMixin, OqituvchiTahrirAsosView):
+class OqituvchiTahrirView(OfisAdminTalabMixin, OqituvchiTahrirAsosView):
     template_name = "web/office/oqituvchilar/form.html"
     form_class = OqituvchiTahrirForm
     success_url_name = "office:oqituvchi_list"
@@ -172,13 +172,32 @@ def _oqituvchini_faolsizlantir(
     )
 
 
+def _oqituvchini_qulflab_olish(pk: int) -> OqituvchiProfil:
+    kaf_idlar = sorted(
+        set(Department.objects.filter(mudir_id=pk).values_list("pk", flat=True))
+        | set(
+            OqituvchiProfil.objects.filter(pk=pk, kafedra_id__isnull=False).values_list(
+                "kafedra_id", flat=True
+            )
+        )
+    )
+    if kaf_idlar:
+        list(
+            Department.objects.select_for_update()
+            .filter(pk__in=kaf_idlar)
+            .order_by("pk")
+        )
+    return get_object_or_404(
+        OqituvchiProfil.objects.select_related("foydalanuvchi").select_for_update(),
+        pk=pk,
+    )
+
+
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     with transaction.atomic():
-        profil = get_object_or_404(
-            OqituvchiProfil.objects.bilan_foydalanuvchi().select_for_update(), pk=pk
-        )
+        profil = _oqituvchini_qulflab_olish(pk)
         if profil.foydalanuvchi_id == request.user.pk:
             messages.error(request, "O'z hisobingizni o'chira olmaysiz.")
             return xavfsiz_qaytish(request, "office:oqituvchi_list")
@@ -214,23 +233,24 @@ def oqituvchi_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def oqituvchi_vaqtinchalik_parol(request: HttpRequest, pk: int) -> HttpResponse:
-    profil = get_object_or_404(OqituvchiProfil.objects.bilan_foydalanuvchi(), pk=pk)
-    target = profil.foydalanuvchi
-    if target.pk == request.user.pk:
-        messages.error(request, "O'z parolingizni Parol sahifasidan o'zgartiring.")
-        return xavfsiz_qaytish(request, "office:oqituvchi_list")
-    if target.rol == Rol.SUPERADMIN and request.user.rol != Rol.SUPERADMIN:
-        messages.error(request, "Superadmin parolini tiklashga ruxsat yo'q.")
-        return xavfsiz_qaytish(request, "office:oqituvchi_list")
-    parol = vaqtinchalik_parol_yarat(target)
-    audit_yoz(
-        AuditAmali.TAHRIRLANDI,
-        f"Vaqtinchalik parol yaratildi: {profil}.",
-        obyekt=profil,
-        request=request,
-    )
+    with transaction.atomic():
+        profil = _oqituvchini_qulflab_olish(pk)
+        target = profil.foydalanuvchi
+        if target.pk == request.user.pk:
+            messages.error(request, "O'z parolingizni Parol sahifasidan o'zgartiring.")
+            return xavfsiz_qaytish(request, "office:oqituvchi_list")
+        if target.rol == Rol.SUPERADMIN and request.user.rol != Rol.SUPERADMIN:
+            messages.error(request, "Superadmin parolini tiklashga ruxsat yo'q.")
+            return xavfsiz_qaytish(request, "office:oqituvchi_list")
+        parol = vaqtinchalik_parol_yarat(target)
+        audit_yoz(
+            AuditAmali.TAHRIRLANDI,
+            f"Vaqtinchalik parol yaratildi: {profil}.",
+            obyekt=profil,
+            request=request,
+        )
     _sessionga_muddatli_qoyish(
         request,
         "vaqtinchalik_parol_natija",
@@ -244,7 +264,7 @@ def oqituvchi_vaqtinchalik_parol(request: HttpRequest, pk: int) -> HttpResponse:
     return xavfsiz_qaytish(request, "office:oqituvchi_list")
 
 
-class OqituvchiImportView(OfficeAdminTalabMixin, View):
+class OqituvchiImportView(OfisAdminTalabMixin, View):
     template_name = "web/office/oqituvchilar/import.html"
 
     def get(self, request: HttpRequest) -> HttpResponse:
@@ -287,7 +307,7 @@ class OqituvchiImportView(OfficeAdminTalabMixin, View):
         )
 
 
-@office_admin_talab
+@ofis_admin_talab
 def oqituvchi_namuna_excel_view(request: HttpRequest) -> HttpResponse:
     return FileResponse(
         oqituvchilar_namuna_excel(),
@@ -296,7 +316,7 @@ def oqituvchi_namuna_excel_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@office_admin_talab
+@ofis_admin_talab
 def oqituvchi_import_parollar_view(request: HttpRequest) -> HttpResponse:
     yaratilganlar = _sessiondan_muddatli_olish(request, "oqituvchi_import_parollar")
     if not yaratilganlar or not isinstance(yaratilganlar, list):
@@ -308,7 +328,7 @@ def oqituvchi_import_parollar_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@office_admin_talab
+@ofis_admin_talab
 def oqituvchi_shakl1_docx_view(request: HttpRequest, pk: int) -> HttpResponse:
     profil = get_object_or_404(OqituvchiProfil.objects.toliq(), pk=pk)
     _, yil = yilni_tanlash(request.GET.get("yil"))

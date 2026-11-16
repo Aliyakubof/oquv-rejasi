@@ -104,7 +104,7 @@
       <button type="button" class="btn btn-sm" @click="tanlanganlar = []; tanlanganKafedra = ''">Bekor qilish</button>
     </form>
   </div>
-  <div class="table-wrap cards" x-show="!semestrovka" x-transition:enter="anim-tab-enter"
+  <div class="table-wrap cards" x-show="!semestrovka" x-cloak x-transition:enter="anim-tab-enter"
     x-transition:enter-start="anim-tab-start" x-transition:enter-end="anim-tab-end">
     <table>
       <thead>

@@ -16,7 +16,6 @@
   x-transition:leave="onb-tr-leave"
   x-transition:leave-start="onb-tr-shown"
   x-transition:leave-end="onb-tr-hidden"
-  @keydown.escape.window="if (ochiq && !majburiy) yopish()"
   @click.self="if (!majburiy) yopish()"
   role="dialog"
   aria-modal="true"
@@ -122,7 +121,7 @@
       </div>
     </div>
 
-    <div class="onb-error" x-show="xato" x-transition.opacity.duration.160ms x-text="xato" role="alert"></div>
+    <div class="onb-error" x-show="xato" x-cloak x-transition.opacity.duration.160ms x-text="xato" role="alert"></div>
 
     <div class="onb-footer">
       <button

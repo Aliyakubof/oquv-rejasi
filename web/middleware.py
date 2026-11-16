@@ -1,4 +1,4 @@
-"""Session safety middleware enforcing account active status and password reset."""
+"""Sessiya xavfsizligi: hisob faolligini va majburiy parol almashtirishni tekshiradi."""
 
 from collections.abc import Callable
 
@@ -10,8 +10,8 @@ from django.shortcuts import redirect
 from django.urls import reverse
 
 
-class ActiveUserMiddleware:
-    """Immediately log out deactivated users if an old session remains active."""
+class FaolFoydalanuvchiMiddleware:
+    """Hisobi o'chirilgan foydalanuvchini eski sessiyadan darhol chiqarib yuboradi."""
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
@@ -24,7 +24,7 @@ class ActiveUserMiddleware:
 
 
 class ParolAlmashtirishMajburiyMiddleware:
-    """Redirect users holding a one-time password straight to password change."""
+    """Bir martalik parol bilan kirganlarni parol almashtirishga yo'naltiradi."""
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response

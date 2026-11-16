@@ -1,10 +1,10 @@
-"""Login and password-change forms working with phone-number usernames."""
+"""Telefon raqam orqali tizimga kirish va parolni almashtirish formalari."""
 
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 
 from accounts.models import Foydalanuvchi
-from accounts.phone import normalize_phone
+from accounts.phone import telefonni_normallashtir
 
 
 class TelefonKirishForm(AuthenticationForm):
@@ -27,7 +27,7 @@ class TelefonKirishForm(AuthenticationForm):
     }
 
     def clean_username(self) -> str:
-        return normalize_phone(self.cleaned_data["username"])
+        return telefonni_normallashtir(self.cleaned_data["username"])
 
 
 class ParolOzgartirishForm(PasswordChangeForm):
@@ -51,7 +51,7 @@ class ParolOzgartirishForm(PasswordChangeForm):
 
 
 class KorinishSozlamalariForm(forms.ModelForm):
-    """Persist user display preferences selected during onboarding or settings."""
+    """Ilk kirishda yoki sozlamalarda tanlangan ko'rinish afzalliklarini saqlaydi."""
 
     class Meta:
         model = Foydalanuvchi
@@ -73,7 +73,7 @@ class KorinishSozlamalariForm(forms.ModelForm):
 
 
 class TelegramBoglashForm(forms.ModelForm):
-    """Allow a user to bind or unlink their Telegram Chat ID for notifications."""
+    """Bildirishnomalar uchun Telegram Chat ID ni ulash yoki uzish formasi."""
 
     class Meta:
         model = Foydalanuvchi

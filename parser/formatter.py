@@ -1,131 +1,142 @@
-from parser.models import Alternative, Course, SelectiveSlot
+from parser.models import MajburiyFan, TanlovFani, TanlovVarianti
 
 
-def fmt_num(value: int | float | None) -> str:
-    """Render a numeric field for Markdown: None becomes an empty cell."""
-    return "" if value is None else str(value)
+def sonni_matnga(qiymat: int | float | None) -> str:
+    """Sonni Markdown katakchasiga moslaydi; None bo'lsa bo'sh matn qaytaradi."""
+    return "" if qiymat is None else str(qiymat)
 
 
-def md_row(cells: list[str], suffix: str = "") -> str:
-    """Assemble a Markdown table row from cell strings, plus an optional suffix."""
-    return "| " + " | ".join(cells) + " |" + suffix
+def md_qator(kataklar: list[str], qoshimcha: str = "") -> str:
+    """Katakchalar ro'yxatidan Markdown jadval qatorini yig'adi."""
+    return "| " + " | ".join(kataklar) + " |" + qoshimcha
 
 
-def breakdown_cells(obj: Course | Alternative | None) -> list[str]:
-    """The six hour-breakdown cells of a Course/Alternative, or blanks if None."""
-    if obj is None:
+def soat_kataklari(fan: MajburiyFan | TanlovVarianti | None) -> list[str]:
+    """Fan yoki variantning oltita soat katakchasini tayyorlaydi."""
+    if fan is None:
         return ["", "", "", "", "", ""]
     return [
-        fmt_num(obj.classroom),
-        fmt_num(obj.lecture),
-        fmt_num(obj.practice),
-        fmt_num(obj.lab),
-        fmt_num(obj.seminar),
-        fmt_num(obj.course_proj),
+        sonni_matnga(fan.auditoriya),
+        sonni_matnga(fan.maruza),
+        sonni_matnga(fan.amaliyot),
+        sonni_matnga(fan.laboratoriya),
+        sonni_matnga(fan.seminar),
+        sonni_matnga(fan.kurs_ishi),
     ]
 
 
-def _sem_cells(item: Course | SelectiveSlot, active_semesters: list[int]) -> str:
+def _semestr_kataklari(
+    fan: MajburiyFan | TanlovFani, faol_semestrlar: list[int]
+) -> str:
     return "".join(
-        f" {fmt_num(item.semester_credits.get(s))} |"
-        f" {fmt_num(item.semester_weekly_hours.get(s))} |"
-        for s in active_semesters
+        f" {sonni_matnga(fan.semestr_kreditlari.get(s))} |"
+        f" {sonni_matnga(fan.semestr_haftalik_soatlar.get(s))} |"
+        for s in faol_semestrlar
     )
 
 
-def _jadval_sarlavhasi(active_semesters: list[int]) -> tuple[str, str]:
-    sem_header = "".join(f" S{s} | W{s} |" for s in active_semesters)
-    sem_sep = "".join(" --- | --- |" for _ in active_semesters)
-    header = (
-        "| # | Code | Name | Hours | Credits | Classroom"
-        " | Lecture | Practice | Lab | Seminar | Course Proj |" + sem_header
+def _jadval_sarlavhasi(faol_semestrlar: list[int]) -> tuple[str, str]:
+    sem_sarlavha = "".join(f" S{s} | H{s} |" for s in faol_semestrlar)
+    sem_ajratgich = "".join(" --- | --- |" for _ in faol_semestrlar)
+    sarlavha = (
+        "| # | Kod | Nomi | Soat | Kredit | Auditoriya"
+        " | Ma'ruza | Amaliyot | Laboratoriya | Seminar | Kurs ishi |" + sem_sarlavha
     )
-    separator = (
-        "|---|------|------|-------|---------|-----------|---------|"
-        "----------|-----|---------|-------------|" + sem_sep
+    ajratgich = (
+        "|---|-----|------|------|--------|------------|"
+        "---------|----------|--------------|---------|-----------|" + sem_ajratgich
     )
-    return header, separator
+    return sarlavha, ajratgich
 
 
 def _tanlov_qatorlari(
-    selective_slots: list[SelectiveSlot],
-    active_semesters: list[int],
-    header: str,
-    separator: str,
+    tanlov_fanlar: list[TanlovFani],
+    faol_semestrlar: list[int],
+    sarlavha: str,
+    ajratgich: str,
 ) -> list[str]:
-    lines = ["", "## Tanlov Fanlar (Selective Courses)", "", header, separator]
-    empty_sem = "".join("  |  |" for _ in active_semesters)
-    for slot in selective_slots:
-        first = slot.alternatives[0] if slot.alternatives else None
-        cells = [
-            slot.num,
-            first.code if first else "",
-            first.name if first else "",
-            fmt_num(slot.hours),
-            fmt_num(slot.derived_credits),
-            *breakdown_cells(first),
+    qatorlar = ["", "## Tanlov Fanlar", "", sarlavha, ajratgich]
+    bosh_semestr = "".join("  |  |" for _ in faol_semestrlar)
+    for blok in tanlov_fanlar:
+        birinchi = blok.variantlar[0] if blok.variantlar else None
+        kataklar = [
+            blok.raqam,
+            birinchi.kod if birinchi else "",
+            birinchi.nom if birinchi else "",
+            sonni_matnga(blok.soat),
+            sonni_matnga(blok.kredit),
+            *soat_kataklari(birinchi),
         ]
-        lines.append(md_row(cells, _sem_cells(slot, active_semesters)))
-        for alt in slot.alternatives[1:]:
-            alt_cells = ["", alt.code, alt.name, "", "", *breakdown_cells(alt)]
-            lines.append(md_row(alt_cells, empty_sem))
-    return lines
+        qatorlar.append(md_qator(kataklar, _semestr_kataklari(blok, faol_semestrlar)))
+        for variant in blok.variantlar[1:]:
+            var_kataklari = [
+                "",
+                variant.kod,
+                variant.nom,
+                "",
+                "",
+                *soat_kataklari(variant),
+            ]
+            qatorlar.append(md_qator(var_kataklari, bosh_semestr))
+    return qatorlar
 
 
 def _majburiy_qatorlar(
-    core_courses: list[Course],
-    active_semesters: list[int],
-    header: str,
-    separator: str,
+    majburiy_fanlar: list[MajburiyFan],
+    faol_semestrlar: list[int],
+    sarlavha: str,
+    ajratgich: str,
 ) -> list[str]:
-    lines = ["## Majburiy Fanlar (Core Courses)", "", header, separator]
-    for course in core_courses:
-        cells = [
-            course.num,
-            course.code,
-            course.name,
-            fmt_num(course.hours),
-            fmt_num(course.derived_credits),
-            *breakdown_cells(course),
+    qatorlar = ["## Majburiy Fanlar", "", sarlavha, ajratgich]
+    for fan in majburiy_fanlar:
+        kataklar = [
+            fan.raqam,
+            fan.kod,
+            fan.nom,
+            sonni_matnga(fan.soat),
+            sonni_matnga(fan.kredit),
+            *soat_kataklari(fan),
         ]
-        lines.append(md_row(cells, _sem_cells(course, active_semesters)))
-    return lines
+        qatorlar.append(md_qator(kataklar, _semestr_kataklari(fan, faol_semestrlar)))
+    return qatorlar
 
 
-def build_markdown(
-    title: str,
-    start_year: str,
-    degree: str,
-    duration: str,
-    edu_type: str,
-    core_courses: list[Course],
-    selective_slots: list[SelectiveSlot] | None = None,
+def markdown_yarat(
+    sarlavha_nomi: str,
+    boshlanish_yili: str,
+    daraja: str,
+    muddat: str,
+    talim_shakli: str,
+    majburiy_fanlar: list[MajburiyFan],
+    tanlov_fanlar: list[TanlovFani] | None = None,
 ) -> str:
-    """Render parsed curriculum data into a Markdown document."""
-    all_items = list(core_courses) + list(selective_slots or [])
-    active_semesters = sorted(
-        {sem for item in all_items for sem in item.semester_credits}
-        | {sem for item in all_items for sem in item.semester_weekly_hours}
+    """O'qilgan o'quv reja ma'lumotlaridan chiroyli Markdown hujjat yasaydi."""
+    barcha_fanlar = list(majburiy_fanlar) + list(tanlov_fanlar or [])
+    faol_semestrlar = sorted(
+        {sem for item in barcha_fanlar for sem in item.semestr_kreditlari}
+        | {sem for item in barcha_fanlar for sem in item.semestr_haftalik_soatlar}
     )
 
-    lines = [f"# Oquv Reja: {title}", ""]
+    qatorlar = [f"# Oquv Reja: {sarlavha_nomi}", ""]
     for yorliq, qiymat in (
-        ("Akademik daraja", degree),
-        ("O'qish muddati", duration),
-        ("Ta'lim shakli", edu_type),
+        ("Akademik daraja", daraja),
+        ("O'qish muddati", muddat),
+        ("Ta'lim shakli", talim_shakli),
     ):
         if qiymat:
-            lines.append(f"**{yorliq}:** {qiymat}")
-    if degree or duration or edu_type:
-        lines.append("")
+            qatorlar.append(f"**{yorliq}:** {qiymat}")
+    if daraja or muddat or talim_shakli:
+        qatorlar.append("")
 
-    header, separator = _jadval_sarlavhasi(active_semesters)
-    lines.extend(_majburiy_qatorlar(core_courses, active_semesters, header, separator))
-    if selective_slots:
-        lines.extend(
-            _tanlov_qatorlari(selective_slots, active_semesters, header, separator)
+    sarlavha, ajratgich = _jadval_sarlavhasi(faol_semestrlar)
+    qatorlar.extend(
+        _majburiy_qatorlar(majburiy_fanlar, faol_semestrlar, sarlavha, ajratgich)
+    )
+    if tanlov_fanlar:
+        qatorlar.extend(
+            _tanlov_qatorlari(tanlov_fanlar, faol_semestrlar, sarlavha, ajratgich)
         )
-    lines.append("")
-    if start_year:
-        lines.extend(["---", f"**O'quv yili:** {start_year}", ""])
-    return "\n".join(lines)
+    qatorlar.append("")
+    if boshlanish_yili:
+        qatorlar.extend(["---", f"**O'quv yili:** {boshlanish_yili}", ""])
+    return "\n".join(qatorlar)

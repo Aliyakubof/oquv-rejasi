@@ -1,4 +1,4 @@
-"""Builds the docxtpl render context for one FanVariant's o'quv dastur."""
+"""Bitta FanVariant o'quv dasturi uchun docxtpl shablon ma'lumotlarini yig'adi."""
 
 from django.utils import timezone
 
@@ -8,8 +8,8 @@ from plans.models import FanSemestr, FanVariant
 
 BLANK = "_____"
 
-# No model field records the language of instruction or the city; every
-# curriculum the platform handles is taught in Uzbek from Namangan.
+# Bazada ta'lim tili yoki shahar alohida maydonda saqlanmaydi; tizimdagi
+# barcha dasturlar Namangan shahrida, o'zbek tilida o'tiladi.
 TALIM_TILI = "O‘zbek"
 SHAHAR = "Namangan"
 
@@ -79,8 +79,7 @@ def dastur_kontekst(variant: FanVariant) -> dict[str, object]:
 
 
 def _kod_bilan(kodi: str, matn: str) -> str:
-    """Official documents join a classifier code to its name with a spaced
-    en-dash — used for both the soha/yonalish lines and the plan number."""
+    """Rasmiy hujjatlarda kod va nom orasiga bo'shliqli tire qo'yiladi."""
     return f"{kodi} – {matn}" if kodi else matn
 
 

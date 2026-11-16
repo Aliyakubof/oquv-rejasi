@@ -1,7 +1,7 @@
-"""Read-only aggregation feeding the office and kafedra dashboards.
+"""Ofis va kafedra dashboardlari uchun faqat o'qishli yig'ma ma'lumotlar.
 
-Past academic years are never offered: the UI's year selector is built only
-from tanlanadigan_yillar(), which floors at the current academic year.
+O'tgan o'quv yillari taklif etilmaydi: UI yil tanlovi faqat tanlanadigan_yillar()
+orqali tuziladi va joriy o'quv yilidan pastga tushmaydi.
 """
 
 from collections import defaultdict
@@ -37,15 +37,15 @@ def joriy_akademik_yil(bugun: date | None = None) -> int:
 
 
 def tanlanadigan_yillar() -> list[int]:
-    """Academic years offered in the UI: current and future only.
+    """UI da ko'rinadigan o'quv yillari: faqat joriy va kelgusi yillar.
 
-    Built over ALL FanSemestr rows (not just effektiv) so a year containing
-    only unselected tanlov slots still appears.
+    Faqat effektiv emas, BARCHA FanSemestr qatorlaridan yig'iladi — hali tanlov
+    fani tanlanmagan yil ham ro'yxatda ko'rinib turishi uchun.
     """
     joriy = joriy_akademik_yil()
     yillar = (
         FanSemestr.objects.akademik_yil_bilan()
-        # Model ordering leaks semestr into SELECT DISTINCT; clear it.
+        # Model ordering SELECT DISTINCT ga semestrni qo'shib qo'yadi; tozalaymiz.
         .order_by()
         .values_list("akademik_yili", flat=True)
         .distinct()
@@ -54,7 +54,7 @@ def tanlanadigan_yillar() -> list[int]:
 
 
 def yilni_tanlash(sorov_yil: str | None) -> tuple[list[int], int | None]:
-    """Validate the requested year against the offered (non-past) list."""
+    """So'ralgan yilni mavjud (o'tib ketmagan) yillar ro'yxatidan tekshiradi."""
     yillar = tanlanadigan_yillar()
     if not yillar:
         return [], None
@@ -71,7 +71,7 @@ def yilni_tanlash(sorov_yil: str | None) -> tuple[list[int], int | None]:
 
 @dataclass(frozen=True)
 class DashboardStat:
-    """KPI card values computed from one list of TalabSatri rows."""
+    """Bitta TalabSatri ro'yxatidan hisoblangan KPI kartochka qiymatlari."""
 
     jami_soat: int
     tur_soatlari: dict[str, int]
@@ -125,7 +125,7 @@ def jami_talabalar(akademik_yil: int) -> int:
 
 @dataclass(frozen=True)
 class FanSatri:
-    """One dashboard course row: a fan's in-year demand and allocation."""
+    """Dashboarddagi bitta fan qatori: yillik soat talabi va taqsimoti."""
 
     fan: Fan
     fan_semestrlar: list[FanSemestr]
@@ -144,7 +144,7 @@ class FanSatri:
 
     @property
     def variant(self) -> "FanVariant":
-        """Selected variant, or the representative one for unselected tanlov."""
+        """Tanlangan variant, yoki hali tanlanmagan blokning vakil varianti."""
         if not self.tanlanmagan and self.fan_semestrlar:
             return self.fan_semestrlar[0].variant
         if self.fan.tanlangan_variant_id is not None:
@@ -155,11 +155,10 @@ class FanSatri:
 def ofis_fan_satrlari(
     akademik_yil: int, *, fan_id: int | None = None
 ) -> list[FanSatri]:
-    """Course rows for the office dashboard, unallocated ones flagged.
+    """Ofis dashboardi uchun fan qatorlari (kafedraga berilmaganlar belgilanadi).
 
-    Unselected tanlov slots are included with their first variant's semesters
-    as representative demand — alternatives share the slot's semester
-    distribution by importer design.
+    Hali tanlanmagan tanlov bloklari birinchi variant semestri bilan qo'shiladi —
+    importer qoidasiga ko'ra blok variantlari bir xil semestr taqsimotiga ega.
     """
     satrlar = _effektiv_satrlar(akademik_yil, fan_id=fan_id) + _tanlov_satrlari(
         akademik_yil, fan_id=fan_id
@@ -233,7 +232,7 @@ def _tanlov_satrlari(akademik_yil: int, *, fan_id: int | None = None) -> list[Fa
 
 
 def _tur_yigindisi(fslar: list[FanSemestr]) -> dict[str, int | None]:
-    """Sum per-type demand over semesters; None (count missing) is sticky."""
+    """Semestrlar bo'yicha soat talabini jamlaydi; None (son kiritilmagan) saqlanadi."""
     jami: dict[str, int | None] = {}
     for fs in fslar:
         for tur, soat in fan_semestr_talabi(fs, fs.variant.fan.reja).items():
@@ -248,7 +247,7 @@ def _tur_yigindisi(fslar: list[FanSemestr]) -> dict[str, int | None]:
 
 @dataclass(frozen=True)
 class SemestrovkaSatri:
-    """One reja-detail row: a fan's weekly load across every semester."""
+    """Reja tafsilotidagi bitta qator: fanning barcha semestrdagi haftalik yuklamasi."""
 
     fan: Fan
     variant: FanVariant
@@ -265,7 +264,7 @@ class SemestrovkaSatri:
 
 
 def reja_semestrovkasi(reja: OquvReja) -> list[SemestrovkaSatri]:
-    """The semestrovka: per-fan per-semester split rows for one reja."""
+    """Semestrovka: bitta o'quv reja uchun fan va semestr kesimidagi taqsimot."""
     fanlar = reja.fanlar.select_related("tanlangan_variant__kafedra").prefetch_related(
         "tanlangan_variant__semestrlar",
         "variantlar__semestrlar",
@@ -289,7 +288,7 @@ def reja_semestrovkasi(reja: OquvReja) -> list[SemestrovkaSatri]:
 
 @dataclass(frozen=True)
 class OqituvchiYuklamasi:
-    """One teacher's slice of a course-semester, for read-only display."""
+    """Bitta o'qituvchining fan-semestrdagi ulushi — faqat ko'rish uchun."""
 
     oqituvchi: OqituvchiProfil
     tur_matni: str
@@ -298,7 +297,7 @@ class OqituvchiYuklamasi:
 
 @dataclass(frozen=True)
 class SemestrKesimSatri:
-    """One reja-by-semester row: a course as taught in one specific semester."""
+    """Rejaning semestr kesimidagi qatori: fanning bir semestrdagi holati."""
 
     fan: Fan
     variant: FanVariant
@@ -329,7 +328,7 @@ def reja_semestr_kesimi(
     satrlar: list[SemestrovkaSatri] | None = None,
     taqsimot: list[TalabSatri] | None = None,
 ) -> dict[int, list[SemestrKesimSatri]]:
-    """Per-semester course rows for one reja, keyed by semester number."""
+    """Bitta reja uchun semestr raqami bo'yicha guruhlangan fan qatorlari."""
     talablar: dict[int, list[TalabSatri]] = defaultdict(list)
     for satr in taqsimot if taqsimot is not None else taqsimot_hisoboti(reja):
         talablar[satr.fan_semestr.pk].append(satr)
@@ -372,7 +371,7 @@ def _fan_semestr_yuklamalari(
 
 @dataclass(frozen=True)
 class KafedraQamrov:
-    """Per-department coverage: delegated demand vs teacher-assigned hours."""
+    """Kafedra bo'yicha qamrov: biriktirilgan talab va taqsimlangan soat."""
 
     kafedra: Department
     biriktirilgan_soat: int

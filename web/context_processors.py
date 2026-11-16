@@ -1,4 +1,4 @@
-"""Template context shared by every page."""
+"""Har bir sahifa shabloniga uzatiladigan umumiy kontekst."""
 
 from django.conf import settings
 from django.http import HttpRequest
@@ -7,7 +7,7 @@ from plans.models import Bildirishnoma
 
 
 def debug_rejim(request: HttpRequest) -> dict[str, object]:
-    """Expose DEBUG flag and recent notifications for full/boosted page renders."""
+    """To'liq yoki HTMX sahifalar uchun DEBUG holati va so'nggi xabarlarni beradi."""
     user = getattr(request, "user", None)
     qisman_htmx = (
         request.headers.get("HX-Request") == "true"

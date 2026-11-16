@@ -25,7 +25,7 @@ class GuruhInline(admin.TabularInline):
     can_delete = False
 
     def has_add_permission(self, request: HttpRequest, obj: object = None) -> bool:
-        # Groups are synced from guruhlar_soni, not entered by hand.
+        # Guruhlar qo'lda kiritilmaydi, guruhlar_soni dan avtomatik sinxronlanadi.
         return False
 
 
@@ -163,7 +163,7 @@ class FanSemestrInline(admin.TabularInline):
     can_delete = False
 
     def has_add_permission(self, request: HttpRequest, obj: object = None) -> bool:
-        # Materialized by import_reja; edits belong in the source sheet.
+        # import_reja orqali yuklanadi; tahrirlar manba Excel jadvalidan keladi.
         return False
 
 
@@ -237,7 +237,8 @@ class FanSemestrAdmin(admin.ModelAdmin):
 class GuruhAdmin(admin.ModelAdmin):
     list_display = ("nomi", "reja")
     list_filter = ("reja",)
-    # Required for Yuklama.guruh autocomplete.
+    list_select_related = ("reja",)
+    # Yuklama.guruh autocomplete maydoni ishlashi uchun kerak.
     search_fields = ("nomi",)
 
 

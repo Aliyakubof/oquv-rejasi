@@ -1,4 +1,4 @@
-"""URL configuration for oquv_reja project."""
+"""oquv_reja loyihasining asosiy URL yo'nalishlari."""
 
 from django.conf import settings
 from django.conf.urls.static import static

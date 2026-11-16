@@ -1,4 +1,4 @@
-"""O'quv reja screens: list, Excel import, detail (semestrovka), edit and delete."""
+"""O'quv reja sahifalari: ro'yxat, Excel import, semestrovka, tahrir va o'chirish."""
 
 import re
 
@@ -15,22 +15,30 @@ from accounts.models import Department
 from plans import dashboard, services
 from plans.audit import audit_yoz
 from plans.importer import ImportNatija, ImportXato
-from plans.models import AuditAmali, DasturTopshirish, FanTuri, OquvReja, Yuklama
+from plans.models import (
+    AuditAmali,
+    DasturTopshirish,
+    FanSemestr,
+    FanTuri,
+    FanVariant,
+    OquvReja,
+    Yuklama,
+)
 from plans.services import SemestrTahrir, semestrovka_yangilash
 from plans.uploads import fayldan_import_qilish
 from web.forms.reja import RejaImportForm, RejaTahrirForm
-from web.mixins import OfficeAdminTalabMixin, office_admin_talab, xato_matni
+from web.mixins import OfisAdminTalabMixin, ofis_admin_talab, xato_matni
 
 RUXSAT_ETILGAN_TABLAR = frozenset({"jadval", "semestr", "semestrovka"})
 
 
-class RejaListView(OfficeAdminTalabMixin, ListView):
+class RejaListView(OfisAdminTalabMixin, ListView):
     template_name = "web/office/rejalar/list.html"
     context_object_name = "rejalar"
     queryset = OquvReja.objects.order_by("-boshlanish_yili", "yonalish_nomi")
 
 
-class RejaImportView(OfficeAdminTalabMixin, FormView):
+class RejaImportView(OfisAdminTalabMixin, FormView):
     template_name = "web/office/rejalar/yangi.html"
     form_class = RejaImportForm
 
@@ -67,7 +75,7 @@ class RejaImportView(OfficeAdminTalabMixin, FormView):
             messages.warning(self.request, ogohlantirish)
 
 
-class RejaDetailView(OfficeAdminTalabMixin, DetailView):
+class RejaDetailView(OfisAdminTalabMixin, DetailView):
     template_name = "web/office/rejalar/detail.html"
     context_object_name = "reja"
     queryset = OquvReja.objects.prefetch_related("guruhlar")
@@ -111,15 +119,44 @@ class RejaDetailView(OfficeAdminTalabMixin, DetailView):
         return context
 
 
-class RejaTahrirView(OfficeAdminTalabMixin, UpdateView):
+class RejaTahrirView(OfisAdminTalabMixin, UpdateView):
     template_name = "web/office/rejalar/tahrir.html"
     form_class = RejaTahrirForm
     queryset = OquvReja.objects.all()
     context_object_name = "reja"
 
+    def _reja_qulflarini_olish(self, pk: int) -> OquvReja:
+        kaf_idlar = sorted(
+            set(
+                FanVariant.objects.filter(
+                    fan__reja_id=pk, kafedra_id__isnull=False
+                ).values_list("kafedra_id", flat=True)
+            )
+        )
+        if kaf_idlar:
+            list(
+                Department.objects.select_for_update()
+                .filter(pk__in=kaf_idlar)
+                .order_by("pk")
+            )
+        reja = get_object_or_404(OquvReja.objects.select_for_update(), pk=pk)
+        list(FanSemestr.objects.reja_uchun(reja).select_for_update().order_by("pk"))
+        list(reja.guruhlar.select_for_update().order_by("pk"))
+        return reja
+
+    def post(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponse:
+        with transaction.atomic():
+            self.object = self._reja_qulflarini_olish(int(self.kwargs["pk"]))
+            form = self.get_form()
+            if form.is_valid():
+                return self.form_valid(form)
+            return self.form_invalid(form)
+
     def form_valid(self, form: RejaTahrirForm) -> HttpResponse:
         with transaction.atomic():
-            OquvReja.objects.select_for_update().filter(pk=self.object.pk).first()
+            self._reja_qulflarini_olish(self.object.pk)
             javob = super().form_valid(form)
             services.guruhlarni_sinxronlash(self.object)
             audit_yoz(
@@ -136,7 +173,7 @@ class RejaTahrirView(OfficeAdminTalabMixin, UpdateView):
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def reja_ochirish(request: HttpRequest, pk: int) -> HttpResponse:
     with transaction.atomic():
         reja = get_object_or_404(OquvReja.objects.select_for_update(), pk=pk)
@@ -191,7 +228,7 @@ def _musbat_int(qiymat: str | None) -> int:
 
 
 def _tahrirlarni_oqish(post: object) -> list[SemestrTahrir]:
-    """Collect one SemestrTahrir per fs-<pk>-* input group in the POST body."""
+    """POST tanasidagi fs-<pk>-* maydonlaridan har biri uchun SemestrTahrir yig'adi."""
     pklar: dict[int, None] = {}
     for kalit in post:
         mos = _FS_MAYDON.match(kalit)
@@ -211,7 +248,7 @@ def _tahrirlarni_oqish(post: object) -> list[SemestrTahrir]:
 
 
 @require_POST
-@office_admin_talab
+@ofis_admin_talab
 def semestrovka_saqlash(request: HttpRequest, pk: int) -> HttpResponse:
     reja = get_object_or_404(OquvReja, pk=pk)
     try:

@@ -1,4 +1,4 @@
-"""Plain builder functions for test data; no factory library needed."""
+"""Test ma'lumotlarini yasovchi oddiy yordamchilar (ortiqcha kutubxonasiz)."""
 
 from itertools import count
 
@@ -16,7 +16,7 @@ from plans.models import (
 _telefon_raqami = count(1)
 
 
-def make_reja(**kwargs: object) -> OquvReja:
+def reja_yasa(**kwargs: object) -> OquvReja:
     maydonlar: dict[str, object] = {
         "bilim_sohasi_kodi": "6",
         "bilim_sohasi_nomi": "Test bilim sohasi",
@@ -34,7 +34,7 @@ def make_reja(**kwargs: object) -> OquvReja:
     return OquvReja.objects.create(**maydonlar)
 
 
-def make_yonalish(**kwargs: object) -> TalimYonalishi:
+def yonalish_yasa(**kwargs: object) -> TalimYonalishi:
     maydonlar: dict[str, object] = {
         "kodi": "60610100",
         "nomi": "Dasturiy injiniring",
@@ -47,23 +47,23 @@ def make_yonalish(**kwargs: object) -> TalimYonalishi:
     return TalimYonalishi.objects.create(**maydonlar)
 
 
-def make_fan(
+def fan_yasa(
     reja: OquvReja,
     raqam: str = "1.01",
     turi: str = FanTuri.MAJBURIY,
     jami_soat: int | None = 120,
     **variant_kwargs: object,
 ) -> Fan:
-    """Create a Fan with one variant; auto-select it for MAJBURIY."""
+    """Bitta variantli Fan yasaydi; MAJBURIY bo'lsa uni avtomatik tanlaydi."""
     fan = Fan.objects.create(reja=reja, raqam=raqam, turi=turi, jami_soat=jami_soat)
-    variant = make_variant(fan, **variant_kwargs)
+    variant = variant_yasa(fan, **variant_kwargs)
     if turi == FanTuri.MAJBURIY:
         fan.tanlangan_variant = variant
         fan.save(update_fields=["tanlangan_variant"])
     return fan
 
 
-def make_variant(fan: Fan, **kwargs: object) -> FanVariant:
+def variant_yasa(fan: Fan, **kwargs: object) -> FanVariant:
     maydonlar: dict[str, object] = {
         "kodi": f"K{fan.raqam}-{fan.variantlar.count() + 1}",
         "nomi": "Dasturlashga kirish",
@@ -76,7 +76,7 @@ def make_variant(fan: Fan, **kwargs: object) -> FanVariant:
     return FanVariant.objects.create(fan=fan, **maydonlar)
 
 
-def make_fan_semestr(
+def fan_semestr_yasa(
     variant: FanVariant, semestr: int = 1, **kwargs: object
 ) -> FanSemestr:
     maydonlar: dict[str, object] = {
@@ -90,13 +90,13 @@ def make_fan_semestr(
     return FanSemestr.objects.create(variant=variant, semestr=semestr, **maydonlar)
 
 
-def make_guruh(reja: OquvReja, raqam: int = 1) -> Guruh:
+def guruh_yasa(reja: OquvReja, raqam: int = 1) -> Guruh:
     return Guruh.objects.create(
         reja=reja, raqam=raqam, nomi=f"DI-{reja.boshlanish_yili}-{raqam}"
     )
 
 
-def make_oqituvchi(
+def oqituvchi_yasa(
     kafedra: Department | None = None, min_soat: int = 600
 ) -> OqituvchiProfil:
     n = next(_telefon_raqami)

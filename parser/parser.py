@@ -6,32 +6,31 @@ from pathlib import Path
 from zipfile import BadZipFile
 
 import openpyxl
+from lxml.etree import XMLSyntaxError
 from openpyxl.cell.cell import Cell
 from openpyxl.utils.exceptions import InvalidFileException
 from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
 from parser.models import (
-    Alternative,
-    ColumnLayout,
-    Course,
-    ParseError,
-    ParseResult,
-    SelectiveSlot,
+    MajburiyFan,
+    TahlilNatijasi,
+    TahlilXatosi,
+    TanlovFani,
+    TanlovVarianti,
+    UstunJoyi,
 )
 
-COURSE_NUM_RE = re.compile(r"^\d+\.\d+(\.\d+)?$")
-SECTION_MARKER_RE = re.compile(r"^(\d+)(?:\.0+)?\.?$")
-CODE_RE = re.compile(r"\d{6,9}")
-SEP_AFTER_CODE_RE = re.compile(r"^[\s:\-–—]+")
-DURATION_RE = re.compile(r"(\d+(?:\.\d+)?)\s*yil")
-START_YEAR_RE = re.compile(r"(\d{4})\s*[-/–]\s*\d{4}")
-APOSTROPHE_RE = re.compile(r"['\u2018\u2019\u02bb`]")
-# Ministry staff occasionally type a header on a Russian keyboard layout,
-# leaving a visually-identical Cyrillic letter where a Latin one was meant
-# (e.g. "\u041areditlar" with a Cyrillic \u041a) \u2014 invisible to the eye, fatal to a
-# substring search. Map the common look-alikes to their Latin equivalent.
-CYRILLIC_LOOKALIKES = str.maketrans(
+FAN_RAQAMI_RE = re.compile(r"^\d+\.\d+(\.\d+)?$")
+BOLIM_BELGISI_RE = re.compile(r"^(\d+)(?:\.0+)?\.?$")
+KOD_RE = re.compile(r"\d{6,9}")
+AJRATUVCHI_RE = re.compile(r"^[\s:\-–—]+")
+MUDDAT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*yil")
+BOSHLANISH_YILI_RE = re.compile(r"(\d{4})\s*[-/–]\s*\d{4}")
+TUTUQ_RE = re.compile(r"['\u2018\u2019\u02bb`]")
+# Vazirlik xodimlari ba'zan sarlavhani ruscha klaviaturada yozib yuboradi —
+# bir xil ko'ringan kirill harflarni qidiruvdan oldin lotinchaga o'giramiz.
+KIRILL_OXSHASHLAR = str.maketrans(
     {
         "\u0410": "A",
         "\u0412": "B",
@@ -55,7 +54,7 @@ CYRILLIC_LOOKALIKES = str.maketrans(
     }
 )
 
-EDU_TYPE_CANONICAL = {
+TALIM_SHAKLI_XARITASI = {
     "kunduzgi": "Kunduzgi",
     "kechki": "Kechki",
     "kechgi": "Kechki",
@@ -63,972 +62,1024 @@ EDU_TYPE_CANONICAL = {
     "sirtki": "Sirtqi",
 }
 
-WEEKLY_GROUP_LABELS = ("haftalar soni", "kurslardagi haftalar")
-CREDIT_GROUP_LABELS = ("kredit",)
-SKIP_ROW_LABELS = (
+HAFTALIK_SARLAVHA_BELGILARI = ("haftalar soni", "kurslardagi haftalar")
+KREDIT_SARLAVHA_BELGILARI = ("kredit",)
+OTKAZILADIGAN_QATORLAR = (
     "malakaviy amaliyot",
     "malaka amaliyot",
     "yakuniy davlat attestatsiyasi",
     "hammasi",
 )
-BREAKDOWN_FIELDS = ("classroom", "lecture", "practice", "lab", "seminar", "course_proj")
+SOAT_MAYDONLARI = (
+    "auditoriya",
+    "maruza",
+    "amaliyot",
+    "laboratoriya",
+    "seminar",
+    "kurs_ishi",
+)
 
-_UNPARSEABLE = object()
+_OQILMAYDI = object()
 
 
-def is_course_number(value: object) -> bool:
-    if value is None:
+def fan_raqamimi(qiymat: object) -> bool:
+    if qiymat is None:
         return False
-    return bool(COURSE_NUM_RE.match(str(value).strip()))
+    return bool(FAN_RAQAMI_RE.match(str(qiymat).strip()))
 
 
-def section_prefix(course_num: object) -> str:
-    return str(course_num).strip().split(".")[0]
+def bolim_boshi(fan_raqami: object) -> str:
+    return str(fan_raqami).strip().split(".")[0]
 
 
-def _normalize_text(value: str) -> str:
-    """Casefold, collapse the apostrophe family to a single character, and
-    map stray Cyrillic look-alike letters to Latin, so matching is stable
-    across the glyph variants and keyboard-layout slips seen in `sources/`."""
-    value = APOSTROPHE_RE.sub("'", value).translate(CYRILLIC_LOOKALIKES)
-    return value.casefold()
+def _matnni_normallashtir(qiymat: str) -> str:
+    """Harflarni kichraytiradi, barcha tutuq variantlarini bir xil qiladi va
+    adashib kirib qolgan kirill harflarni lotinchaga almashtiradi."""
+    qiymat = TUTUQ_RE.sub("'", qiymat).translate(KIRILL_OXSHASHLAR)
+    return qiymat.casefold()
 
 
-def _normalize_edu_type(raw: str) -> str | None:
-    """Match a ta'lim shakli value to its canonical form (Kunduzgi/Kechki/
-    Sirtqi) by substring containment, so trailing text like '(4 yil)' doesn't
-    block the match. Returns None when nothing matches."""
-    norm = _normalize_text(raw).strip()
-    for needle, canonical in EDU_TYPE_CANONICAL.items():
-        if needle in norm:
-            return canonical
+def _talim_shaklini_tekisla(xom: str) -> str | None:
+    """Ta'lim shakli matnini Kunduzgi/Kechki/Sirtqi ko'rinishiga keltiradi."""
+    norm = _matnni_normallashtir(xom).strip()
+    for kalit, standart in TALIM_SHAKLI_XARITASI.items():
+        if kalit in norm:
+            return standart
     return None
 
 
-def _normalize_section_marker(value: object) -> str | None:
-    """Normalize a section-marker cell ('1.00', '1,0', '1.00.', ...) to its
-    bare section digit string, or None if the cell isn't a marker at all."""
-    if value is None:
+def _bolim_belgisini_ol(qiymat: object) -> str | None:
+    """'1.00', '1,0', '1.00.' kabi bo'lim raqamini oddiy '1' ko'rinishiga keltiradi."""
+    if qiymat is None:
         return None
-    text = str(value).strip().replace(",", ".")
-    match = SECTION_MARKER_RE.match(text)
-    return match.group(1) if match else None
+    matn = str(qiymat).strip().replace(",", ".")
+    mos = BOLIM_BELGISI_RE.match(matn)
+    return mos.group(1) if mos else None
 
 
-def find_cell_containing(ws: Worksheet, substring: str) -> Cell | None:
-    needle = _normalize_text(substring)
-    for row in ws.iter_rows(max_row=15):
-        for cell in row:
-            if isinstance(cell.value, str) and needle in _normalize_text(cell.value):
-                return cell
+def katakni_matn_bilan_top(varaq: Worksheet, qism: str) -> Cell | None:
+    qidiruv = _matnni_normallashtir(qism)
+    for qator in varaq.iter_rows(max_row=15):
+        for katak in qator:
+            if isinstance(katak.value, str) and qidiruv in _matnni_normallashtir(
+                katak.value
+            ):
+                return katak
     return None
 
 
-def value_after_dash(raw: str) -> str:
-    parts = re.split(r"\s*[-–—:]\s*", raw, maxsplit=1)
-    return parts[1].strip() if len(parts) > 1 else raw.strip()
+def chiziqdan_keyin(xom: str) -> str:
+    qismlar = re.split(r"\s*[-–—:]\s*", xom, maxsplit=1)
+    return qismlar[1].strip() if len(qismlar) > 1 else xom.strip()
 
 
-def _extract_code_name(raw: str) -> tuple[str, str] | None:
-    """Find a 6-9 digit direction code in `raw` and the name text after it."""
-    match = CODE_RE.search(raw)
-    if match is None:
+def _kod_va_nomni_ajrat(xom: str) -> tuple[str, str] | None:
+    """Matn ichidan 6-9 xonali yo'nalish kodini va undan keyingi nomni oladi."""
+    mos = KOD_RE.search(xom)
+    if mos is None:
         return None
-    code = match.group()
-    name = SEP_AFTER_CODE_RE.sub("", raw[match.end() :]).strip()
-    return code, name
+    kod = mos.group()
+    nom = AJRATUVCHI_RE.sub("", xom[mos.end() :]).strip()
+    return kod, nom
 
 
-def resolve_direction(ws: Worksheet, warnings: list[str]) -> tuple[str, str] | None:
-    """Find and parse the program-direction cell into (code, name).
-
-    Returns None when no direction cell is present at all (caller falls back
-    to the filename). The code/name pair may appear in the label cell itself,
-    the cell to its right, or the cell below it — try each in turn and use
-    the first that yields a plausible code.
-    """
-    cell = find_cell_containing(ws, "nalishi")
-    if cell is None:
+def yonalishni_top(
+    varaq: Worksheet, ogohlantirishlar: list[str]
+) -> tuple[str, str] | None:
+    """Yo'nalish kodi va nomini yorliq katakdan, o'ngidan yoki pastidan topadi."""
+    katak = katakni_matn_bilan_top(varaq, "nalishi")
+    if katak is None:
         return None
-    candidates = [
-        cell.value,
-        ws.cell(row=cell.row, column=cell.column + 1).value,
-        ws.cell(row=cell.row + 1, column=cell.column).value,
+    nomzodlar = [
+        katak.value,
+        varaq.cell(row=katak.row, column=katak.column + 1).value,
+        varaq.cell(row=katak.row + 1, column=katak.column).value,
     ]
-    for raw in candidates:
-        if not isinstance(raw, str):
+    for xom in nomzodlar:
+        if not isinstance(xom, str):
             continue
-        extracted = _extract_code_name(raw)
-        if extracted is not None:
-            return extracted
-    warnings.append(f"yo'nalishi kodi topilmadi: {cell.value!r}")
-    return "", value_after_dash(str(cell.value or ""))
+        ajratilgan = _kod_va_nomni_ajrat(xom)
+        if ajratilgan is not None:
+            return ajratilgan
+    ogohlantirishlar.append(f"yo'nalishi kodi topilmadi: {katak.value!r}")
+    return "", chiziqdan_keyin(str(katak.value or ""))
 
 
-def to_pascal_case(name: str) -> str:
-    return "".join(re.sub(r"[^a-zA-Z0-9]", "", w).capitalize() for w in name.split())
+def pascal_korinishiga(nom: str) -> str:
+    return "".join(re.sub(r"[^a-zA-Z0-9]", "", s).capitalize() for s in nom.split())
 
 
-def extract_start_year(raw: str) -> str:
-    match = START_YEAR_RE.search(raw)
-    return match.group(1) if match else ""
+def boshlanish_yilini_ol(xom: str) -> str:
+    mos = BOSHLANISH_YILI_RE.search(xom)
+    return mos.group(1) if mos else ""
 
 
-def read_metadata(ws: Worksheet, warnings: list[str]) -> tuple[str, str, str]:
-    """Return (degree, duration, edu_type) from the metadata region, each the
-    text after the label's separator or '' when its cell is absent."""
-    degree_cell = find_cell_containing(ws, "Akademik daraja")
-    duration_cell = find_cell_containing(ws, "muddati")
-    edu_type_cell = find_cell_containing(ws, "ta'lim shakli")
-    degree = value_after_dash(degree_cell.value) if degree_cell else ""
-    duration = value_after_dash(duration_cell.value) if duration_cell else ""
-    if not degree:
-        warnings.append("akademik daraja topilmadi")
-    if edu_type_cell is None:
-        warnings.append("ta'lim shakli topilmadi")
-        return degree, duration, ""
-    raw_edu_type = value_after_dash(edu_type_cell.value)
-    edu_type = _normalize_edu_type(raw_edu_type)
-    if edu_type is None:
-        warnings.append(f"ta'lim shakli tanilmadi: {raw_edu_type!r}")
-        return degree, duration, ""
-    return degree, duration, edu_type
+def metamalumni_oqi(
+    varaq: Worksheet, ogohlantirishlar: list[str]
+) -> tuple[str, str, str]:
+    """Varaq tepasidan akademik daraja, o'qish muddati va ta'lim shaklini o'qiydi."""
+    daraja_katak = katakni_matn_bilan_top(varaq, "Akademik daraja")
+    muddat_katak = katakni_matn_bilan_top(varaq, "muddati")
+    shakl_katak = katakni_matn_bilan_top(varaq, "ta'lim shakli")
+    daraja = chiziqdan_keyin(daraja_katak.value) if daraja_katak else ""
+    muddat = chiziqdan_keyin(muddat_katak.value) if muddat_katak else ""
+    if not daraja:
+        ogohlantirishlar.append("akademik daraja topilmadi")
+    if shakl_katak is None:
+        ogohlantirishlar.append("ta'lim shakli topilmadi")
+        return daraja, muddat, ""
+    xom_shakl = chiziqdan_keyin(shakl_katak.value)
+    talim_shakli = _talim_shaklini_tekisla(xom_shakl)
+    if talim_shakli is None:
+        ogohlantirishlar.append(f"ta'lim shakli tanilmadi: {xom_shakl!r}")
+        return daraja, muddat, ""
+    return daraja, muddat, talim_shakli
 
 
-def find_header_col(
-    ws: Worksheet, keyword: str, max_row: int, min_row: int = 1
+def sarlavha_ustunini_top(
+    varaq: Worksheet, kalit_soz: str, oxirgi_qator: int, bosh_qator: int = 1
 ) -> int | None:
-    """Return 0-based column index of first header cell containing keyword, or None."""
-    needle = _normalize_text(keyword)
-    for row in ws.iter_rows(min_row=min_row, max_row=max_row):
-        for cell in row:
-            if isinstance(cell.value, str) and needle in _normalize_text(cell.value):
-                return cell.column - 1
+    """Kalit so'z uchragan birinchi sarlavha ustunining 0-based indeksini qaytaradi."""
+    qidiruv = _matnni_normallashtir(kalit_soz)
+    for qator in varaq.iter_rows(min_row=bosh_qator, max_row=oxirgi_qator):
+        for katak in qator:
+            if isinstance(katak.value, str) and qidiruv in _matnni_normallashtir(
+                katak.value
+            ):
+                return katak.column - 1
     return None
 
 
-def extract_program_years(ws: Worksheet) -> float:
-    """Return program duration in years (e.g. 3, or 4.5 for a 9-semester
-    program). Structural: the credit-column window is derived from it."""
-    cell = find_cell_containing(ws, "muddati")
-    if cell is None:
-        raise ParseError("o'qish muddati topilmadi")
-    text = str(cell.value or "").replace(",", ".")
-    match = DURATION_RE.search(text)
-    if match is None:
-        raise ParseError(f"o'qish muddati aniqlanmadi: {cell.value!r}")
-    years = float(match.group(1))
-    if not math.isfinite(years) or years <= 0:
-        raise ParseError(f"o'qish muddati noto'g'ri: {cell.value!r}")
-    return years
+def dastur_muddatini_ol(varaq: Worksheet) -> float:
+    """O'qish muddatini yil hisobida (masalan 4 yoki 4.5) qaytaradi."""
+    katak = katakni_matn_bilan_top(varaq, "muddati")
+    if katak is None:
+        raise TahlilXatosi("o'qish muddati topilmadi")
+    matn = str(katak.value or "").replace(",", ".")
+    mos = MUDDAT_RE.search(matn)
+    if mos is None:
+        raise TahlilXatosi(f"o'qish muddati aniqlanmadi: {katak.value!r}")
+    yillar = float(mos.group(1))
+    if not math.isfinite(yillar) or yillar <= 0:
+        raise TahlilXatosi(f"o'qish muddati noto'g'ri: {katak.value!r}")
+    return yillar
 
 
-def _find_anchor(ws: Worksheet, warnings: list[str]) -> tuple[int, int]:
-    """Locate the '1.00' section-marker cell. Returns (0-based num_col,
-    1-based row). Raises ParseError when no candidate is found; when several
-    numeric '1'-like cells exist (e.g. inside the academic-calendar zone),
-    prefers the one whose row also contains 'majburiy'."""
-    matches = []
-    for row in ws.iter_rows():
-        for cell in row:
-            if _normalize_section_marker(cell.value) == "1":
-                matches.append((cell.column - 1, cell.row))
-    if not matches:
-        raise ParseError("'1.00' bo'lim belgisi topilmadi")
+def _langar_katakni_top(
+    varaq: Worksheet, ogohlantirishlar: list[str]
+) -> tuple[int, int]:
+    """'1.00' bo'lim katagini topadi; bir nechta bo'lsa 'majburiy' yozuvlisini oladi."""
+    moslar = []
+    for qator in varaq.iter_rows():
+        for katak in qator:
+            if _bolim_belgisini_ol(katak.value) == "1":
+                moslar.append((katak.column - 1, katak.row))
+    if not moslar:
+        raise TahlilXatosi("'1.00' bo'lim belgisi topilmadi")
 
-    for col, row_num in matches:
-        row_values = next(
-            ws.iter_rows(min_row=row_num, max_row=row_num, values_only=True),
+    for ustun, qator_raqami in moslar:
+        qator_qiymatlari = next(
+            varaq.iter_rows(
+                min_row=qator_raqami, max_row=qator_raqami, values_only=True
+            ),
             (),
         )
         if any(
-            isinstance(v, str) and "majburiy" in _normalize_text(v) for v in row_values
+            isinstance(q, str) and "majburiy" in _matnni_normallashtir(q)
+            for q in qator_qiymatlari
         ):
-            return col, row_num
-    warnings.append(
+            return ustun, qator_raqami
+    ogohlantirishlar.append(
         "'1.00' bo'lim belgisi 'majburiy' yorlig'isiz topildi;"
         " birinchi mos katakka tayanildi"
     )
-    return matches[0]
+    return moslar[0]
 
 
-def _to_float(value: object) -> float | None:
-    """Coerce an Excel cell value to finite float, or None if absent/invalid.
-    Normalizes comma decimals and stray spaces/NBSP before parsing."""
-    if value is None or isinstance(value, bool):
+def _floatga(qiymat: object) -> float | None:
+    """Katak qiymatini float ga o'giradi; bo'sh yoki yaroqsiz bo'lsa None beradi."""
+    if qiymat is None or isinstance(qiymat, bool):
         return None
-    if isinstance(value, str):
-        value = value.replace("\xa0", "").replace(" ", "").replace(",", ".")
-        if value == "":
+    if isinstance(qiymat, str):
+        qiymat = qiymat.replace("\xa0", "").replace(" ", "").replace(",", ".")
+        if qiymat == "":
             return None
-    elif not isinstance(value, (int, float)):
+    elif not isinstance(qiymat, (int, float)):
         return None
     try:
-        parsed = float(value)
+        son = float(qiymat)
     except (ValueError, TypeError):
         return None
-    return parsed if math.isfinite(parsed) else None
+    return son if math.isfinite(son) else None
 
 
-def _to_int(value: object) -> int | None:
-    val = _to_float(value)
-    return None if val is None else int(val)
-
-
-def _coerce_int_cell(raw: object) -> int | object | None:
-    """Return int, None (truly blank/merged), or _UNPARSEABLE (present but
-    not numeric) — the three-way distinction breakdown_inheriting needs."""
-    if raw is None:
+def _intga(qiymat: object) -> int | None:
+    son = _floatga(qiymat)
+    if son is None or son < 0 or not son.is_integer():
         return None
-    val = _to_int(raw)
-    return val if val is not None else _UNPARSEABLE
+    return int(son)
 
 
-def _cell_int(
-    row: Sequence[object], col: int, default: int | None = None
+def _int_yoki_belgi(xom: object) -> int | object | None:
+    """Katak bo'shmi, sonmi yoki o'qib bo'lmaydigan matnmi — uchalasini ajratadi."""
+    if xom is None:
+        return None
+    son = _intga(xom)
+    return son if son is not None else _OQILMAYDI
+
+
+def _katak_int(
+    qator: Sequence[object], ustun: int, standart: int | None = None
 ) -> int | None:
-    """Read row[col] as int, falling back to default when absent/non-numeric."""
-    val = _to_int(row[col]) if len(row) > col else None
-    return val if val is not None else default
+    """Qatordan ustun bo'yicha butun son oladi, bo'lmasa standart qiymat qaytadi."""
+    son = _intga(qator[ustun]) if len(qator) > ustun else None
+    return son if son is not None else standart
 
 
-def _find_consecutive_run(
-    ws: Worksheet, scan_start: int, scan_end: int, col_lo: int, col_hi: int, n: int
+def _ketma_ket_sonlarni_top(
+    varaq: Worksheet,
+    bosh_qator: int,
+    oxir_qator: int,
+    ustun_bosh: int,
+    ustun_oxir: int,
+    n: int,
 ) -> dict[int, int]:
-    """Return {col_idx: value} for the last row in [scan_start, scan_end]
-    whose columns in [col_lo, col_hi) hold exactly the integers 1..n,
-    consecutively and without duplicates. {} if no such row exists."""
-    last_match: dict[int, int] = {}
-    for row in ws.iter_rows(min_row=scan_start, max_row=scan_end, values_only=True):
-        candidates = []
-        for col_idx in range(col_lo, min(col_hi, len(row))):
-            int_val = _to_int(row[col_idx])
-            if int_val is not None and 1 <= int_val <= n:
-                candidates.append((col_idx, int_val))
-        if len(candidates) != n:
+    """[ustun_bosh, ustun_oxir) da 1..n sonlari ketma-ket turgan qatorni topadi."""
+    oxirgi_mos: dict[int, int] = {}
+    for qator in varaq.iter_rows(
+        min_row=bosh_qator, max_row=oxir_qator, values_only=True
+    ):
+        nomzodlar = []
+        for idx in range(ustun_bosh, min(ustun_oxir, len(qator))):
+            son = _intga(qator[idx])
+            if son is not None and 1 <= son <= n:
+                nomzodlar.append((idx, son))
+        if len(nomzodlar) != n:
             continue
-        candidates.sort(key=lambda x: x[1])
-        values = [v for _, v in candidates]
-        if len(set(values)) != n:
+        nomzodlar.sort(key=lambda x: x[1])
+        qiymatlar = [q for _, q in nomzodlar]
+        if len(set(qiymatlar)) != n:
             continue
-        if all(candidates[i + 1][1] == candidates[i][1] + 1 for i in range(n - 1)):
-            last_match = dict(candidates)
-    return last_match
+        if all(nomzodlar[i + 1][1] == nomzodlar[i][1] + 1 for i in range(n - 1)):
+            oxirgi_mos = dict(nomzodlar)
+    return oxirgi_mos
 
 
-def _find_group_header_col(
-    ws: Worksheet, start_row: int, labels: tuple[str, ...]
+def _guruh_sarlavha_ustuni(
+    varaq: Worksheet, bosh_qator: int, yorliqlar: tuple[str, ...]
 ) -> int | None:
-    scan_start = max(1, start_row - 10)
-    for row in ws.iter_rows(min_row=scan_start, max_row=start_row):
-        for cell in row:
-            if isinstance(cell.value, str):
-                norm = _normalize_text(cell.value)
-                if any(label in norm for label in labels):
-                    return cell.column - 1
+    qidiruv_bosh = max(1, bosh_qator - 10)
+    for qator in varaq.iter_rows(min_row=qidiruv_bosh, max_row=bosh_qator):
+        for katak in qator:
+            if isinstance(katak.value, str):
+                norm = _matnni_normallashtir(katak.value)
+                if any(yorliq in norm for yorliq in yorliqlar):
+                    return katak.column - 1
     return None
 
 
-def _label_semester_maps(
-    ws: Worksheet, start_row: int, n: int
+def _yorliq_semestr_xaritalari(
+    varaq: Worksheet, bosh_qator: int, n: int
 ) -> tuple[dict[int, int], dict[int, int]]:
-    """Primary strategy (map §4.3): find the weekly-hours and credit group
-    headers, then read the local 1..N sub-number row beneath each.
+    """Asosiy usul: haftalik soat va kredit guruh sarlavhalari ostidan 1..N ni topadi.
 
-    The N sub-columns aren't necessarily adjacent — one observed file spaces
-    them 3 apart (with a "kurs" grouping column above) — so the search window
-    for a group with no known next-group boundary is generous rather than a
-    tight `n`-based guess.
+    Ba'zi jadvallarda semestr ustunlari oraliqda bo'shliq yoki qo'shimcha
+    "kurs" ustuni bilan keladi, shu bois qidiruv oralig'ini kengroq olamiz.
     """
-    scan_start = max(1, start_row - 10)
-    weekly_col = _find_group_header_col(ws, start_row, WEEKLY_GROUP_LABELS)
-    credit_col = _find_group_header_col(ws, start_row, CREDIT_GROUP_LABELS)
-    generous_span = n * 6 + 5
+    qidiruv_bosh = max(1, bosh_qator - 10)
+    haftalik_ustun = _guruh_sarlavha_ustuni(
+        varaq, bosh_qator, HAFTALIK_SARLAVHA_BELGILARI
+    )
+    kredit_ustun = _guruh_sarlavha_ustuni(varaq, bosh_qator, KREDIT_SARLAVHA_BELGILARI)
+    keng_oraliq = n * 6 + 5
 
-    weekly_map: dict[int, int] = {}
-    if weekly_col is not None:
-        hi = credit_col if credit_col is not None else weekly_col + generous_span
-        weekly_map = _find_consecutive_run(ws, scan_start, start_row, weekly_col, hi, n)
-
-    credit_map: dict[int, int] = {}
-    if credit_col is not None:
-        credit_map = _find_consecutive_run(
-            ws, scan_start, start_row, credit_col, credit_col + generous_span, n
+    haftalik_xarita: dict[int, int] = {}
+    if haftalik_ustun is not None:
+        chegara = (
+            kredit_ustun if kredit_ustun is not None else haftalik_ustun + keng_oraliq
         )
-    return weekly_map, credit_map
+        haftalik_xarita = _ketma_ket_sonlarni_top(
+            varaq, qidiruv_bosh, bosh_qator, haftalik_ustun, chegara, n
+        )
+
+    kredit_xarita: dict[int, int] = {}
+    if kredit_ustun is not None:
+        kredit_xarita = _ketma_ket_sonlarni_top(
+            varaq, qidiruv_bosh, bosh_qator, kredit_ustun, kredit_ustun + keng_oraliq, n
+        )
+    return haftalik_xarita, kredit_xarita
 
 
-def _detect_col_range(
-    ws: Worksheet, start_row: int, lo: int, hi: int, offset: int
+def _ustun_oraligini_top(
+    varaq: Worksheet, bosh_qator: int, past: int, yuqori: int, siljish: int
 ) -> dict[int, int]:
-    """Fallback strategy (map §4.4): scan header rows near the anchor for the
-    logical column-number row (1, 2, …, 29), not present in every file."""
-    scan_start = max(1, start_row - 10)
-    last_match = None
-    for row in ws.iter_rows(min_row=scan_start, max_row=start_row, values_only=True):
-        candidates = []
-        for col_idx, cell_val in enumerate(row):
-            int_val = _to_int(cell_val)
-            if int_val is not None and lo <= int_val <= hi:
-                candidates.append((col_idx, int_val))
-
-        if len(candidates) < 3:
-            continue
-        values = [v for _, v in candidates]
-        if len(values) != len(set(values)):
-            continue
-        candidates.sort(key=lambda x: x[1])
-        is_consecutive = all(
-            candidates[i + 1][1] == candidates[i][1] + 1
-            for i in range(len(candidates) - 1)
-        )
-        if not is_consecutive:
-            continue
-
-        last_match = {col_idx: int_val - offset for col_idx, int_val in candidates}
-
-    return last_match or {}
-
-
-def _fallback_semester_maps(
-    ws: Worksheet, start_row: int, n: int
-) -> tuple[dict[int, int], dict[int, int]]:
-    weekly = _detect_col_range(ws, start_row, 12, 11 + n, 11)
-    credit = _detect_col_range(ws, start_row, 12 + n, 11 + 2 * n, 11 + n)
-    return weekly, credit
-
-
-def _validate_semester_maps(
-    weekly: dict[int, int], credit: dict[int, int], n: int
-) -> None:
-    if len(weekly) != n or len(credit) != n:
-        raise ParseError(
-            "semestr ustunlari to'liq emas: "
-            f"haftalik={sorted(weekly)}, kredit={sorted(credit)}, kutilgan soni={n}"
-        )
-    overlap = set(weekly) & set(credit)
-    if overlap:
-        raise ParseError(f"haftalik va kredit ustunlari kesishadi: {sorted(overlap)}")
-    if max(weekly) >= min(credit):
-        raise ParseError(
-            "kredit ustunlari haftalik ustunlaridan o'ngda bo'lishi kerak: "
-            f"haftalik={sorted(weekly)}, kredit={sorted(credit)}"
-        )
-
-
-def detect_semester_column_maps(
-    ws: Worksheet, start_row: int, n: int
-) -> tuple[dict[int, int], dict[int, int]]:
-    """Return (weekly-hours map, credit map): {0-based col: semester number}.
-
-    Tries the label-driven strategy first (map §4.3), falling back to the
-    logical-column-number row (map §4.4, absent in some files). Raises
-    ParseError when neither strategy nor the fallback yields a full,
-    non-overlapping pair of maps.
-    """
-    weekly_map, credit_map = _label_semester_maps(ws, start_row, n)
-    if not weekly_map or not credit_map:
-        fb_weekly, fb_credit = _fallback_semester_maps(ws, start_row, n)
-        weekly_map = weekly_map or fb_weekly
-        credit_map = credit_map or fb_credit
-    if not weekly_map or not credit_map:
-        raise ParseError("semestr ustunlari (haftalik soat / kredit) aniqlanmadi")
-    _validate_semester_maps(weekly_map, credit_map, n)
-    return weekly_map, credit_map
-
-
-def _find_code_name_cols(
-    ws: Worksheet, num_col: int, start_row: int
-) -> tuple[int, int]:
-    """Find code/name columns from the first course row below the anchor;
-    fall back to num_col+1 / num_col+2 when the row can't be located."""
-    code_col, name_col = None, None
-    for data_row in ws.iter_rows(
-        min_row=start_row + 1, max_row=start_row + 10, values_only=True
+    """Zaxira usul: sarlavhada mantiqiy ustun raqamlari (1..29) qatorini qidiradi."""
+    qidiruv_bosh = max(1, bosh_qator - 10)
+    oxirgi_mos = None
+    for qator in varaq.iter_rows(
+        min_row=qidiruv_bosh, max_row=bosh_qator, values_only=True
     ):
-        if not data_row or data_row[num_col] is None:
+        nomzodlar = []
+        for idx, katak_qiymat in enumerate(qator):
+            son = _intga(katak_qiymat)
+            if son is not None and past <= son <= yuqori:
+                nomzodlar.append((idx, son))
+
+        if len(nomzodlar) < 3:
             continue
-        if not re.match(r"^\d+\.\d+", str(data_row[num_col]).strip().rstrip(".")):
+        qiymatlar = [q for _, q in nomzodlar]
+        if len(qiymatlar) != len(set(qiymatlar)):
             continue
-        found = []
-        for i in range(num_col + 1, len(data_row)):
-            if data_row[i] is not None and len(found) < 2:
-                found.append(i)
-        if len(found) >= 2:
-            code_col, name_col = found[0], found[1]
-        elif len(found) == 1:
-            code_col = name_col = found[0]
+        nomzodlar.sort(key=lambda x: x[1])
+        ketma_ketmi = all(
+            nomzodlar[i + 1][1] == nomzodlar[i][1] + 1
+            for i in range(len(nomzodlar) - 1)
+        )
+        if not ketma_ketmi:
+            continue
+
+        oxirgi_mos = {idx: son - siljish for idx, son in nomzodlar}
+
+    return oxirgi_mos or {}
+
+
+def _zaxira_semestr_xaritalari(
+    varaq: Worksheet, bosh_qator: int, n: int
+) -> tuple[dict[int, int], dict[int, int]]:
+    haftalik = _ustun_oraligini_top(varaq, bosh_qator, 12, 11 + n, 11)
+    kredit = _ustun_oraligini_top(varaq, bosh_qator, 12 + n, 11 + 2 * n, 11 + n)
+    return haftalik, kredit
+
+
+def _semestr_xaritalarini_tekshir(
+    haftalik: dict[int, int], kredit: dict[int, int], n: int
+) -> None:
+    if len(haftalik) != n or len(kredit) != n:
+        raise TahlilXatosi(
+            "semestr ustunlari to'liq emas: "
+            f"haftalik={sorted(haftalik)}, kredit={sorted(kredit)}, kutilgan soni={n}"
+        )
+    kesishma = set(haftalik) & set(kredit)
+    if kesishma:
+        raise TahlilXatosi(
+            f"haftalik va kredit ustunlari kesishadi: {sorted(kesishma)}"
+        )
+    if max(haftalik) >= min(kredit):
+        raise TahlilXatosi(
+            "kredit ustunlari haftalik ustunlaridan o'ngda bo'lishi kerak: "
+            f"haftalik={sorted(haftalik)}, kredit={sorted(kredit)}"
+        )
+
+
+def semestr_ustunlarini_aniqla(
+    varaq: Worksheet, bosh_qator: int, n: int
+) -> tuple[dict[int, int], dict[int, int]]:
+    """Haftalik va kredit ustunlari uchun {ustun_indeksi: semestr} xaritasini beradi."""
+    haftalik_xarita, kredit_xarita = _yorliq_semestr_xaritalari(varaq, bosh_qator, n)
+    if not haftalik_xarita or not kredit_xarita:
+        z_haftalik, z_kredit = _zaxira_semestr_xaritalari(varaq, bosh_qator, n)
+        haftalik_xarita = haftalik_xarita or z_haftalik
+        kredit_xarita = kredit_xarita or z_kredit
+    if not haftalik_xarita or not kredit_xarita:
+        raise TahlilXatosi("semestr ustunlari (haftalik soat / kredit) aniqlanmadi")
+    _semestr_xaritalarini_tekshir(haftalik_xarita, kredit_xarita, n)
+    return haftalik_xarita, kredit_xarita
+
+
+def _kod_nom_ustunlarini_top(
+    varaq: Worksheet, raqam_ustun: int, bosh_qator: int
+) -> tuple[int, int]:
+    """Birinchi fan qatoridan kod va nom ustunlarini topadi; bo'lmasa +1/+2 oladi."""
+    kod_ustun, nom_ustun = None, None
+    for qator in varaq.iter_rows(
+        min_row=bosh_qator + 1, max_row=bosh_qator + 10, values_only=True
+    ):
+        if not qator or len(qator) <= raqam_ustun or qator[raqam_ustun] is None:
+            continue
+        if not re.match(r"^\d+\.\d+", str(qator[raqam_ustun]).strip().rstrip(".")):
+            continue
+        topildi = []
+        for i in range(raqam_ustun + 1, len(qator)):
+            katak = qator[i]
+            if katak is not None and str(katak).strip() and len(topildi) < 2:
+                topildi.append(i)
+        if len(topildi) >= 2:
+            kod_ustun, nom_ustun = topildi[0], topildi[1]
+        elif len(topildi) == 1:
+            kod_ustun = nom_ustun = topildi[0]
         break
 
-    if code_col is None:
-        code_col = num_col + 1
-    if name_col is None:
-        name_col = num_col + 2
-    return code_col, name_col
+    if kod_ustun is None:
+        kod_ustun = raqam_ustun + 1
+    if nom_ustun is None:
+        nom_ustun = raqam_ustun + 2
+    return kod_ustun, nom_ustun
 
 
-def find_total_hours_col(ws: Worksheet, auditoriya_row: int, start_row: int) -> int:
-    """Locate the total-hours column, searching only the header band right
-    around the 'auditoriya' label so an earlier, unrelated 'soat' cell in the
-    metadata or calendar zones can't hijack the column."""
-    band_start = max(1, auditoriya_row - 2)
-    col = find_header_col(ws, "umumiy yuklama", start_row, min_row=band_start)
-    if col is None:
-        col = find_header_col(ws, "soat", start_row, min_row=band_start)
-    if col is None:
-        raise ParseError("'Umumiy yuklama'/'soat' ustuni topilmadi")
-    return col
+def jami_soat_ustunini_top(
+    varaq: Worksheet, auditoriya_qator: int, bosh_qator: int
+) -> int:
+    """Umumiy soat ustunini 'auditoriya' sarlavhasi atrofidagi qatordan izlaydi."""
+    oraliq_bosh = max(1, auditoriya_qator - 2)
+    ustun = sarlavha_ustunini_top(
+        varaq, "umumiy yuklama", bosh_qator, bosh_qator=oraliq_bosh
+    )
+    if ustun is None:
+        ustun = sarlavha_ustunini_top(varaq, "soat", bosh_qator, bosh_qator=oraliq_bosh)
+    if ustun is None:
+        raise TahlilXatosi("'Umumiy yuklama'/'soat' ustuni topilmadi")
+    return ustun
 
 
-def _find_classroom_col(ws: Worksheet, start_row: int) -> tuple[int, int]:
-    """Find the classroom ('auditoriya') column and the header row it sits
-    on, as (classroom_col, auditoriya_row)."""
-    for hrow in ws.iter_rows(max_row=start_row):
-        for cell in hrow:
-            if isinstance(cell.value, str) and "auditoriya" in _normalize_text(
-                cell.value
+def _auditoriya_ustunini_top(varaq: Worksheet, bosh_qator: int) -> tuple[int, int]:
+    """'Auditoriya' ustuni indeksini va u joylashgan sarlavha qatorini qaytaradi."""
+    for qator in varaq.iter_rows(max_row=bosh_qator):
+        for katak in qator:
+            if isinstance(katak.value, str) and "auditoriya" in _matnni_normallashtir(
+                katak.value
             ):
-                return cell.column - 1, cell.row
-    raise ParseError("'Auditoriya' ustuni topilmadi")
+                return katak.column - 1, katak.row
+    raise TahlilXatosi("'Auditoriya' ustuni topilmadi")
 
 
-_SUBCOL_KALITLARI: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("lecture", ("maruza",)),
-    ("practice", ("amaliy",)),
-    ("lab", ("laborator", "labarator")),
+_ICHKI_USTUN_KALITLARI: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("maruza", ("maruza",)),
+    ("amaliyot", ("amaliy",)),
+    ("laboratoriya", ("laborator", "labarator")),
     ("seminar", ("seminar",)),
-    ("course", ("kurs",)),
+    ("kurs_ishi", ("kurs",)),
 )
 
 
-def _subcol_kaliti(norm: str) -> str | None:
+def _ichki_ustun_kaliti(norm: str) -> str | None:
     return next(
-        (key for key, needles in _SUBCOL_KALITLARI if any(n in norm for n in needles)),
-        None,
-    )
-
-
-def _find_subcategory_cols(
-    ws: Worksheet, auditoriya_row: int, classroom_col: int, warnings: list[str]
-) -> tuple[int, int, int | None, int | None, int | None]:
-    """Map the label row below 'auditoriya' to the five subcategory columns."""
-    label_row = next(
-        ws.iter_rows(
-            min_row=auditoriya_row + 1, max_row=auditoriya_row + 1, values_only=True
+        (
+            kalit
+            for kalit, belgilar in _ICHKI_USTUN_KALITLARI
+            if any(b in norm for b in belgilar)
         ),
         None,
     )
-    if label_row is None:
-        raise ParseError("'Ma'ruza'/'Amaliy' ustunlari topilmadi")
-    cols: dict[str, int | None] = {k: None for k, _ in _SUBCOL_KALITLARI}
-    for i, v in enumerate(label_row):
-        if i <= classroom_col or not isinstance(v, str):
+
+
+def _soat_turi_ustunlarini_top(
+    varaq: Worksheet,
+    auditoriya_qator: int,
+    auditoriya_ustun: int,
+    ogohlantirishlar: list[str],
+) -> tuple[int, int, int | None, int | None, int | None]:
+    """'Auditoriya' ostidagi qatordan ma'ruza, amaliy, lab, seminar, kursni topadi."""
+    yorliq_qator = next(
+        varaq.iter_rows(
+            min_row=auditoriya_qator + 1,
+            max_row=auditoriya_qator + 1,
+            values_only=True,
+        ),
+        None,
+    )
+    if yorliq_qator is None:
+        raise TahlilXatosi("'Ma'ruza'/'Amaliy' ustunlari topilmadi")
+    ustunlar: dict[str, int | None] = {k: None for k, _ in _ICHKI_USTUN_KALITLARI}
+    for i, qiymat in enumerate(yorliq_qator):
+        if i <= auditoriya_ustun or not isinstance(qiymat, str):
             continue
-        key = _subcol_kaliti(re.sub(r"[^a-z]", "", _normalize_text(v)))
-        if key is not None and cols[key] is None:
-            cols[key] = i
-    if cols["lecture"] is None or cols["practice"] is None:
-        raise ParseError("'Ma'ruza'/'Amaliy' ustunlari topilmadi")
-    for key, label in (
-        ("lab", "Laboratoriya"),
+        toza = re.sub(r"[^a-z]", "", _matnni_normallashtir(qiymat))
+        kalit = _ichki_ustun_kaliti(toza)
+        if kalit is not None and ustunlar[kalit] is None:
+            ustunlar[kalit] = i
+    if ustunlar["maruza"] is None or ustunlar["amaliyot"] is None:
+        raise TahlilXatosi("'Ma'ruza'/'Amaliy' ustunlari topilmadi")
+    for kalit, yorliq in (
+        ("laboratoriya", "Laboratoriya"),
         ("seminar", "Seminar"),
-        ("course", "Kurs ishi"),
+        ("kurs_ishi", "Kurs ishi"),
     ):
-        if cols[key] is None:
-            warnings.append(f"'{label}' ustuni topilmadi; 0 soat deb hisoblandi")
-    return (
-        cols["lecture"],
-        cols["practice"],
-        cols["lab"],
-        cols["seminar"],
-        cols["course"],
-    )
-
-
-def detect_course_columns(
-    ws: Worksheet, num_col: int, start_row: int, warnings: list[str]
-) -> ColumnLayout:
-    """Return the course ColumnLayout by orchestrating the focused detectors."""
-    code_col, name_col = _find_code_name_cols(ws, num_col, start_row)
-    classroom_col, auditoriya_row = _find_classroom_col(ws, start_row)
-    hours_col = find_total_hours_col(ws, auditoriya_row, start_row)
-    lecture_col, practice_col, lab_col, seminar_col, course_proj_col = (
-        _find_subcategory_cols(ws, auditoriya_row, classroom_col, warnings)
-    )
-
-    return ColumnLayout(
-        num=num_col,
-        code=code_col,
-        name=name_col,
-        hours=hours_col,
-        classroom=classroom_col,
-        lecture=lecture_col,
-        practice=practice_col,
-        lab=lab_col,
-        seminar=seminar_col,
-        course_proj=course_proj_col,
-    )
-
-
-def _round_half_up(value: float) -> int:
-    return math.floor(value + 0.5)
-
-
-def map_semester_values(
-    row: Sequence[object],
-    semester_col_map: dict[int, int],
-    label: str,
-    warnings: list[str],
-) -> dict[int, int]:
-    """Return {semester_number: value} for non-zero semester cells.
-
-    Shared by credit and weekly-hours extraction. A non-integral value (e.g.
-    a 1.5-credit course) is warned about and rounded half-up rather than
-    silently truncated.
-    """
-    result = {}
-    for col_idx, sem_num in semester_col_map.items():
-        raw = row[col_idx] if len(row) > col_idx else None
-        val = _to_float(raw)
-        if not val:
-            continue
-        rounded = _round_half_up(val)
-        if rounded != val:
-            warnings.append(
-                f"{label}: {sem_num}-semestr qiymati {raw!r} {rounded} ga yaxlitlandi"
+        if ustunlar[kalit] is None:
+            ogohlantirishlar.append(
+                f"'{yorliq}' ustuni topilmadi; 0 soat deb hisoblandi"
             )
-        result[sem_num] = rounded
-    return result
-
-
-def _clean_name(value: object) -> str:
-    """Normalize a course/alternative name read from a cell.
-
-    Ministry templates use hard line breaks (Alt+Enter) in cells; a stray
-    newline or '|' inside a name would terminate a Markdown table row and
-    corrupt every row below it. Collapse all internal whitespace to single
-    spaces and replace '|' so the name is always row-safe.
-    """
-    if value is None:
-        return ""
-    return re.sub(r"\s+", " ", str(value).replace("|", " ")).strip()
-
-
-def _is_recognized_skip_row(row: Sequence[object]) -> bool:
-    return any(
-        isinstance(cell, str)
-        and any(label in _normalize_text(cell) for label in SKIP_ROW_LABELS)
-        for cell in row
+    return (
+        ustunlar["maruza"],
+        ustunlar["amaliyot"],
+        ustunlar["laboratoriya"],
+        ustunlar["seminar"],
+        ustunlar["kurs_ishi"],
     )
 
 
-def _iter_section_rows(
-    ws: Worksheet, num_col: int, section: int, start_row: int
-) -> Iterator[tuple[str | None, tuple[object, ...]]]:
-    """Yield (num_str, row) for each row in the given top-level section (1 or 2).
+def fan_ustunlarini_aniqla(
+    varaq: Worksheet, raqam_ustun: int, bosh_qator: int, ogohlantirishlar: list[str]
+) -> UstunJoyi:
+    """Fanlar jadvalining barcha kerakli ustunlarini aniqlab UstunJoyi qaytaradi."""
+    kod_ustun, nom_ustun = _kod_nom_ustunlarini_top(varaq, raqam_ustun, bosh_qator)
+    auditoriya_ustun, auditoriya_qator = _auditoriya_ustunini_top(varaq, bosh_qator)
+    soat_ustun = jami_soat_ustunini_top(varaq, auditoriya_qator, bosh_qator)
+    maruza_ustun, amaliyot_ustun, lab_ustun, seminar_ustun, kurs_ishi_ustun = (
+        _soat_turi_ustunlarini_top(
+            varaq, auditoriya_qator, auditoriya_ustun, ogohlantirishlar
+        )
+    )
 
-    Enters when the section's marker is seen and stops at the first 'Jami'
-    total row or the next section marker. This is the single shared
-    row-walk/stop skeleton for both parse functions. Scanning starts at the
-    '1.00' anchor row, never from row 1 — the metadata and academic-calendar
-    zones above it can hold stray cells that normalize to a marker (e.g. a
-    lone week number '1'), which would otherwise trigger a false section
-    entry.
+    return UstunJoyi(
+        raqam=raqam_ustun,
+        kod=kod_ustun,
+        nom=nom_ustun,
+        soat=soat_ustun,
+        auditoriya=auditoriya_ustun,
+        maruza=maruza_ustun,
+        amaliyot=amaliyot_ustun,
+        laboratoriya=lab_ustun,
+        seminar=seminar_ustun,
+        kurs_ishi=kurs_ishi_ustun,
+    )
+
+
+def _yarim_yaxlitla(qiymat: float) -> int:
+    return math.floor(qiymat + 0.5)
+
+
+def semestr_qiymatlarini_yig(
+    qator: Sequence[object],
+    semestr_ustun_xaritasi: dict[int, int],
+    yorliq: str,
+    ogohlantirishlar: list[str],
+) -> dict[int, int]:
+    """Nol bo'lmagan semestr kataklari uchun {semestr: qiymat} lug'atini yig'adi.
+
+    Kasr qiymat (masalan 1.5 kredit) kelsa, jim tashlab yubormasdan
+    ogohlantiradi va yuqoriga qarab yaxlitlaydi.
     """
-    in_section = False
-    for row in ws.iter_rows(min_row=start_row, values_only=True):
-        num = row[num_col] if len(row) > num_col else None
-        num_str = str(num).strip().rstrip(".") if num is not None else None
-        marker = _normalize_section_marker(num)
-
-        if not in_section:
-            if marker == str(section):
-                in_section = True
+    natija = {}
+    for ustun_idx, sem_raqami in semestr_ustun_xaritasi.items():
+        xom = qator[ustun_idx] if len(qator) > ustun_idx else None
+        son = _floatga(xom)
+        if not son:
             continue
-
-        if any(
-            cell is not None and str(cell).strip().rstrip(":").casefold() == "jami"
-            for cell in row
-        ):
-            return
-        if marker is not None:
-            return
-
-        yield num_str, row
-
-
-def breakdown_from(
-    row: Sequence[object], cols: tuple[int | None, ...], fill: int
-) -> dict[str, int]:
-    """Read the six hour-breakdown fields, defaulting every missing cell to
-    `fill`. A None column (no header for that hour type) always reads as 0."""
-    natija: dict[str, int] = {}
-    for f, c in zip(BREAKDOWN_FIELDS, cols):
-        if c is None:
-            natija[f] = 0
-        else:
-            val = _cell_int(row, c, fill)
-            natija[f] = fill if val is None else val
+        if son < 0:
+            ogohlantirishlar.append(
+                f"{yorliq}: {sem_raqami}-sem. manfiy qiymat ({xom!r})"
+                " e'tiborsiz qoldirildi"
+            )
+            continue
+        yaxlit = _yarim_yaxlitla(son)
+        if yaxlit != son:
+            ogohlantirishlar.append(
+                f"{yorliq}: {sem_raqami}-sem. {xom!r} -> {yaxlit} ga yaxlitlandi"
+            )
+        natija[sem_raqami] = yaxlit
     return natija
 
 
-def breakdown_inheriting(
-    row: Sequence[object],
-    cols: tuple[int | None, ...],
-    fallbacks: dict[str, int],
-    label: str,
-    warnings: list[str],
-) -> dict[str, int]:
-    """Read the six hour-breakdown fields, inheriting per-field fallbacks.
+def _nomni_tozala(qiymat: object) -> str:
+    """Fan nomini tozalaydi: ichki yangi qator va '|' belgilarni olib tashlaydi."""
+    if qiymat is None:
+        return ""
+    return re.sub(r"\s+", " ", str(qiymat).replace("|", " ")).strip()
 
-    Used for a selective continuation row, whose numeric cells are vertically
-    merged with the slot's first row: a truly blank (None) cell inherits the
-    slot's value. A present-but-unparseable cell does NOT inherit — that
-    would silently pass off a bad cell as the slot's real value — it reads as
-    0 and is warned about instead.
+
+def _tashlanadigan_qatormi(qator: Sequence[object]) -> bool:
+    return any(
+        isinstance(katak, str)
+        and any(b in _matnni_normallashtir(katak) for b in OTKAZILADIGAN_QATORLAR)
+        for katak in qator
+    )
+
+
+def _bolim_qatorlari(
+    varaq: Worksheet, raqam_ustun: int, bolim: int, bosh_qator: int
+) -> Iterator[tuple[str | None, tuple[object, ...]]]:
+    """Berilgan bo'lim (1 yoki 2) qatorlarini 'Jami' yoki keyingi bo'limgacha beradi.
+
+    Skanerlash 1-qatordan emas, aynan '1.00' langar qatoridan boshlanadi — tepada
+    kalendar jadvalidagi oddiy '1' raqamlari bo'lim belgisi deb xato olinmasin.
     """
-    result: dict[str, int] = {}
-    for f, c in zip(BREAKDOWN_FIELDS, cols):
-        if c is None:
-            result[f] = 0
+    bolim_ichida = False
+    for qator in varaq.iter_rows(min_row=bosh_qator, values_only=True):
+        raqam = qator[raqam_ustun] if len(qator) > raqam_ustun else None
+        toza_raqam = str(raqam).strip().rstrip(".") if raqam is not None else ""
+        raqam_matn = toza_raqam or None
+        belgi = _bolim_belgisini_ol(raqam)
+
+        if not bolim_ichida:
+            if belgi == str(bolim):
+                bolim_ichida = True
             continue
-        raw = row[c] if len(row) > c else None
-        coerced = _coerce_int_cell(raw)
-        if coerced is None:
-            result[f] = fallbacks[f]
-        elif coerced is _UNPARSEABLE:
-            warnings.append(
-                f"{label}: {f} katakchasi o'qilmadi ({raw!r}); 0 deb hisoblandi"
-            )
-            result[f] = 0
+
+        if any(
+            katak is not None and str(katak).strip().rstrip(":").casefold() == "jami"
+            for katak in qator
+        ):
+            return
+        if belgi is not None:
+            return
+
+        yield raqam_matn, qator
+
+
+def soat_taqsimoti(
+    qator: Sequence[object], ustunlar: tuple[int | None, ...], bosh_qiymat: int
+) -> dict[str, int]:
+    """Oltita soat maydonini o'qiydi; ustuni yo'q tur doim 0 bo'ladi."""
+    natija: dict[str, int] = {}
+    for maydon, ustun in zip(SOAT_MAYDONLARI, ustunlar):
+        if ustun is None:
+            natija[maydon] = 0
         else:
-            result[f] = int(coerced)
-    return result
+            son = _katak_int(qator, ustun, bosh_qiymat)
+            natija[maydon] = bosh_qiymat if son is None else son
+    return natija
 
 
-def _append_alternative(
-    slot: SelectiveSlot, code_str: str, name_str: str, breakdown: dict[str, int]
+def meros_soat_taqsimoti(
+    qator: Sequence[object],
+    ustunlar: tuple[int | None, ...],
+    asosiy_soatlar: dict[str, int],
+    yorliq: str,
+    ogohlantirishlar: list[str],
+) -> dict[str, int]:
+    """Tanlov fanining davomiy qatorlari uchun soat taqsimotini o'qiydi.
+
+    Birlashtirilgan (merged) katak bo'sh (None) kelsa asosiy qatordan meros oladi;
+    lekin ichida son bo'lmagan xato matn bo'lsa 0 qo'yib ogohlantirish beradi.
+    """
+    natija: dict[str, int] = {}
+    for maydon, ustun in zip(SOAT_MAYDONLARI, ustunlar):
+        if ustun is None:
+            natija[maydon] = 0
+            continue
+        xom = qator[ustun] if len(qator) > ustun else None
+        qiymat = _int_yoki_belgi(xom)
+        if qiymat is None:
+            natija[maydon] = asosiy_soatlar[maydon]
+        elif qiymat is _OQILMAYDI:
+            ogohlantirishlar.append(
+                f"{yorliq}: {maydon} katakchasi o'qilmadi ({xom!r}); 0 deb hisoblandi"
+            )
+            natija[maydon] = 0
+        else:
+            natija[maydon] = int(qiymat)
+    return natija
+
+
+def _variant_qosh(
+    blok: TanlovFani, kod_matn: str, nom_matn: str, taqsimot: dict[str, int]
 ) -> None:
-    """Append an Alternative to the slot, skipping fully blank continuation rows."""
-    if code_str or name_str:
-        slot.alternatives.append(Alternative(code=code_str, name=name_str, **breakdown))
+    """Bo'sh davomiy qatorlarni tashlab, tanlov blokiga bitta variant qo'shadi."""
+    if kod_matn or nom_matn:
+        blok.variantlar.append(TanlovVarianti(kod=kod_matn, nom=nom_matn, **taqsimot))
 
 
 def _tanlov_sloti_yarat(
-    row: Sequence[object],
-    num_str: str,
-    layout: ColumnLayout,
-    semester_map: dict[int, int],
-    weekly_map: dict[int, int],
-    warnings: list[str],
-) -> tuple[SelectiveSlot, dict[str, int]]:
-    hours_raw = row[layout.hours] if len(row) > layout.hours else None
-    slot = SelectiveSlot(
-        num=num_str,
-        hours=_to_int(hours_raw),
-        semester_credits=map_semester_values(row, semester_map, num_str, warnings),
-        semester_weekly_hours=map_semester_values(row, weekly_map, num_str, warnings),
+    qator: Sequence[object],
+    raqam_matn: str,
+    joylashuv: UstunJoyi,
+    kredit_xaritasi: dict[int, int],
+    haftalik_xaritasi: dict[int, int],
+    ogohlantirishlar: list[str],
+) -> tuple[TanlovFani, dict[str, int]]:
+    soat_xom = qator[joylashuv.soat] if len(qator) > joylashuv.soat else None
+    blok = TanlovFani(
+        raqam=raqam_matn,
+        soat=_intga(soat_xom),
+        semestr_kreditlari=semestr_qiymatlarini_yig(
+            qator, kredit_xaritasi, raqam_matn, ogohlantirishlar
+        ),
+        semestr_haftalik_soatlar=semestr_qiymatlarini_yig(
+            qator, haftalik_xaritasi, raqam_matn, ogohlantirishlar
+        ),
     )
-    slot_breakdown = breakdown_from(row, layout.breakdown, 0)
-    return slot, slot_breakdown
+    blok_taqsimot = soat_taqsimoti(qator, joylashuv.taqsimot, 0)
+    return blok, blok_taqsimot
 
 
-def parse_selective_courses(
-    ws: Worksheet,
-    layout: ColumnLayout,
-    semester_map: dict[int, int],
-    weekly_map: dict[int, int],
-    start_row: int,
-    warnings: list[str],
-) -> list[SelectiveSlot]:
-    """Parse section 2 (tanlov fanlar / selective courses) into SelectiveSlots."""
-    slots: list[SelectiveSlot] = []
-    current: SelectiveSlot | None = None
-    slot_breakdown: dict[str, int] = {}
+def tanlov_fanlarni_oqi(
+    varaq: Worksheet,
+    joylashuv: UstunJoyi,
+    kredit_xaritasi: dict[int, int],
+    haftalik_xaritasi: dict[int, int],
+    bosh_qator: int,
+    ogohlantirishlar: list[str],
+) -> list[TanlovFani]:
+    """2-bo'lim (tanlov fanlar) qatorlarini TanlovFani ro'yxatiga yig'adi."""
+    bloklar: list[TanlovFani] = []
+    joriy: TanlovFani | None = None
+    blok_taqsimot: dict[str, int] = {}
 
-    for num_str, row in _iter_section_rows(ws, layout.num, 2, start_row):
-        code = row[layout.code] if len(row) > layout.code else None
-        name = row[layout.name] if len(row) > layout.name else None
-        code_str = str(code).strip() if code is not None else ""
-        name_str = _clean_name(name)
+    for raqam_matn, qator in _bolim_qatorlari(varaq, joylashuv.raqam, 2, bosh_qator):
+        kod = qator[joylashuv.kod] if len(qator) > joylashuv.kod else None
+        nom = qator[joylashuv.nom] if len(qator) > joylashuv.nom else None
+        kod_matn = str(kod).strip() if kod is not None else ""
+        nom_matn = _nomni_tozala(nom)
 
         if (
-            num_str is not None
-            and is_course_number(num_str)
-            and section_prefix(num_str) == "2"
+            raqam_matn is not None
+            and fan_raqamimi(raqam_matn)
+            and bolim_boshi(raqam_matn) == "2"
         ):
-            current, slot_breakdown = _tanlov_sloti_yarat(
-                row, num_str, layout, semester_map, weekly_map, warnings
+            joriy, blok_taqsimot = _tanlov_sloti_yarat(
+                qator,
+                raqam_matn,
+                joylashuv,
+                kredit_xaritasi,
+                haftalik_xaritasi,
+                ogohlantirishlar,
             )
-            slots.append(current)
-            _append_alternative(current, code_str, name_str, slot_breakdown)
-        elif current is not None and num_str is None:
-            merited = breakdown_inheriting(
-                row, layout.breakdown, slot_breakdown, current.num, warnings
+            bloklar.append(joriy)
+            _variant_qosh(joriy, kod_matn, nom_matn, blok_taqsimot)
+        elif joriy is not None and raqam_matn is None:
+            meros = meros_soat_taqsimoti(
+                qator, joylashuv.taqsimot, blok_taqsimot, joriy.raqam, ogohlantirishlar
             )
-            _append_alternative(current, code_str, name_str, merited)
-        elif not _is_recognized_skip_row(row):
-            warnings.append(f"tanilmagan qator o'tkazib yuborildi: {row[:3]!r}")
+            _variant_qosh(joriy, kod_matn, nom_matn, meros)
+        elif not _tashlanadigan_qatormi(qator):
+            ogohlantirishlar.append(
+                f"tanilmagan qator o'tkazib yuborildi: {qator[:3]!r}"
+            )
 
-    if not slots:
-        warnings.append("tanlov fanlar topilmadi")
-    return slots
+    if not bloklar:
+        ogohlantirishlar.append("tanlov fanlar topilmadi")
+    return bloklar
 
 
-def parse_core_courses(
-    ws: Worksheet,
-    layout: ColumnLayout,
-    semester_map: dict[int, int],
-    weekly_map: dict[int, int],
-    start_row: int,
-    warnings: list[str],
-) -> list[Course]:
-    """Parse section 1 (majburiy fanlar / core courses) into Courses."""
-    courses: list[Course] = []
+def majburiy_fanlarni_oqi(
+    varaq: Worksheet,
+    joylashuv: UstunJoyi,
+    kredit_xaritasi: dict[int, int],
+    haftalik_xaritasi: dict[int, int],
+    bosh_qator: int,
+    ogohlantirishlar: list[str],
+) -> list[MajburiyFan]:
+    """1-bo'lim (majburiy fanlar) qatorlarini MajburiyFan ro'yxatiga o'qiydi."""
+    fanlar: list[MajburiyFan] = []
 
-    for num_str, row in _iter_section_rows(ws, layout.num, 1, start_row):
-        if not (is_course_number(num_str) and section_prefix(num_str) == "1"):
-            if not _is_recognized_skip_row(row):
-                warnings.append(f"tanilmagan qator o'tkazib yuborildi: {row[:3]!r}")
+    for raqam_matn, qator in _bolim_qatorlari(varaq, joylashuv.raqam, 1, bosh_qator):
+        if not (fan_raqamimi(raqam_matn) and bolim_boshi(raqam_matn) == "1"):
+            if not _tashlanadigan_qatormi(qator):
+                ogohlantirishlar.append(
+                    f"tanilmagan qator o'tkazib yuborildi: {qator[:3]!r}"
+                )
             continue
-        code = row[layout.code] if len(row) > layout.code else None
-        name = row[layout.name] if len(row) > layout.name else None
-        hours_raw = row[layout.hours] if len(row) > layout.hours else None
-        course = Course(
-            num=num_str,
-            code=str(code).strip() if code else "",
-            name=_clean_name(name),
-            hours=_to_int(hours_raw),
-            **breakdown_from(row, layout.breakdown, 0),
-            semester_credits=map_semester_values(row, semester_map, num_str, warnings),
-            semester_weekly_hours=map_semester_values(
-                row, weekly_map, num_str, warnings
+        kod = qator[joylashuv.kod] if len(qator) > joylashuv.kod else None
+        nom = qator[joylashuv.nom] if len(qator) > joylashuv.nom else None
+        soat_xom = qator[joylashuv.soat] if len(qator) > joylashuv.soat else None
+        fan = MajburiyFan(
+            raqam=raqam_matn,
+            kod=str(kod).strip() if kod else "",
+            nom=_nomni_tozala(nom),
+            soat=_intga(soat_xom),
+            **soat_taqsimoti(qator, joylashuv.taqsimot, 0),
+            semestr_kreditlari=semestr_qiymatlarini_yig(
+                qator, kredit_xaritasi, raqam_matn, ogohlantirishlar
+            ),
+            semestr_haftalik_soatlar=semestr_qiymatlarini_yig(
+                qator, haftalik_xaritasi, raqam_matn, ogohlantirishlar
             ),
         )
-        courses.append(course)
+        fanlar.append(fan)
 
-    return courses
+    return fanlar
 
 
-def _section_marker_hours(
-    ws: Worksheet, num_col: int, hours_col: int, section: int, start_row: int
+def _bolim_belgisi_soati(
+    varaq: Worksheet, raqam_ustun: int, soat_ustun: int, bolim: int, bosh_qator: int
 ) -> int | None:
-    for row in ws.iter_rows(min_row=start_row, values_only=True):
-        num = row[num_col] if len(row) > num_col else None
-        if _normalize_section_marker(num) == str(section):
-            return _to_int(row[hours_col]) if len(row) > hours_col else None
+    for qator in varaq.iter_rows(min_row=bosh_qator, values_only=True):
+        raqam = qator[raqam_ustun] if len(qator) > raqam_ustun else None
+        if _bolim_belgisini_ol(raqam) == str(bolim):
+            return _intga(qator[soat_ustun]) if len(qator) > soat_ustun else None
     return None
 
 
-def _validate_section_totals(
-    ws: Worksheet,
-    layout: ColumnLayout,
-    start_row: int,
-    core: list[Course],
-    slots: list[SelectiveSlot],
-    warnings: list[str],
+def _bolim_jamini_tekshir(
+    varaq: Worksheet,
+    joylashuv: UstunJoyi,
+    bosh_qator: int,
+    majburiy: list[MajburiyFan],
+    tanlov: list[TanlovFani],
+    ogohlantirishlar: list[str],
 ) -> None:
-    """Cross-check the marker rows' own aggregate against the parsed courses
-    (map §5.1) — the strongest available signal that the hours columns were
-    detected correctly."""
-    core_total = sum(c.hours for c in core if c.hours is not None)
-    marker1 = _section_marker_hours(ws, layout.num, layout.hours, 1, start_row)
-    if marker1 is not None and marker1 != core_total:
-        warnings.append(
-            f"1-bo'lim jami soat mos kelmadi: varaqda {marker1},"
-            f" hisoblangan {core_total}"
+    """Bo'lim sarlavhasidagi soatni o'qilgan fanlar yig'indisi bilan solishtiradi."""
+    majburiy_jami = sum(f.soat for f in majburiy if f.soat is not None)
+    belgi1 = _bolim_belgisi_soati(varaq, joylashuv.raqam, joylashuv.soat, 1, bosh_qator)
+    if belgi1 is not None and belgi1 != majburiy_jami:
+        ogohlantirishlar.append(
+            f"1-bo'lim jami soat mos kelmadi: varaqda {belgi1},"
+            f" hisoblangan {majburiy_jami}"
         )
 
-    slot_total = sum(s.hours for s in slots if s.hours is not None)
-    marker2 = _section_marker_hours(ws, layout.num, layout.hours, 2, start_row)
-    if marker2 is not None and marker2 != slot_total:
-        warnings.append(
-            f"2-bo'lim jami soat mos kelmadi: varaqda {marker2},"
-            f" hisoblangan {slot_total}"
+    tanlov_jami = sum(t.soat for t in tanlov if t.soat is not None)
+    belgi2 = _bolim_belgisi_soati(varaq, joylashuv.raqam, joylashuv.soat, 2, bosh_qator)
+    if belgi2 is not None and belgi2 != tanlov_jami:
+        ogohlantirishlar.append(
+            f"2-bo'lim jami soat mos kelmadi: varaqda {belgi2},"
+            f" hisoblangan {tanlov_jami}"
         )
 
 
-def _check_classroom_breakdown(
-    label: str,
-    classroom: int,
-    lecture: int,
-    practice: int,
-    lab: int,
+def _auditoriya_yigindisini_tekshir(
+    yorliq: str,
+    auditoriya: int,
+    maruza: int,
+    amaliyot: int,
+    laboratoriya: int,
     seminar: int,
-    warnings: list[str],
+    ogohlantirishlar: list[str],
 ) -> None:
-    total = lecture + practice + lab + seminar
-    if classroom != total:
-        warnings.append(
-            f"{label}: auditoriya {classroom} != ma'ruza+amaliy+lab+seminar ({total})"
+    jami = maruza + amaliyot + laboratoriya + seminar
+    if auditoriya != jami:
+        ogohlantirishlar.append(
+            f"{yorliq}: auditoriya {auditoriya} != ma'ruza+amaliy+lab+seminar ({jami})"
         )
 
 
-def _validate_classroom_breakdown(
-    core: list[Course], slots: list[SelectiveSlot], warnings: list[str]
+def _auditoriya_taqsimotini_tekshir(
+    majburiy: list[MajburiyFan],
+    tanlov: list[TanlovFani],
+    ogohlantirishlar: list[str],
 ) -> None:
-    for course in core:
-        _check_classroom_breakdown(
-            f"{course.num} {course.name}",
-            course.classroom,
-            course.lecture,
-            course.practice,
-            course.lab,
-            course.seminar,
-            warnings,
+    for fan in majburiy:
+        _auditoriya_yigindisini_tekshir(
+            f"{fan.raqam} {fan.nom}",
+            fan.auditoriya,
+            fan.maruza,
+            fan.amaliyot,
+            fan.laboratoriya,
+            fan.seminar,
+            ogohlantirishlar,
         )
-    for slot in slots:
-        for alt in slot.alternatives:
-            _check_classroom_breakdown(
-                f"{slot.num} {alt.name}",
-                alt.classroom,
-                alt.lecture,
-                alt.practice,
-                alt.lab,
-                alt.seminar,
-                warnings,
+    for blok in tanlov:
+        for var in blok.variantlar:
+            _auditoriya_yigindisini_tekshir(
+                f"{blok.raqam} {var.nom}",
+                var.auditoriya,
+                var.maruza,
+                var.amaliyot,
+                var.laboratoriya,
+                var.seminar,
+                ogohlantirishlar,
             )
 
 
-def _check_credit_hours(
-    label: str, hours: int | None, semester_credits: dict[int, int], warnings: list[str]
+def _kredit_soatni_tekshir(
+    yorliq: str,
+    soat: int | None,
+    semestr_kreditlari: dict[int, int],
+    ogohlantirishlar: list[str],
 ) -> None:
-    if hours is None:
+    if soat is None:
         return
-    if not semester_credits:
-        if hours:
-            warnings.append(f"{label}: soat {hours} bor, lekin semestr kreditlari yo'q")
+    if not semestr_kreditlari:
+        if soat:
+            ogohlantirishlar.append(
+                f"{yorliq}: soat {soat} bor, lekin semestr kreditlari yo'q"
+            )
         return
-    remainder = hours % 30
-    if remainder != 0:
-        warnings.append(
-            f"{label}: soat {hours} 30 ga qoldiqsiz bo'linmaydi (qoldiq {remainder})"
+    qoldiq = soat % 30
+    if qoldiq != 0:
+        ogohlantirishlar.append(
+            f"{yorliq}: soat {soat} 30 ga qoldiqsiz bo'linmaydi (qoldiq {qoldiq})"
         )
-    expected = hours // 30
-    actual = sum(semester_credits.values())
-    if expected != actual:
-        warnings.append(
-            f"{label}: kredit {expected} (soat/30) semestrlar yig'indisi {actual}"
+    kutilgan = soat // 30
+    amalda = sum(semestr_kreditlari.values())
+    if kutilgan != amalda:
+        ogohlantirishlar.append(
+            f"{yorliq}: kredit {kutilgan} (soat/30) semestrlar yig'indisi {amalda}"
             " bilan mos kelmadi"
         )
 
 
-def _validate_credit_hours(
-    core: list[Course], slots: list[SelectiveSlot], warnings: list[str]
+def _kredit_soatlarni_tekshir(
+    majburiy: list[MajburiyFan],
+    tanlov: list[TanlovFani],
+    ogohlantirishlar: list[str],
 ) -> None:
-    for course in core:
-        _check_credit_hours(
-            f"{course.num} {course.name}",
-            course.hours,
-            course.semester_credits,
-            warnings,
+    for fan in majburiy:
+        _kredit_soatni_tekshir(
+            f"{fan.raqam} {fan.nom}",
+            fan.soat,
+            fan.semestr_kreditlari,
+            ogohlantirishlar,
         )
-    for slot in slots:
-        name = slot.alternatives[0].name if slot.alternatives else ""
-        _check_credit_hours(
-            f"{slot.num} {name}", slot.hours, slot.semester_credits, warnings
+    for blok in tanlov:
+        nom = blok.variantlar[0].nom if blok.variantlar else ""
+        _kredit_soatni_tekshir(
+            f"{blok.raqam} {nom}", blok.soat, blok.semestr_kreditlari, ogohlantirishlar
         )
 
 
-def _hours_column_all_blank(
-    ws: Worksheet, layout: ColumnLayout, start_row: int
+def _soat_ustuni_toliq_boshmi(
+    varaq: Worksheet, joylashuv: UstunJoyi, bosh_qator: int
 ) -> bool:
-    for row in ws.iter_rows(min_row=start_row, values_only=True):
-        num = row[layout.num] if len(row) > layout.num else None
-        if is_course_number(str(num).strip().rstrip(".") if num is not None else None):
-            if len(row) > layout.hours and row[layout.hours] is not None:
+    for qator in varaq.iter_rows(min_row=bosh_qator, values_only=True):
+        raqam = qator[joylashuv.raqam] if len(qator) > joylashuv.raqam else None
+        if fan_raqamimi(str(raqam).strip().rstrip(".") if raqam is not None else None):
+            if len(qator) > joylashuv.soat and qator[joylashuv.soat] is not None:
                 return False
     return True
 
 
-def _xlsx_kitobni_och(path: Path, *, data_only: bool) -> Workbook:
-    """Open an .xlsx workbook, converting ZIP/XML/IO failures to ParseError."""
+def _xlsx_kitobni_och(yol: Path, *, data_only: bool) -> Workbook:
+    """Excel faylini ochadi; shikastlangan fayl bo'lsa TahlilXatosi ko'taradi."""
     try:
-        return openpyxl.load_workbook(path, data_only=data_only)
-    except (BadZipFile, InvalidFileException, ET.ParseError, OSError) as exc:
-        raise ParseError(f"Excel faylini o'qib bo'lmadi ({path.name}): {exc}") from exc
+        return openpyxl.load_workbook(yol, data_only=data_only)
+    except (
+        BadZipFile,
+        InvalidFileException,
+        ET.ParseError,
+        XMLSyntaxError,
+        EOFError,
+        OSError,
+    ) as exc:
+        raise TahlilXatosi(f"Excel faylini o'qib bo'lmadi ({yol.name}): {exc}") from exc
 
 
-def _check_uncalculated_formulas(
-    path: Path, layout: ColumnLayout, start_row: int, warnings: list[str]
+def _hisoblanmagan_formulalarni_tekshir(
+    yol: Path, joylashuv: UstunJoyi, bosh_qator: int, ogohlantirishlar: list[str]
 ) -> None:
-    """A workbook never recalculated by Excel caches formula cells as None
-    under data_only=True — reopen without it to tell "genuinely blank" from
-    "formula Excel never evaluated"."""
-    wb_raw = _xlsx_kitobni_och(path, data_only=False)
+    """Excel'da saqlanmagan formulalar data_only=True da None ko'rinadi —
+    shuning uchun formula bormi yoki ustun haqiqatda bo'shmi, qayta ochib tekshiramiz.
+    """
+    xom_kitob = _xlsx_kitobni_och(yol, data_only=False)
     try:
-        ws_raw = wb_raw.worksheets[0]
-        has_formula = any(
-            len(row) > layout.hours
-            and isinstance(row[layout.hours], str)
-            and row[layout.hours].startswith("=")
-            for row in ws_raw.iter_rows(min_row=start_row, values_only=True)
+        xom_varaq = xom_kitob.worksheets[0]
+        formula_bor = any(
+            len(qator) > joylashuv.soat
+            and isinstance(qator[joylashuv.soat], str)
+            and qator[joylashuv.soat].startswith("=")
+            for qator in xom_varaq.iter_rows(min_row=bosh_qator, values_only=True)
         )
     finally:
-        wb_raw.close()
-    if has_formula:
-        raise ParseError(
+        xom_kitob.close()
+    if formula_bor:
+        raise TahlilXatosi(
             "soat ustunidagi formulalar hisoblanmagan;"
             " faylni Excelda ochib qayta saqlang"
         )
-    warnings.append("soat ustuni bo'sh: birorta kurs uchun ham soat topilmadi")
+    ogohlantirishlar.append("soat ustuni bo'sh: birorta kurs uchun ham soat topilmadi")
 
 
-def _varaqni_tahlil_qil(ws: Worksheet, path: Path, warnings: list[str]) -> ParseResult:
-    direction = resolve_direction(ws, warnings)
-    direction_code, direction_name = direction if direction is not None else ("", "")
+def _varaqni_tahlil_qil(
+    varaq: Worksheet, yol: Path, ogohlantirishlar: list[str]
+) -> TahlilNatijasi:
+    yonalish = yonalishni_top(varaq, ogohlantirishlar)
+    yonalish_kodi, yonalish_nomi = yonalish if yonalish is not None else ("", "")
 
-    year_cell = find_cell_containing(ws, "quv yili")
-    start_year = extract_start_year(str(year_cell.value)) if year_cell else ""
-    if not start_year:
-        warnings.append("o'quv yili topilmadi")
+    yil_katak = katakni_matn_bilan_top(varaq, "quv yili")
+    boshlanish_yili = boshlanish_yilini_ol(str(yil_katak.value)) if yil_katak else ""
+    if not boshlanish_yili:
+        ogohlantirishlar.append("o'quv yili topilmadi")
 
-    degree, _duration_text, edu_type = read_metadata(ws, warnings)
-    years = extract_program_years(ws)
-    n = round(years * 2)
+    daraja, _muddat_matni, talim_shakli = metamalumni_oqi(varaq, ogohlantirishlar)
+    yillar = dastur_muddatini_ol(varaq)
+    n = round(yillar * 2)
 
-    num_col, start_row = _find_anchor(ws, warnings)
-    layout = detect_course_columns(ws, num_col, start_row, warnings)
-    weekly_map, credit_map = detect_semester_column_maps(ws, start_row, n)
+    raqam_ustun, bosh_qator = _langar_katakni_top(varaq, ogohlantirishlar)
+    joylashuv = fan_ustunlarini_aniqla(varaq, raqam_ustun, bosh_qator, ogohlantirishlar)
+    haftalik_xarita, kredit_xarita = semestr_ustunlarini_aniqla(varaq, bosh_qator, n)
 
-    if _hours_column_all_blank(ws, layout, start_row):
-        _check_uncalculated_formulas(path, layout, start_row, warnings)
+    if _soat_ustuni_toliq_boshmi(varaq, joylashuv, bosh_qator):
+        _hisoblanmagan_formulalarni_tekshir(
+            yol, joylashuv, bosh_qator, ogohlantirishlar
+        )
 
-    core = parse_core_courses(ws, layout, credit_map, weekly_map, start_row, warnings)
-    slots = parse_selective_courses(
-        ws, layout, credit_map, weekly_map, start_row, warnings
+    majburiy = majburiy_fanlarni_oqi(
+        varaq, joylashuv, kredit_xarita, haftalik_xarita, bosh_qator, ogohlantirishlar
     )
-    _validate_section_totals(ws, layout, start_row, core, slots, warnings)
-    _validate_classroom_breakdown(core, slots, warnings)
-    _validate_credit_hours(core, slots, warnings)
+    tanlov = tanlov_fanlarni_oqi(
+        varaq, joylashuv, kredit_xarita, haftalik_xarita, bosh_qator, ogohlantirishlar
+    )
+    _bolim_jamini_tekshir(
+        varaq, joylashuv, bosh_qator, majburiy, tanlov, ogohlantirishlar
+    )
+    _auditoriya_taqsimotini_tekshir(majburiy, tanlov, ogohlantirishlar)
+    _kredit_soatlarni_tekshir(majburiy, tanlov, ogohlantirishlar)
 
-    return ParseResult(
-        direction_code=direction_code,
-        direction_name=direction_name,
-        start_year=start_year,
-        degree=degree,
-        duration_years=years,
-        edu_type=edu_type,
-        core=core,
-        slots=slots,
-        warnings=warnings,
+    return TahlilNatijasi(
+        yonalish_kodi=yonalish_kodi,
+        yonalish_nomi=yonalish_nomi,
+        boshlanish_yili=boshlanish_yili,
+        daraja=daraja,
+        davomiylik_yil=yillar,
+        talim_shakli=talim_shakli,
+        majburiy_fanlar=majburiy,
+        tanlov_fanlar=tanlov,
+        ogohlantirishlar=ogohlantirishlar,
     )
 
 
-def parse_workbook(path: Path) -> ParseResult:
-    """Parse one o'quv reja .xlsx into a ParseResult. The single entry point
-    both `parser.main` and `plans.importer` build on."""
-    warnings: list[str] = []
-    wb = _xlsx_kitobni_och(path, data_only=True)
+def kitobni_tahlil_qil(yol: Path) -> TahlilNatijasi:
+    """Bitta o'quv reja .xlsx faylini o'qib TahlilNatijasi qaytaradi."""
+    ogohlantirishlar: list[str] = []
+    kitob = _xlsx_kitobni_och(yol, data_only=True)
     try:
-        if not wb.worksheets:
-            raise ParseError("Excel faylida varaqlar topilmadi")
-        if len(wb.sheetnames) > 1:
-            warnings.append(
+        if not kitob.worksheets:
+            raise TahlilXatosi("Excel faylida varaqlar topilmadi")
+        if len(kitob.sheetnames) > 1:
+            ogohlantirishlar.append(
                 "varaqda bir nechta varaq bor; birinchisi "
-                f"{wb.sheetnames[0]!r} o'qildi, qolganlari e'tiborsiz qoldirildi: "
-                f"{wb.sheetnames[1:]}"
+                f"{kitob.sheetnames[0]!r} o'qildi, qolganlari e'tiborsiz qoldirildi: "
+                f"{kitob.sheetnames[1:]}"
             )
-        return _varaqni_tahlil_qil(wb.worksheets[0], path, warnings)
+        return _varaqni_tahlil_qil(kitob.worksheets[0], yol, ogohlantirishlar)
     finally:
-        wb.close()
+        kitob.close()

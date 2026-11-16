@@ -1,8 +1,7 @@
-"""Empty topic rows for the o'quv dastur's per-type mashg'ulot tables.
+"""O'quv dasturidagi mashg'ulot jadvallari uchun bo'sh mavzu qatorlarini tuzadi.
 
-Row count is fully determined by the hour total — each topic occupies a
-fixed number of academic hours in the standard form, so the teacher only
-fills in titles.
+Qatorlar soni jami soatga bog'liq — standart shaklda har bir mavzu belgilangan
+soatga ega, o'qituvchi esa Word'da faqat mavzu nomlarini to'ldirib chiqadi.
 """
 
 from dataclasses import dataclass
@@ -27,10 +26,11 @@ class Natija:
 def bosh_mavzular(
     soat: int, prefiks: str, *, soat_mavzuda: int = SOAT_MAVZUDA
 ) -> list[Mavzu]:
-    """`soat // soat_mavzuda` blank rows numbered `{prefiks}1`, `{prefiks}2`,
-    ... A trailing short row absorbs a leftover remainder; no rows below
-    zero. `soat_mavzuda` differs for section 5 (2h/topic) vs section 6's
-    self-study tasks (4h/task, per the reference document)."""
+    """`soat // soat_mavzuda` ta `{prefiks}1`, `{prefiks}2`... bo'sh qatorlar yasaydi.
+
+    Qoldiq chiqsa oxiriga qisqaroq qator qo'shiladi; 0 dan kichik bo'lsa bo'sh.
+    5-bo'limda 2 soat/mavzu, 6-bo'lim mustaqil topshiriqlarda esa 4 soat/topshiriq.
+    """
     if soat <= 0:
         return []
     to_liq, qoldiq = divmod(soat, soat_mavzuda)

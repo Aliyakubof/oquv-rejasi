@@ -1,4 +1,4 @@
-"""Excel (.xlsx) export of teacher coverage and detailed workload rows."""
+"""O'qituvchilar qamrovi va batafsil yuklama qatorlarini Excel (.xlsx) ga chiqarish."""
 
 import re
 from io import BytesIO
@@ -53,7 +53,7 @@ _TAFSILOT_USTUNLAR = [
 
 
 def _xavfsiz_matn(qiymat: object) -> str:
-    """Strip XML-illegal control characters and neutralize Excel formulas."""
+    """XML dagi nojoiz belgilarni tozalab, Excel formulasini zararsizlantiradi."""
     matn = _XML_TAQIQ.sub("", "" if qiymat is None else str(qiymat))
     if matn[:1] in ("\t", "\r") or matn.lstrip()[:1] in ("=", "+", "-", "@"):
         return "'" + matn
@@ -63,7 +63,7 @@ def _xavfsiz_matn(qiymat: object) -> str:
 def oqituvchilar_excel(
     akademik_yil: int, *, kafedra: Department | None = None
 ) -> BytesIO:
-    """Build a two-sheet .xlsx workbook: teacher summary + detailed Yuklama rows."""
+    """Ikki varaqli .xlsx yasaydi: o'qituvchilar jamlanmasi va batafsil yuklama."""
     holatlar = yuklama_kamomadi(akademik_yil, kafedra=kafedra)
     kitob = openpyxl.Workbook()
 
@@ -336,7 +336,7 @@ def _svod_yonalish_varaqi(
 
 
 def svod_excel(akademik_yil: int) -> BytesIO:
-    """Build university-wide 3-sheet consolidated workload .xlsx report."""
+    """Universitet miqyosidagi 3 varaqli yig'ma (svod) .xlsx hisobot yaratadi."""
     kitob = openpyxl.Workbook()
     taqsimot = ofis_taqsimoti(akademik_yil)
     qamrovlar = kafedra_qamrovi(

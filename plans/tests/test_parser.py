@@ -1,5 +1,5 @@
-"""Tests for parser/parser.py, built on small in-memory openpyxl workbooks
-that mirror the real layouts documented in docs/oquv_reja_map.md."""
+"""parser/parser.py uchun testlar: docs/oquv_reja_map.md dagi haqiqiy
+jadvallarga o'xshash kichik openpyxl fayllar xotirada yasalib tekshiriladi."""
 
 import tempfile
 from pathlib import Path
@@ -8,50 +8,48 @@ from unittest.mock import patch
 import openpyxl
 from django.test import SimpleTestCase
 
-from parser import main as parser_main
-from parser.formatter import build_markdown
-from parser.models import Alternative, Course, ParseError, SelectiveSlot
-from parser.parser import parse_workbook
+from parser import main as parser_asosiy
+from parser.formatter import markdown_yarat
+from parser.models import MajburiyFan, TahlilXatosi, TanlovFani, TanlovVarianti
+from parser.parser import kitobni_tahlil_qil
 
-_CREATED_WORKBOOKS: list[Path] = []
+_YARATILGAN_KITOBLAR: list[Path] = []
 
 
-def _write_workbook(
-    rows: dict[tuple[int, int], object], sheet_names: list[str] | None = None
+def _kitob_yozish(
+    qatorlar: dict[tuple[int, int], object], varaq_nomlari: list[str] | None = None
 ) -> Path:
-    """Build a workbook from {(row, col): value} (1-based) and save it to a
-    temp file, returning its path. Extra sheets, if named, are left empty."""
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    for (row, col), value in rows.items():
-        ws.cell(row=row, column=col, value=value)
-    for name in (sheet_names or [])[1:]:
-        wb.create_sheet(name)
-    if sheet_names:
-        ws.title = sheet_names[0]
-    tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
-    tmp.close()
+    """{(qator, ustun): qiymat} lug'atidan vaqtincha .xlsx fayl yasaydi."""
+    kitob = openpyxl.Workbook()
+    varaq = kitob.active
+    for (qator, ustun), qiymat in qatorlar.items():
+        varaq.cell(row=qator, column=ustun, value=qiymat)
+    for nom in (varaq_nomlari or [])[1:]:
+        kitob.create_sheet(nom)
+    if varaq_nomlari:
+        varaq.title = varaq_nomlari[0]
+    vaqtincha = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
+    vaqtincha.close()
     try:
-        wb.save(tmp.name)
+        kitob.save(vaqtincha.name)
     finally:
-        wb.close()
-    path = Path(tmp.name)
-    _CREATED_WORKBOOKS.append(path)
-    return path
+        kitob.close()
+    yol = Path(vaqtincha.name)
+    _YARATILGAN_KITOBLAR.append(yol)
+    return yol
 
 
-def _standard_layout(
-    n: int, direction: str, duration: str, year: str
+def _standart_jadval(
+    n: int, yonalish: str, muddat: str, yil: str
 ) -> dict[tuple[int, int], object]:
-    """A minimal but complete sheet: metadata block, one core course, one
-    selective slot with two alternatives, `n` semesters."""
-    rows: dict[tuple[int, int], object] = {
-        (2, 1): direction,
-        (3, 1): f"O'qish muddati - {duration}",
+    """Minimal to'liq jadval: meta-qatorlar, bitta majburiy va bitta tanlov fan."""
+    qatorlar: dict[tuple[int, int], object] = {
+        (2, 1): yonalish,
+        (3, 1): f"O'qish muddati - {muddat}",
         (4, 1): "Akademik daraja - BAKALAVR",
         (4, 2): "O'qish shakli - Kredit-modul",
         (5, 1): "Ta'lim shakli - kunduzgi",
-        (6, 1): f"{year} o'quv yili",
+        (6, 1): f"{yil} o'quv yili",
         (17, 1): "II. O'QUV REJASI",
         (18, 4): "Umumiy yuklama",
         (18, 5): "Auditoriya",
@@ -84,269 +82,274 @@ def _standard_layout(
         (25, 3): "Jami:",
     }
     for i in range(n):
-        rows[(19, 11 + i)] = i + 1
-        rows[(19, 19 + i)] = i + 1
-    rows[(21, 11)] = 4  # course: semester 1 weekly hours
-    rows[(21, 19)] = 4  # course: semester 1 credits
-    rows[(23, 13)] = 3  # selective slot: semester 3 weekly hours
-    rows[(23, 21)] = 3  # selective slot: semester 3 credits
-    return rows
+        qatorlar[(19, 11 + i)] = i + 1
+        qatorlar[(19, 19 + i)] = i + 1
+    qatorlar[(21, 11)] = 4  # majburiy fan: 1-semestr haftalik soati
+    qatorlar[(21, 19)] = 4  # majburiy fan: 1-semestr krediti
+    qatorlar[(23, 13)] = 3  # tanlov fan: 3-semestr haftalik soati
+    qatorlar[(23, 21)] = 3  # tanlov fan: 3-semestr krediti
+    return qatorlar
 
 
-class ParseWorkbookHappyPathTest(SimpleTestCase):
+class KitobTahliliMuvaffaqiyatTest(SimpleTestCase):
     def tearDown(self) -> None:
-        while _CREATED_WORKBOOKS:
-            _CREATED_WORKBOOKS.pop().unlink(missing_ok=True)
+        while _YARATILGAN_KITOBLAR:
+            _YARATILGAN_KITOBLAR.pop().unlink(missing_ok=True)
         super().tearDown()
 
     def test_toliq_varaqni_ochadi(self) -> None:
-        path = _write_workbook(
-            _standard_layout(
+        yol = _kitob_yozish(
+            _standart_jadval(
                 8,
                 "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim",
                 "4 yil",
                 "2024-2025",
             )
         )
-        result = parse_workbook(path)
-        self.assertEqual(result.direction_code, "60110500")
-        self.assertEqual(result.direction_name, "Boshlang'ich ta'lim")
-        self.assertEqual(result.start_year, "2024")
-        self.assertEqual(result.duration_years, 4)
-        self.assertEqual(result.edu_type, "Kunduzgi")
-        self.assertEqual(len(result.core), 1)
-        self.assertEqual(result.core[0].semester_credits, {1: 4})
-        self.assertEqual(len(result.slots), 1)
-        self.assertEqual(len(result.slots[0].alternatives), 2)
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(natija.yonalish_kodi, "60110500")
+        self.assertEqual(natija.yonalish_nomi, "Boshlang'ich ta'lim")
+        self.assertEqual(natija.boshlanish_yili, "2024")
+        self.assertEqual(natija.davomiylik_yil, 4)
+        self.assertEqual(natija.talim_shakli, "Kunduzgi")
+        self.assertEqual(len(natija.majburiy_fanlar), 1)
+        self.assertEqual(natija.majburiy_fanlar[0].semestr_kreditlari, {1: 4})
+        self.assertEqual(len(natija.tanlov_fanlar), 1)
+        self.assertEqual(len(natija.tanlov_fanlar[0].variantlar), 2)
 
     def test_slash_yil_ham_ishlaydi(self) -> None:
-        path = _write_workbook(
-            _standard_layout(
+        yol = _kitob_yozish(
+            _standart_jadval(
                 8,
                 "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim",
                 "4 yil",
                 "2023/2024",
             )
         )
-        result = parse_workbook(path)
-        self.assertEqual(result.start_year, "2023")
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(natija.boshlanish_yili, "2023")
 
     def test_en_dash_yonalish(self) -> None:
-        path = _write_workbook(
-            _standard_layout(
+        yol = _kitob_yozish(
+            _standart_jadval(
                 8,
                 "Ta'lim yo'nalishi: 60110500 – Boshlang'ich ta'lim",
                 "4 yil",
                 "2024-2025",
             )
         )
-        result = parse_workbook(path)
-        self.assertEqual(result.direction_code, "60110500")
-        self.assertEqual(result.direction_name, "Boshlang'ich ta'lim")
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(natija.yonalish_kodi, "60110500")
+        self.assertEqual(natija.yonalish_nomi, "Boshlang'ich ta'lim")
 
     def test_uch_yillik_dastur_oltita_semestr(self) -> None:
-        path = _write_workbook(
-            _standard_layout(
+        yol = _kitob_yozish(
+            _standart_jadval(
                 6,
                 "Ta'lim yo'nalishi: 60111200 - Jismoniy madaniyat",
                 "3 yil",
                 "2024-2025",
             )
         )
-        result = parse_workbook(path)
-        self.assertEqual(result.duration_years, 3)
-        self.assertEqual(result.core[0].semester_credits, {1: 4})
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(natija.davomiylik_yil, 3)
+        self.assertEqual(natija.majburiy_fanlar[0].semestr_kreditlari, {1: 4})
 
     def test_faol_varaq_birinchisi_bolmasa_ham_birinchisi_oqiladi(self) -> None:
-        rows = _standard_layout(
+        qatorlar = _standart_jadval(
             8, "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim", "4 yil", "2024-2025"
         )
-        path = _write_workbook(rows, sheet_names=["Kunduzgi", "Sirtqi"])
-        wb = openpyxl.load_workbook(path)
+        yol = _kitob_yozish(qatorlar, varaq_nomlari=["Kunduzgi", "Sirtqi"])
+        kitob = openpyxl.load_workbook(yol)
         try:
-            wb.active = 1
-            wb.save(path)
+            kitob.active = 1
+            kitob.save(yol)
         finally:
-            wb.close()
-        result = parse_workbook(path)
-        self.assertEqual(result.direction_code, "60110500")
-        self.assertTrue(any("bir nechta varaq" in w for w in result.warnings))
+            kitob.close()
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(natija.yonalish_kodi, "60110500")
+        self.assertTrue(any("bir nechta varaq" in o for o in natija.ogohlantirishlar))
 
     def test_vergulli_kredit_yaxlitlanadi_va_ogohlantiradi(self) -> None:
-        rows = _standard_layout(
+        qatorlar = _standart_jadval(
             8, "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim", "4 yil", "2024-2025"
         )
-        rows[(21, 19)] = "1,5"
-        path = _write_workbook(rows)
-        result = parse_workbook(path)
-        self.assertEqual(result.core[0].semester_credits, {1: 2})
-        self.assertTrue(any("1,5" in w for w in result.warnings))
+        qatorlar[(21, 19)] = "1,5"
+        yol = _kitob_yozish(qatorlar)
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(natija.majburiy_fanlar[0].semestr_kreditlari, {1: 2})
+        self.assertTrue(any("1,5" in o for o in natija.ogohlantirishlar))
 
     def test_talim_shakli_oqish_shakli_bilan_adashmaydi(self) -> None:
-        rows = _standard_layout(
+        qatorlar = _standart_jadval(
             8, "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim", "4 yil", "2024-2025"
         )
-        path = _write_workbook(rows)
-        result = parse_workbook(path)
-        self.assertEqual(result.edu_type, "Kunduzgi")
+        yol = _kitob_yozish(qatorlar)
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(natija.talim_shakli, "Kunduzgi")
 
     def test_talim_shakli_apostrof_variantlari(self) -> None:
-        for label in ("Ta’lim shakli - kunduzgi", "Ta‘lim shakli - kunduzgi"):
-            rows = _standard_layout(
+        for yorliq in ("Ta’lim shakli - kunduzgi", "Ta‘lim shakli - kunduzgi"):
+            qatorlar = _standart_jadval(
                 8,
                 "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim",
                 "4 yil",
                 "2024-2025",
             )
-            rows[(5, 1)] = label
-            path = _write_workbook(rows)
-            result = parse_workbook(path)
-            self.assertEqual(result.edu_type, "Kunduzgi")
+            qatorlar[(5, 1)] = yorliq
+            yol = _kitob_yozish(qatorlar)
+            natija = kitobni_tahlil_qil(yol)
+            self.assertEqual(natija.talim_shakli, "Kunduzgi")
 
     def test_notanish_talim_shakli_ogohlantiradi(self) -> None:
-        rows = _standard_layout(
+        qatorlar = _standart_jadval(
             8, "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim", "4 yil", "2024-2025"
         )
-        rows[(5, 1)] = "Ta'lim shakli - masofaviy"
-        path = _write_workbook(rows)
-        result = parse_workbook(path)
-        self.assertEqual(result.edu_type, "")
-        self.assertTrue(any("ta'lim shakli tanilmadi" in w for w in result.warnings))
+        qatorlar[(5, 1)] = "Ta'lim shakli - masofaviy"
+        yol = _kitob_yozish(qatorlar)
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(natija.talim_shakli, "")
+        self.assertTrue(
+            any("ta'lim shakli tanilmadi" in o for o in natija.ogohlantirishlar)
+        )
 
     def test_kurs_loyihasi_ishi_yorlig_topiladi(self) -> None:
-        rows = _standard_layout(
+        qatorlar = _standart_jadval(
             8,
             "Ta'lim yo'nalishi: 60610100 - Axborot texnologiyalari",
             "4 yil",
             "2024-2025",
         )
-        rows[(19, 10)] = "Kurs loyihasi (ishi)"
-        rows[(21, 10)] = 20
-        path = _write_workbook(rows)
-        result = parse_workbook(path)
-        self.assertEqual(result.core[0].course_proj, 20)
+        qatorlar[(19, 10)] = "Kurs loyihasi (ishi)"
+        qatorlar[(21, 10)] = 20
+        yol = _kitob_yozish(qatorlar)
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(natija.majburiy_fanlar[0].kurs_ishi, 20)
 
     def test_ustun_raqamlari_qatori_yoq_bolsada_yorliq_orqali_topiladi(self) -> None:
-        """Map §4.4: the logical column-number row isn't present in every
-        file — detection must not depend on it."""
-        rows = _standard_layout(
+        """Ustun raqamlari qatori bo'lmasa ham yorliq orqali topilishi kerak."""
+        qatorlar = _standart_jadval(
             8, "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim", "4 yil", "2024-2025"
         )
-        path = _write_workbook(rows)
-        result = parse_workbook(path)
-        self.assertEqual(len(result.core), 1)
+        yol = _kitob_yozish(qatorlar)
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(len(natija.majburiy_fanlar), 1)
 
-    def test_fallback_ustun_raqami_qatoridan_topiladi(self) -> None:
-        """When the group-header labels are absent, fall back to the
-        logical column-number row (map §4.4)."""
-        rows = _standard_layout(
+    def test_zaxira_ustun_raqami_qatoridan_topiladi(self) -> None:
+        """Guruh sarlavha yorliqlari yo'q bo'lsa, mantiqiy ustun raqamlaridan topadi."""
+        qatorlar = _standart_jadval(
             8, "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim", "4 yil", "2024-2025"
         )
-        del rows[(18, 11)]
-        del rows[(18, 19)]
-        # Logical column numbers: weekly = 12..19, credit = 20..27 (offset 11).
+        del qatorlar[(18, 11)]
+        del qatorlar[(18, 19)]
+        # Mantiqiy ustun raqamlari: haftalik = 12..19, kredit = 20..27 (siljish 11).
         for i in range(8):
-            rows[(19, 11 + i)] = 12 + i
-            rows[(19, 19 + i)] = 20 + i
-        path = _write_workbook(rows)
-        result = parse_workbook(path)
-        self.assertEqual(len(result.core), 1)
-        self.assertEqual(result.core[0].semester_credits, {1: 4})
+            qatorlar[(19, 11 + i)] = 12 + i
+            qatorlar[(19, 19 + i)] = 20 + i
+        yol = _kitob_yozish(qatorlar)
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(len(natija.majburiy_fanlar), 1)
+        self.assertEqual(natija.majburiy_fanlar[0].semestr_kreditlari, {1: 4})
 
 
-class ParseWorkbookFailurePathTest(SimpleTestCase):
+class KitobTahliliXatoTest(SimpleTestCase):
     def tearDown(self) -> None:
-        while _CREATED_WORKBOOKS:
-            _CREATED_WORKBOOKS.pop().unlink(missing_ok=True)
+        while _YARATILGAN_KITOBLAR:
+            _YARATILGAN_KITOBLAR.pop().unlink(missing_ok=True)
         super().tearDown()
 
     def test_1_00_belgisi_yoq_xato(self) -> None:
-        # No course table at all: nothing in the sheet normalizes to a
-        # section marker, so no anchor candidate exists.
-        rows = {
+        # Fanlar jadvali umuman yo'q: langar belgi topilmaydi.
+        qatorlar = {
             (2, 1): "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim",
             (3, 1): "O'qish muddati - 4 yil",
             (6, 1): "2024-2025 o'quv yili",
             (7, 1): "II. O'QUV REJASI",
         }
-        path = _write_workbook(rows)
-        with self.assertRaises(ParseError):
-            parse_workbook(path)
+        yol = _kitob_yozish(qatorlar)
+        with self.assertRaises(TahlilXatosi):
+            kitobni_tahlil_qil(yol)
 
     def test_oqish_muddati_yoq_xato(self) -> None:
-        rows = _standard_layout(
+        qatorlar = _standart_jadval(
             8, "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim", "4 yil", "2024-2025"
         )
-        del rows[(3, 1)]
-        path = _write_workbook(rows)
-        with self.assertRaises(ParseError):
-            parse_workbook(path)
+        del qatorlar[(3, 1)]
+        yol = _kitob_yozish(qatorlar)
+        with self.assertRaises(TahlilXatosi):
+            kitobni_tahlil_qil(yol)
 
     def test_semestr_ustunlari_topilmasa_xato(self) -> None:
-        rows = _standard_layout(
+        qatorlar = _standart_jadval(
             8, "Ta'lim yo'nalishi: 60110500 - Boshlang'ich ta'lim", "4 yil", "2024-2025"
         )
-        for key in list(rows):
-            row, col = key
-            if row in (18, 19) and col >= 11:
-                del rows[key]
-        path = _write_workbook(rows)
-        with self.assertRaises(ParseError):
-            parse_workbook(path)
+        for kalit in list(qatorlar):
+            qator, ustun = kalit
+            if qator in (18, 19) and ustun >= 11:
+                del qatorlar[kalit]
+        yol = _kitob_yozish(qatorlar)
+        with self.assertRaises(TahlilXatosi):
+            kitobni_tahlil_qil(yol)
 
     def test_buzilgan_xlsx_parse_xato_beradi(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            bad_path = Path(tmpdir) / "buzilgan.xlsx"
-            bad_path.write_bytes(b"not a zip archive")
-            with self.assertRaises(ParseError):
-                parse_workbook(bad_path)
+        with tempfile.TemporaryDirectory() as vaqtincha_papka:
+            buzilgan = Path(vaqtincha_papka) / "buzilgan.xlsx"
+            buzilgan.write_bytes(b"zip arxivi emas")
+            with self.assertRaises(TahlilXatosi):
+                kitobni_tahlil_qil(buzilgan)
 
 
-class FormatterVaCliTests(SimpleTestCase):
+class FormatlashVaCliTests(SimpleTestCase):
     def tearDown(self) -> None:
-        while _CREATED_WORKBOOKS:
-            _CREATED_WORKBOOKS.pop().unlink(missing_ok=True)
+        while _YARATILGAN_KITOBLAR:
+            _YARATILGAN_KITOBLAR.pop().unlink(missing_ok=True)
         super().tearDown()
 
-    def test_build_markdown_majburiy_va_tanlov_fanlar(self) -> None:
-        core = [
-            Course(
-                num="1.01",
-                code="FAN1",
-                name="Matematika",
-                hours=120,
-                classroom=60,
-                lecture=30,
-                practice=30,
-                lab=0,
+    def test_markdown_yarat_majburiy_va_tanlov_fanlar(self) -> None:
+        majburiy = [
+            MajburiyFan(
+                raqam="1.01",
+                kod="FAN1",
+                nom="Matematika",
+                soat=120,
+                auditoriya=60,
+                maruza=30,
+                amaliyot=30,
+                laboratoriya=0,
                 seminar=0,
-                course_proj=0,
-                semester_credits={1: 4},
-                semester_weekly_hours={1: 4},
+                kurs_ishi=0,
+                semestr_kreditlari={1: 4},
+                semestr_haftalik_soatlar={1: 4},
             )
         ]
-        slots = [
-            SelectiveSlot(
-                num="2.01",
-                hours=90,
-                alternatives=[
-                    Alternative(
-                        code="T1",
-                        name="Algoritmlar",
-                        classroom=45,
-                        lecture=15,
-                        practice=30,
-                        lab=0,
+        tanlov = [
+            TanlovFani(
+                raqam="2.01",
+                soat=90,
+                variantlar=[
+                    TanlovVarianti(
+                        kod="T1",
+                        nom="Algoritmlar",
+                        auditoriya=45,
+                        maruza=15,
+                        amaliyot=30,
+                        laboratoriya=0,
                         seminar=0,
-                        course_proj=0,
+                        kurs_ishi=0,
                     )
                 ],
-                semester_credits={2: 3},
-                semester_weekly_hours={2: 3},
+                semestr_kreditlari={2: 3},
+                semestr_haftalik_soatlar={2: 3},
             )
         ]
-        md = build_markdown(
-            "Dasturiy injiniring", "2024", "BAKALAVR", "4 yil", "Kunduzgi", core, slots
+        md = markdown_yarat(
+            "Dasturiy injiniring",
+            "2024",
+            "BAKALAVR",
+            "4 yil",
+            "Kunduzgi",
+            majburiy,
+            tanlov,
         )
         self.assertIn("# Oquv Reja: Dasturiy injiniring", md)
         self.assertIn("## Majburiy Fanlar", md)
@@ -356,28 +359,63 @@ class FormatterVaCliTests(SimpleTestCase):
         self.assertIn("**O'quv yili:** 2024", md)
 
     def test_parser_main_cli_kodlari(self) -> None:
-        xlsx = _write_workbook(
-            _standard_layout(
+        xlsx = _kitob_yozish(
+            _standart_jadval(
                 8,
                 "Ta'lim yo'nalishi: 60610100 - Axborot texnologiyalari",
                 "4 yil",
                 "2024-2025",
             )
         )
-        with tempfile.TemporaryDirectory() as out_dir:
-            with patch.object(parser_main, "OUTPUT_DIR", Path(out_dir)):
+        with tempfile.TemporaryDirectory() as chiqish_papkasi:
+            with patch.object(parser_asosiy, "CHIQISH_PAPKA", Path(chiqish_papkasi)):
                 with patch("sys.argv", ["parser.main", str(xlsx)]):
-                    self.assertEqual(parser_main.main(), 0)
-                yozilgan = list(Path(out_dir).glob("*.md"))
+                    self.assertEqual(parser_asosiy.asosiy(), 0)
+                yozilgan = list(Path(chiqish_papkasi).glob("*.md"))
                 self.assertEqual(len(yozilgan), 1)
                 self.assertIn("Axborot texnologiyalari", yozilgan[0].read_text("utf-8"))
 
                 with patch(
-                    "sys.argv", ["parser.main", str(Path(out_dir) / "yoq.xlsx")]
+                    "sys.argv", ["parser.main", str(Path(chiqish_papkasi) / "yoq.xlsx")]
                 ):
-                    self.assertEqual(parser_main.main(), 1)
+                    self.assertEqual(parser_asosiy.asosiy(), 1)
 
-                bad = Path(out_dir) / "bad.xlsx"
-                bad.write_bytes(b"corrupt")
-                with patch("sys.argv", ["parser.main", str(bad)]):
-                    self.assertEqual(parser_main.main(), 1)
+                yomon = Path(chiqish_papkasi) / "bad.xlsx"
+                yomon.write_bytes(b"buzilgan")
+                with patch("sys.argv", ["parser.main", str(yomon)]):
+                    self.assertEqual(parser_asosiy.asosiy(), 1)
+
+    def test_parser_bosh_boshliq_tanlov_qatori_va_kasr_intga(self) -> None:
+        from parser.parser import _intga
+
+        self.assertIsNone(_intga(1.5))
+        self.assertIsNone(_intga(-3))
+        self.assertEqual(_intga(72.0), 72)
+
+        qatorlar = _standart_jadval(
+            8,
+            "Ta'lim yo'nalishi: 60610100 - Axborot texnologiyalari",
+            "4 yil",
+            "2024-2025",
+        )
+        # 3-variant qatorining raqam katagida faqat bo'shliq bo'lsa ham o'qilishi shart.
+        qatorlar[(25, 1)] = "   "
+        qatorlar[(25, 2)] = "TV-2.2"
+        qatorlar[(25, 3)] = "Sun'iy intellekt"
+        qatorlar[(26, 1)] = "Jami:"
+        yol = _kitob_yozish(qatorlar)
+        natija = kitobni_tahlil_qil(yol)
+        self.assertEqual(len(natija.tanlov_fanlar), 1)
+        self.assertEqual(len(natija.tanlov_fanlar[0].variantlar), 3)
+        self.assertEqual(natija.tanlov_fanlar[0].variantlar[2].nom, "Sun'iy intellekt")
+
+    def test_buzilgan_xml_tahlil_xatosiga_otadi(self) -> None:
+        from zipfile import ZipFile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            yol = Path(tmp) / "xml_buzilgan.xlsx"
+            with ZipFile(yol, "w") as zf:
+                zf.writestr("[Content_Types].xml", "<Types><broken>")
+                zf.writestr("xl/workbook.xml", "<workbook/>")
+            with self.assertRaises(TahlilXatosi):
+                kitobni_tahlil_qil(yol)

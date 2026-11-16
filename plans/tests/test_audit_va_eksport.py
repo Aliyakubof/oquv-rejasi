@@ -1,5 +1,5 @@
-"""Regression tests for Excel export hardening, audit IP/object tracking,
-dastur rendering/workflow guards, parser validation, and test MEDIA_ROOT isolation."""
+"""Excel eksporti himoyasi, audit IP/obyekt yozuvi, dastur cheklovlari,
+parser tekshiruvlari va test MEDIA_ROOT izolyatsiyasi uchun testlar."""
 
 import math
 import tempfile
@@ -20,8 +20,8 @@ from docx import Document
 from docx.oxml.ns import qn
 
 from accounts.models import Department, Foydalanuvchi, OqituvchiProfil, OqituvchiTuri
-from parser.models import ParseError
-from parser.parser import _to_float, parse_workbook
+from parser.models import TahlilXatosi
+from parser.parser import _floatga, kitobni_tahlil_qil
 from plans import dashboard
 from plans.audit import audit_yoz
 from plans.dastur.service import dastur_render
@@ -38,12 +38,12 @@ from plans.models import (
     Yuklama,
 )
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
-from web.tests.helpers import login, office_admin_yarat
+from web.tests.helpers import ofis_admin_yarat, tizimga_kir
 
 
 class EksportXavfsizlikTests(TestCase):
@@ -60,12 +60,12 @@ class EksportXavfsizlikTests(TestCase):
         profil = OqituvchiProfil.objects.create(
             foydalanuvchi=foyd, kafedra=kafedra, turi=turi
         )
-        reja = make_reja(boshlanish_yili=yil)
-        fan = make_fan(reja, kafedra=kafedra, nomi='=HYPERLINK("http://x")')
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        reja = reja_yasa(boshlanish_yili=yil)
+        fan = fan_yasa(reja, kafedra=kafedra, nomi='=HYPERLINK("http://x")')
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=profil)
 
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.get(reverse("office:oqituvchi_excel"), {"yil": yil})
         self.assertEqual(javob.status_code, 200)
 
@@ -138,8 +138,8 @@ class AuditLogTests(TestCase):
 class DasturXavfsizlikTests(TestCase):
     def setUp(self) -> None:
         self.kafedra = Department.objects.create(nomi="IT & AI <Lab>")
-        self.reja = make_reja(boshlanish_yili=dashboard.joriy_akademik_yil())
-        self.fan = make_fan(
+        self.reja = reja_yasa(boshlanish_yili=dashboard.joriy_akademik_yil())
+        self.fan = fan_yasa(
             self.reja,
             kafedra=self.kafedra,
             nomi="C++ <Algorithms> & Systems",
@@ -149,7 +149,7 @@ class DasturXavfsizlikTests(TestCase):
             seminar_soat=16,
         )
         self.variant = self.fan.tanlangan_variant
-        self.fs = make_fan_semestr(
+        self.fs = fan_semestr_yasa(
             self.variant,
             semestr=1,
             maruza_soat=0,
@@ -180,13 +180,13 @@ class DasturXavfsizlikTests(TestCase):
         self.assertEqual(sum(kengliklar), 9961)
 
     def test_eski_urinish_rad_va_db_constraint(self) -> None:
-        oqituvchi = make_oqituvchi(kafedra=self.kafedra)
+        oqituvchi = oqituvchi_yasa(kafedra=self.kafedra)
         Yuklama.objects.create(
             fan_semestr=self.fs, tur=SoatTuri.MARUZA, oqituvchi=oqituvchi
         )
         fayl = SimpleUploadedFile("d.docx", b"abc")
         v1 = dastur_topshirish(self.variant, oqituvchi, fayl)
-        admin = office_admin_yarat()
+        admin = ofis_admin_yarat()
         dastur_rad_etish(v1, admin, "Kamchilik bor")
         v2 = dastur_topshirish(
             self.variant, oqituvchi, SimpleUploadedFile("d2.docx", b"xyz")
@@ -210,15 +210,15 @@ class DasturXavfsizlikTests(TestCase):
 class ParserVaMuhitTests(SimpleTestCase):
     def test_to_float_chegara_holatlari(self) -> None:
         for yaroqsiz in (True, False, "nan", "inf", "-inf", math.nan, math.inf):
-            self.assertIsNone(_to_float(yaroqsiz))
-        self.assertEqual(_to_float("3,5"), 3.5)
+            self.assertIsNone(_floatga(yaroqsiz))
+        self.assertEqual(_floatga("3,5"), 3.5)
 
     def test_bosh_yoki_maruzasiz_kitob_xato_kotaradi(self) -> None:
         bosh_wb = openpyxl.Workbook()
         bosh_wb._sheets.clear()
         with mock.patch("parser.parser.openpyxl.load_workbook", return_value=bosh_wb):
-            with self.assertRaises(ParseError):
-                parse_workbook(Path("dummy.xlsx"))
+            with self.assertRaises(TahlilXatosi):
+                kitobni_tahlil_qil(Path("dummy.xlsx"))
 
         with tempfile.TemporaryDirectory() as tmp:
             maruzasiz_yoli = Path(tmp) / "maruzasiz.xlsx"
@@ -231,8 +231,8 @@ class ParserVaMuhitTests(SimpleTestCase):
             ws.cell(row=19, column=8, value="Seminar")
             ws.cell(row=20, column=1, value="1.00")
             wb2.save(maruzasiz_yoli)
-            with self.assertRaises(ParseError):
-                parse_workbook(maruzasiz_yoli)
+            with self.assertRaises(TahlilXatosi):
+                kitobni_tahlil_qil(maruzasiz_yoli)
 
     def test_media_root_test_papka_ichida(self) -> None:
         temp_qism = Path(tempfile.gettempdir()).resolve()

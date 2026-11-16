@@ -76,6 +76,14 @@
     font-size: 11px;
   }
 
+  body.ui-font-yirik {
+    font-size: 13px;
+  }
+
+  body.ui-font-juda_yirik {
+    font-size: 15px;
+  }
+
   .navbar,
   .test-rejimi,
   .messages,
@@ -129,6 +137,20 @@
     min-width: 0 !important;
     width: 100%;
     font-size: 10.5px;
+  }
+
+  body.ui-font-yirik table {
+    font-size: 12px;
+  }
+
+  body.ui-font-juda_yirik table {
+    font-size: 13.5px;
+  }
+
+  body.ui-kontrast th,
+  body.ui-kontrast td {
+    border-color: #000 !important;
+    color: #000 !important;
   }
 
   th,

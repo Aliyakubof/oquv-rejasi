@@ -3,7 +3,7 @@ from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 from django.utils import timezone
 
-from accounts.phone import normalize_phone, validate_uzbek_phone
+from accounts.phone import telefonni_normallashtir, validate_uzbek_phone
 
 
 class Rol(models.TextChoices):
@@ -23,7 +23,7 @@ class FoydalanuvchiManager(BaseUserManager):
     def _create_user(
         self, telefon: str, password: str | None, **extra_fields: object
     ) -> "Foydalanuvchi":
-        telefon = normalize_phone(telefon)
+        telefon = telefonni_normallashtir(telefon)
         user = self.model(telefon=telefon, **extra_fields)
         user.set_password(password)
         user.full_clean(exclude=["password"])
@@ -48,7 +48,7 @@ class FoydalanuvchiManager(BaseUserManager):
 
 
 class Foydalanuvchi(AbstractBaseUser, PermissionsMixin):
-    """Custom user: logs in with phone number, not username/email."""
+    """Tizim foydalanuvchisi: login/email emas, telefon raqam bilan kiradi."""
 
     telefon = models.CharField(
         max_length=13,
@@ -85,6 +85,11 @@ class Foydalanuvchi(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "telefon"
     REQUIRED_FIELDS = ["first_name", "last_name"]
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["rol", "is_active"]),
+        ]
+
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}".strip() or self.telefon
 
@@ -96,7 +101,7 @@ class Foydalanuvchi(AbstractBaseUser, PermissionsMixin):
 
     @property
     def rasmiy_qisqa_ism(self) -> str:
-        """'Husainov I.' — surname + given-name initial, for official documents."""
+        """'Husainov I.' ko'rinishidagi qisqa F.I.Sh — rasmiy hujjatlar uchun."""
         return (
             f"{self.last_name} {self.first_name[0]}."
             if self.first_name
@@ -121,7 +126,7 @@ class Foydalanuvchi(AbstractBaseUser, PermissionsMixin):
 
 
 class OqituvchiTuri(models.Model):
-    """Dynamic teacher position type (e.g. Professor, Katta o'qituvchi)."""
+    """O'qituvchi lavozim turi (masalan, Professor, Katta o'qituvchi)."""
 
     nomi = models.CharField(max_length=100, unique=True)
     min_soat = models.PositiveIntegerField(help_text="Yuklama: minimal soat")
@@ -134,7 +139,7 @@ class OqituvchiTuri(models.Model):
 
 
 class Universitet(models.Model):
-    """Institution-wide info. Expected to hold exactly one row."""
+    """OTM umumiy ma'lumotlari — bazada bitta yozuv bo'lishi kutiladi."""
 
     rasmiy_nomi = models.CharField(max_length=255)
 
@@ -167,7 +172,7 @@ class Department(models.Model):
 
 
 class OqituvchiProfilQuerySet(models.QuerySet):
-    """Department-scoped and pre-joined teacher queries."""
+    """Kafedra bo'yicha ajratilgan va bog'langan so'rovlar to'plami."""
 
     def kafedrada(self, kafedra: Department | int) -> "OqituvchiProfilQuerySet":
         return self.filter(kafedra=kafedra)
@@ -180,7 +185,7 @@ class OqituvchiProfilQuerySet(models.QuerySet):
 
 
 class OqituvchiProfil(models.Model):
-    """Teacher-specific data, kept off the lean Foydalanuvchi model."""
+    """O'qituvchiga xos ma'lumotlar — asosiy Foydalanuvchi jadvalidan alohida."""
 
     foydalanuvchi = models.OneToOneField(
         Foydalanuvchi, on_delete=models.CASCADE, related_name="oqituvchi_profil"

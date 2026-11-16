@@ -2,32 +2,32 @@ from django.test import TestCase
 
 from plans.models import Fan, FanSemestr, FanTuri, SoatTuri, Yuklama
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
-    make_variant,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
+    variant_yasa,
 )
 
 
 class FanQuerySetTest(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.reja = make_reja()
-        cls.birinchi_kurs_fani = make_fan(cls.reja, raqam="1.01")
-        make_fan_semestr(cls.birinchi_kurs_fani.tanlangan_variant, semestr=1)
-        cls.ikkinchi_kurs_fani = make_fan(cls.reja, raqam="1.02")
-        make_fan_semestr(cls.ikkinchi_kurs_fani.tanlangan_variant, semestr=3)
-        make_fan_semestr(cls.ikkinchi_kurs_fani.tanlangan_variant, semestr=4)
-        cls.tanlov_fan = make_fan(cls.reja, raqam="2.01", turi=FanTuri.TANLOV)
-        make_variant(cls.tanlov_fan, nomi="Muqobil fan")
+        cls.reja = reja_yasa()
+        cls.birinchi_kurs_fani = fan_yasa(cls.reja, raqam="1.01")
+        fan_semestr_yasa(cls.birinchi_kurs_fani.tanlangan_variant, semestr=1)
+        cls.ikkinchi_kurs_fani = fan_yasa(cls.reja, raqam="1.02")
+        fan_semestr_yasa(cls.ikkinchi_kurs_fani.tanlangan_variant, semestr=3)
+        fan_semestr_yasa(cls.ikkinchi_kurs_fani.tanlangan_variant, semestr=4)
+        cls.tanlov_fan = fan_yasa(cls.reja, raqam="2.01", turi=FanTuri.TANLOV)
+        variant_yasa(cls.tanlov_fan, nomi="Muqobil fan")
 
     def test_oquv_yilida_semestr_juftligini_oladi(self) -> None:
         fanlar = Fan.objects.filter(reja=self.reja).oquv_yilida(2)
         self.assertQuerySetEqual(fanlar, [self.ikkinchi_kurs_fani])
 
     def test_oquv_yilida_takrorlamaydi(self) -> None:
-        # Both semesters of study year 2 match; the fan must appear once.
+        # 2-kursning ikkala semestri ham mos keladi; fan baribir bir marta chiqadi.
         fanlar = Fan.objects.oquv_yilida(2)
         self.assertEqual(fanlar.count(), 1)
 
@@ -50,20 +50,20 @@ class FanQuerySetTest(TestCase):
 class FanSemestrQuerySetTest(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.reja_2024 = make_reja(boshlanish_yili=2024)
-        cls.reja_2023 = make_reja(
+        cls.reja_2024 = reja_yasa(boshlanish_yili=2024)
+        cls.reja_2023 = reja_yasa(
             yonalish_kodi="60610200", yonalish_nomi="AT", boshlanish_yili=2023
         )
-        fan_2024 = make_fan(cls.reja_2024)
-        cls.fs_2024_s3 = make_fan_semestr(fan_2024.tanlangan_variant, semestr=3)
-        fan_2023 = make_fan(cls.reja_2023)
-        cls.fs_2023_s3 = make_fan_semestr(fan_2023.tanlangan_variant, semestr=3)
-        cls.fs_2023_s5 = make_fan_semestr(fan_2023.tanlangan_variant, semestr=5)
-        cls.tanlov = make_fan(cls.reja_2024, raqam="2.01", turi=FanTuri.TANLOV)
-        cls.tanlov_fs = make_fan_semestr(cls.tanlov.variantlar.first(), semestr=3)
+        fan_2024 = fan_yasa(cls.reja_2024)
+        cls.fs_2024_s3 = fan_semestr_yasa(fan_2024.tanlangan_variant, semestr=3)
+        fan_2023 = fan_yasa(cls.reja_2023)
+        cls.fs_2023_s3 = fan_semestr_yasa(fan_2023.tanlangan_variant, semestr=3)
+        cls.fs_2023_s5 = fan_semestr_yasa(fan_2023.tanlangan_variant, semestr=5)
+        cls.tanlov = fan_yasa(cls.reja_2024, raqam="2.01", turi=FanTuri.TANLOV)
+        cls.tanlov_fs = fan_semestr_yasa(cls.tanlov.variantlar.first(), semestr=3)
 
     def test_akademik_yilda_rejalarni_farqlaydi(self) -> None:
-        # 2025/2026: DI2024 is in semester 3-4, AT2023 in semester 5-6.
+        # 2025/2026: DI2024 3-4-semestrda, AT2023 esa 5-6-semestrda bo'ladi.
         natija = set(FanSemestr.objects.akademik_yilda(2025))
         self.assertEqual(natija, {self.fs_2024_s3, self.fs_2023_s5, self.tanlov_fs})
 
@@ -79,11 +79,11 @@ class FanSemestrQuerySetTest(TestCase):
 
 class YuklamaQuerySetTest(TestCase):
     def test_akademik_yilda_yuklamalarni_filtrlash(self) -> None:
-        reja = make_reja(boshlanish_yili=2024)
-        fan = make_fan(reja)
-        fs_s1 = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        fs_s3 = make_fan_semestr(fan.tanlangan_variant, semestr=3)
-        oqituvchi = make_oqituvchi()
+        reja = reja_yasa(boshlanish_yili=2024)
+        fan = fan_yasa(reja)
+        fs_s1 = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        fs_s3 = fan_semestr_yasa(fan.tanlangan_variant, semestr=3)
+        oqituvchi = oqituvchi_yasa()
         Yuklama.objects.create(
             fan_semestr=fs_s1, tur=SoatTuri.MARUZA, oqituvchi=oqituvchi
         )

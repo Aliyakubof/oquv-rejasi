@@ -1,6 +1,6 @@
-"""Submission and AOH review of the O'quv Dastur a teacher fills in and
-sends back. Sibling module to `plans/dastur/service.py` (generation) — one
-module per responsibility.
+"""O'qituvchi to'ldirib yuborgan O'quv Dasturni topshirish va AOH ko'rishi.
+
+Hujjat yaratish `plans/dastur/service.py` da, topshirish oqimi esa shu yerda.
 """
 
 from dataclasses import dataclass
@@ -24,7 +24,7 @@ from plans.models import (
 
 @dataclass(frozen=True)
 class TopshirilmaganDastur:
-    """A course variant that has a lecture owner assigned, but no submission."""
+    """Ma'ruza egasi biriktirilgan, lekin hali dastur topshirmagan fan varianti."""
 
     variant: FanVariant
     oqituvchi: OqituvchiProfil
@@ -34,10 +34,10 @@ class TopshirilmaganDastur:
 def dastur_topshirish(
     variant: FanVariant, oqituvchi: OqituvchiProfil, fayl: UploadedFile
 ) -> DasturTopshirish:
-    """Record a new submission attempt; only the lecture owner may submit.
+    """Yangi topshirish urinishini yozadi; faqat ma'ruza egasi yubora oladi.
 
-    Past attempts are never touched — each resubmission is a new row, so
-    earlier rejection reasons stay intact for both sides to review.
+    Avvalgi urinishlar o'chirilmaydi — har qayta yuborish yangi qator bo'ladi,
+    shunda oldingi rad etish sabablari ikkala tomonda ham tarixda qoladi.
     """
     FanVariant.objects.select_for_update().filter(pk=variant.pk).first()
     if not dastur_egasimi(variant, oqituvchi):
@@ -112,17 +112,20 @@ def dastur_rad_etish(
 
 
 def eng_songi_urinish(variant: FanVariant) -> DasturTopshirish | None:
-    """Latest submission attempt for `variant`, or None if never submitted."""
+    """Fanning eng oxirgi topshirish urinishi (hali topshirilmagan bo'lsa None)."""
     return variant.dastur_topshirishlari.first()
 
 
 def joriy_topshirishlar(
     qs: "QuerySet[DasturTopshirish] | None" = None,
+    *,
+    holat: str | None = None,
 ) -> list[DasturTopshirish]:
-    """One row per variant — its latest attempt only — for the AOH list page.
+    """Har bir fan bo'yicha faqat oxirgi urinishni AOH ro'yxati uchun oladi.
 
-    Uses a correlated subquery so works on both SQLite and PostgreSQL without
-    loading the full attempt history into Python memory.
+    Korrelyatsiyali ichki so'rov ishlatadi — SQLite da ham, PostgreSQL da ham
+    barcha tarixni Python xotirasiga tortmasdan tez ishlaydi. `holat` filtri
+    ham oxirgi urinish aniqlangandan keyin SQL darajasida qo'llanadi.
     """
     if qs is None:
         qs = DasturTopshirish.objects.all()
@@ -131,7 +134,10 @@ def joriy_topshirishlar(
         .order_by("-yuborilgan_vaqt", "-pk")
         .values("pk")[:1]
     )
-    return list(qs.filter(pk=Subquery(oxirgi_id)).order_by("-yuborilgan_vaqt", "-pk"))
+    natija = qs.filter(pk=Subquery(oxirgi_id))
+    if holat:
+        natija = natija.filter(holat=holat)
+    return list(natija.order_by("-yuborilgan_vaqt", "-pk"))
 
 
 def _topshirilmagan_yuklamalar_qs(
@@ -154,7 +160,7 @@ def _topshirilmagan_yuklamalar_qs(
 def topshirilmagan_dasturlar_soni(
     *, kafedra_id: int | None = None, yil: int | None = None
 ) -> int:
-    """Count course variants with a lecture owner assigned that have no submission."""
+    """Ma'ruza egasi tayinlangan, lekin dastur topshirmagan fanlar sonini sanaydi."""
     return (
         _topshirilmagan_yuklamalar_qs(kafedra_id, yil=yil)
         .values("fan_semestr__variant_id", "oqituvchi_id")
@@ -166,7 +172,7 @@ def topshirilmagan_dasturlar_soni(
 def topshirilmagan_dasturlar(
     *, kafedra_id: int | None = None, yil: int | None = None
 ) -> list[TopshirilmaganDastur]:
-    """Courses with an assigned lecture (MARUZA) owner that have no submission yet."""
+    """Ma'ruza egasi tayinlangan, lekin hali dastur topshirmagan fanlar ro'yxati."""
     qs = (
         _topshirilmagan_yuklamalar_qs(kafedra_id, yil=yil)
         .select_related(

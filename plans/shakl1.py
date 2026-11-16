@@ -1,4 +1,4 @@
-"""Shared 1-shakl (individual teacher workload) row aggregation helpers."""
+"""1-shakl (o'qituvchining shaxsiy yuklamasi) qatorlarini jamlash yordamchilari."""
 
 from collections import defaultdict
 
@@ -7,7 +7,7 @@ from plans.models import SoatTuri, Yuklama
 
 
 def shakl1_guruh_matni(qator: dict[str, object]) -> str:
-    """Format group or stream description for a 1-shakl row."""
+    """1-shakl qatori uchun guruh yoki oqim tavsifini tuzadi."""
     guruh_nomi = qator.get("_guruh_nomi")
     if guruh_nomi:
         return str(guruh_nomi)
@@ -44,9 +44,12 @@ def _yangi_shakl1_qator(y: Yuklama) -> dict[str, object]:
 def shakl1_satrlarini_yigish(
     yuklamalar: list[Yuklama],
 ) -> tuple[list[dict[str, object]], dict[str, int]]:
-    """Group workload rows by course-semester and group for 1-shakl display."""
+    """1-shakl ko'rinishi uchun yuklama qatorlarini fan-semestr va guruhga jamlaydi."""
     tur_jami: dict[str, int] = defaultdict(int)
     shakl1_qatorlar: dict[tuple[int, int | None], dict[str, object]] = {}
+    tur_talaba: dict[tuple[int, int | None], dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
     for y in yuklamalar:
         tur_jami[y.tur] += y.soat
         kalit = (y.fan_semestr_id, y.guruh_id)
@@ -54,7 +57,8 @@ def shakl1_satrlarini_yigish(
             shakl1_qatorlar[kalit] = _yangi_shakl1_qator(y)
         qator = shakl1_qatorlar[kalit]
         if y.talabalar_soni:
-            qator["_talabalar_soni"] = int(qator["_talabalar_soni"]) + y.talabalar_soni
+            tur_talaba[kalit][y.tur] += y.talabalar_soni
+            qator["_talabalar_soni"] = max(tur_talaba[kalit].values())
         tur_kalit = y.tur.lower()
         if tur_kalit in qator:
             qator[tur_kalit] = int(qator[tur_kalit]) + y.soat
@@ -64,7 +68,7 @@ def shakl1_satrlarini_yigish(
 
 
 def oqituvchi_yuklamalari(profil: OqituvchiProfil, akademik_yil: int) -> list[Yuklama]:
-    """Fetch pre-joined Yuklama rows for one teacher in an academic year."""
+    """Bitta o'qituvchining o'quv yilidagi barcha Yuklama qatorlarini bog'lab oladi."""
     return list(
         Yuklama.objects.filter(oqituvchi=profil)
         .akademik_yilda(akademik_yil)
@@ -76,7 +80,7 @@ def oqituvchi_yuklamalari(profil: OqituvchiProfil, akademik_yil: int) -> list[Yu
 def oqituvchi_shakl1_malumoti(
     profil: OqituvchiProfil, akademik_yil: int
 ) -> tuple[list[Yuklama], list[dict[str, object]], dict[str, int]]:
-    """Return raw workloads, 1-shakl rows, and per-type totals for one teacher."""
+    """O'qituvchi uchun xom yuklamalar, 1-shakl qatorlari va tur jamlamasini beradi."""
     yuklamalar = oqituvchi_yuklamalari(profil, akademik_yil)
     satrlar, tur_jami = shakl1_satrlarini_yigish(yuklamalar)
     return yuklamalar, satrlar, tur_jami

@@ -1,8 +1,8 @@
-"""Drops the Table 1 hour columns (Ma'ruza / Amaliy / Lab-ya / Seminar) and
-section-5 sub-headers for hour types a course has no hours for.
+"""Fan bo'yicha 0 soatli turlar uchun 1-jadvaldagi ustunlar va 5-bo'lim
+sarlavha qatorlarini olib tashlaydi.
 
-docxtpl substitutes tags but cannot remove table columns or rows outside a
-{%tr %} loop, so both are cut out of the rendered document's OOXML instead.
+docxtpl teglarni almashtiradi, lekin {%tr %} siklidan tashqaridagi jadval
+ustuni yoki qatorini o'chira olmaydi — shuning uchun ular OOXML darajasida kesiladi.
 """
 
 from docx.document import Document
@@ -16,7 +16,7 @@ JADVAL_INDEKSI = 2
 JADVAL_SONI = 4
 GRID_USTUNLARI = 11
 
-# Grid column index in Table 1 -> the FanVariant field holding its hours.
+# 1-jadvaldagi grid ustun indeksi -> FanVariant ning tegishli soat maydoni.
 SOAT_USTUNLARI: tuple[tuple[int, str], ...] = (
     (4, "maruza_soat"),
     (5, "amaliyot_soat"),
@@ -24,7 +24,7 @@ SOAT_USTUNLARI: tuple[tuple[int, str], ...] = (
     (7, "seminar_soat"),
 )
 
-# Section-5 sub-header row labels, paired with the same fields, in table order.
+# 5-bo'limdagi ichki sarlavha matnlari (jadval tartibida maydonlar bilan juft).
 SOAT_SARLAVHALARI: tuple[tuple[str, str], ...] = (
     ("Ma’ruza (M)", "maruza_soat"),
     ("Amaliy mashg‘ulot (A)", "amaliyot_soat"),
@@ -34,9 +34,9 @@ SOAT_SARLAVHALARI: tuple[tuple[str, str], ...] = (
 
 
 def soat_ustunlarini_tozala(hujjat: Document, variant: FanVariant) -> None:
-    """Removes every hour type this course has no hours for: its column in
-    section 1, and its orphan sub-header row in section 5 (that row sits
-    outside its {%tr for%} loop, so it survives with an empty loop)."""
+    """Soati yo'q mashg'ulot turlarini 1-bo'lim ustunidan hamda 5-bo'limdagi
+    ortiqcha kichik sarlavhalardan olib tashlaydi.
+    """
     table = _jadval1(hujjat)
     bosh_turlar = [
         maydon for _, maydon in SOAT_USTUNLARI if not getattr(variant, maydon)
@@ -47,8 +47,9 @@ def soat_ustunlarini_tozala(hujjat: Document, variant: FanVariant) -> None:
 
 
 def _ustunlarni_ochir(table: Table, bosh_turlar: list[str]) -> None:
-    """Deletes the section-1 grid columns for `bosh_turlar`, then spreads the
-    freed width over the surviving hour columns."""
+    """`bosh_turlar` ustunlarini 1-bo'limdan o'chiradi va bo'shagan kenglikni
+    qolgan soat ustunlariga teng bo'lib beradi.
+    """
     ochiriladigan = [ustun for ustun, maydon in SOAT_USTUNLARI if maydon in bosh_turlar]
     if sorted(ochiriladigan) == [4, 5, 6]:
         _semestr_kataklarini_surish(table)
@@ -67,9 +68,9 @@ def _ustunlarni_ochir(table: Table, bosh_turlar: list[str]) -> None:
 
 
 def _semestr_kataklarini_surish(table: Table) -> None:
-    """When only Seminar (col 7) remains, rows 1-2 have Semestr/Tartib raqami
-    ending at col 6 while ECTS/Haftadagi starts at col 7. Shift col 7's span
-    unit left so deleting cols 4-6 keeps those header cells intact."""
+    """Faqat Seminar (7-ustun) qolsa, Semestr/Tartib 6-ustunda tugab ECTS/Haftadagi
+    7-dan boshlanadi; ustun chegarasi buzilmasligi uchun span chapga suriladi.
+    """
     for tr in table._tbl.findall(qn("w:tr")):
         tclar = tr.findall(qn("w:tc"))
         joriy = 0
@@ -93,7 +94,7 @@ def _span_ornat(tc: CT_Tc, yangi_span: int) -> None:
 
 
 def _bosh_sarlavhalarni_ochir(table: Table, variant: FanVariant) -> None:
-    """Removes each section-5 sub-header row whose hour type is zero."""
+    """5-bo'limda soati nol bo'lgan mashg'ulot sarlavha qatorini o'chiradi."""
     for label, maydon in SOAT_SARLAVHALARI:
         if getattr(variant, maydon):
             continue
@@ -103,9 +104,9 @@ def _bosh_sarlavhalarni_ochir(table: Table, variant: FanVariant) -> None:
 
 
 def _sarlavha_qatorini_top(table: Table, label: str):
-    """Word splits a paragraph's text across several `w:t` runs (spell-check
-    artefacts) — concatenate a row's text before matching, since the label
-    is rarely whole in any single run."""
+    """Word matnni bir nechta `w:t` bo'laklarga bo'lib yuboradi — shuning uchun
+    qidiruvdan oldin qatordagi barcha matnni birlashtirib solishtiramiz.
+    """
     for tr in table._tbl.findall(qn("w:tr")):
         matn = "".join(t.text or "" for t in tr.iter(qn("w:t")))
         if label in matn:
@@ -136,8 +137,7 @@ def _jadval1(hujjat: Document) -> Table:
 
 
 def _ustunni_ochir(table: Table, ustun: int) -> int:
-    """Removes one grid column, returning the width it freed. A cell covering
-    the column alone is dropped; one spanning further loses a grid span."""
+    """Bitta grid ustunni o'chiradi va bo'shagan kenglikni qaytaradi."""
     grid = _tbl_grid(table)
     gridcol = grid.findall(qn("w:gridCol"))[ustun]
     bosh_kenglik = int(gridcol.get(qn("w:w")))
@@ -167,8 +167,7 @@ def _ustunni_ochir(table: Table, ustun: int) -> int:
 def _ustunlarni_kengaytir(
     table: Table, omon_qolganlar: list[int], bosh_kenglik: int
 ) -> None:
-    """Spreads the freed width evenly over the surviving hour columns so the
-    table still spans the full page width; the remainder goes leftmost."""
+    """Bo'shagan kenglikni qolgan ustunlarga teng bo'lib beradi, qoldig'i chapga."""
     if not omon_qolganlar:
         return
     gridcols = _tbl_grid(table).findall(qn("w:gridCol"))
@@ -180,8 +179,7 @@ def _ustunlarni_kengaytir(
 
 
 def _kengliklarni_qayta_hisobla(table: Table) -> None:
-    """Rewrites every cell width from the surviving grid, so no row disagrees
-    with the table about where its column boundaries fall."""
+    """Har bir katak kengligini yangilangan grid asosida qaytadan yozib chiqadi."""
     kengliklar = [
         int(gridcol.get(qn("w:w")))
         for gridcol in _tbl_grid(table).findall(qn("w:gridCol"))

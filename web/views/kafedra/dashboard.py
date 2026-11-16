@@ -1,4 +1,4 @@
-"""Kafedra head's dashboard: own-department demand and delegation rows."""
+"""Kafedra mudiri bosh sahifasi: kafedra soatlari va taqsimot qatorlari."""
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError

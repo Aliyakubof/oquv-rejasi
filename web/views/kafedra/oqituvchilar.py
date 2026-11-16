@@ -1,4 +1,4 @@
-"""Mudir's own-department teacher list, workload detail and CRUD (kafedra locked)."""
+"""Mudirning kafedrasi bo'yicha o'qituvchilar ro'yxati, yuklama va CRUD."""
 
 from urllib.parse import urlencode
 

@@ -1,4 +1,4 @@
-"""Staff management actions: teacher accounts and department heads."""
+"""Xodimlar boshqaruvi: o'qituvchi hisoblari va kafedra mudirlarini tayinlash."""
 
 import secrets
 
@@ -14,19 +14,19 @@ from accounts.models import (
     Rol,
     Universitet,
 )
-from accounts.phone import normalize_phone
+from accounts.phone import telefonni_normallashtir
 
 _VAQTINCHALIK_ALIFBO = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
 def vaqtinchalik_parol_tasodifiy(uzunlik: int = 10) -> str:
-    """Generate a readable cryptographic temporary password."""
+    """Oson o'qiladigan kriptografik tasodifiy vaqtinchalik parol yaratadi."""
     return "".join(secrets.choice(_VAQTINCHALIK_ALIFBO) for _ in range(uzunlik))
 
 
 @transaction.atomic
 def vaqtinchalik_parol_yarat(foydalanuvchi: Foydalanuvchi) -> str:
-    """Assign a one-time temporary password requiring immediate change on login."""
+    """Kirishda almashtirish sharti bilan bir martalik vaqtinchalik parol qo'yadi."""
     parol = vaqtinchalik_parol_tasodifiy()
     foydalanuvchi.set_password(parol)
     foydalanuvchi.parol_ozgartirish_kerak = True
@@ -35,12 +35,12 @@ def vaqtinchalik_parol_yarat(foydalanuvchi: Foydalanuvchi) -> str:
 
 
 def universitet_olish() -> Universitet | None:
-    """The single institution row, or None until an admin creates it."""
+    """Universitetning yagona yozuvini qaytaradi (hali yaratilmagan bo'lsa None)."""
     return Universitet.objects.first()
 
 
 def universitet_nomi(bosh: str = "") -> str:
-    """Institution official name, or `bosh` fallback if not set."""
+    """Universitet rasmiy nomini qaytaradi; kiritilmagan bo'lsa `bosh` qiymatni."""
     universitet = universitet_olish()
     return universitet.rasmiy_nomi if universitet and universitet.rasmiy_nomi else bosh
 
@@ -92,7 +92,7 @@ def oqituvchi_yangilash(
         mudir_tayinlash(boshqa_kafedra, None)
         profil.foydalanuvchi.refresh_from_db(fields=["rol"])
     foydalanuvchi = profil.foydalanuvchi
-    foydalanuvchi.telefon = normalize_phone(telefon)
+    foydalanuvchi.telefon = telefonni_normallashtir(telefon)
     foydalanuvchi.first_name = first_name
     foydalanuvchi.last_name = last_name
     yangilanadigan = ["telefon", "first_name", "last_name"]
@@ -110,7 +110,7 @@ def oqituvchi_yangilash(
 
 @transaction.atomic
 def mudir_tayinlash(kafedra: Department, profil: OqituvchiProfil | None) -> None:
-    """Set (or clear, with profil=None) the department head, syncing roles."""
+    """Kafedra mudirini tayinlaydi (profil=None da bo'shatadi) va rollarni moslaydi."""
     shart = Q(pk=kafedra.pk)
     if profil is not None:
         shart |= Q(mudir_id=profil.pk)

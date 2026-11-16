@@ -50,7 +50,7 @@
                    @scroll.window.capture="skrollYopish($event)"
                    @resize.window="yopish()"
                    @action-menu:yopish.window="yopish()">
-                <button type="button" class="btn-dots" :class="ochiq && 'active'" @click="ochish($el)" title="Boshqa amallar" aria-label="Boshqa amallar">
+                <button type="button" class="btn-dots" :class="ochiq && 'active'" @click="ochish($el)" :aria-expanded="ochiq.toString()" title="Boshqa amallar" aria-label="Boshqa amallar">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <circle cx="12" cy="5" r="2"/>
                     <circle cx="12" cy="12" r="2"/>

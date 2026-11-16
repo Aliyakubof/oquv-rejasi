@@ -1,4 +1,4 @@
-"""Tests for consolidated exports, copy services, Excel import, alerts and commands."""
+"""Yig'ma eksport, yildan-yilga ko'chirish, Excel import va ogohlantirish testlari."""
 
 import json
 import tempfile
@@ -7,10 +7,12 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 from zipfile import ZipFile
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import transaction
 from django.db.models import ProtectedError
 from django.test import TestCase, override_settings
 from docx import Document
@@ -38,11 +40,11 @@ from plans.models import (
 )
 from plans.shakl1_doc import shakl1_docx_render, shakl1_zip_yarat
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
-    make_variant,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
+    variant_yasa,
 )
 
 
@@ -64,10 +66,10 @@ class SvodVaShakl1Tests(TestCase):
     def test_svod_excel_uch_varaq_va_formula_himoyasi(self) -> None:
         yil = dashboard.joriy_akademik_yil()
         kaf = Department.objects.create(nomi="=CMD('calc')")
-        oqit = make_oqituvchi(kafedra=kaf)
-        reja = make_reja(boshlanish_yili=yil, yonalish_kodi="60610200")
-        fan = make_fan(reja, kafedra=kaf)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        oqit = oqituvchi_yasa(kafedra=kaf)
+        reja = reja_yasa(boshlanish_yili=yil, yonalish_kodi="60610200")
+        fan = fan_yasa(reja, kafedra=kaf)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=oqit)
 
         wb = load_workbook(eksport.svod_excel(yil), data_only=True)
@@ -84,10 +86,10 @@ class SvodVaShakl1Tests(TestCase):
     def test_shakl1_docx_va_zip_o1_sorgov(self) -> None:
         yil = dashboard.joriy_akademik_yil()
         kaf = Department.objects.create(nomi="Dasturiy muhandislik")
-        oqit = make_oqituvchi(kafedra=kaf)
-        reja = make_reja(boshlanish_yili=yil)
-        fan = make_fan(reja, kafedra=kaf)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        oqit = oqituvchi_yasa(kafedra=kaf)
+        reja = reja_yasa(boshlanish_yili=yil)
+        fan = fan_yasa(reja, kafedra=kaf)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=oqit)
 
         doc = Document(shakl1_docx_render(oqit, yil))
@@ -106,8 +108,8 @@ class SvodVaShakl1Tests(TestCase):
             self.assertTrue(nomlar[0].endswith("_1shakl.docx"))
 
         # Ko'p o'qituvchi bo'lganda ham so'rovlar soni O(1) (3 ta) bo'lib qoladi
-        make_oqituvchi(kafedra=kaf)
-        make_oqituvchi(kafedra=kaf)
+        oqituvchi_yasa(kafedra=kaf)
+        oqituvchi_yasa(kafedra=kaf)
         with self.assertNumQueries(3):
             shakl1_zip_yarat(yil, kafedra=kaf)
 
@@ -122,9 +124,9 @@ class NusxalashServiceTests(TestCase):
         joriy = dashboard.joriy_akademik_yil()
         otgan = joriy - 1
         kaf = Department.objects.create(nomi="Matematika")
-        reja = make_reja(boshlanish_yili=otgan)
-        fan = make_fan(reja, kafedra=kaf)
-        make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        reja = reja_yasa(boshlanish_yili=otgan)
+        fan = fan_yasa(reja, kafedra=kaf)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
 
         self.assertEqual(nusxalash.manba_yillar_royxati(joriy), [otgan])
         self.assertNotIn(otgan, dashboard.tanlanadigan_yillar())
@@ -135,8 +137,8 @@ class NusxalashServiceTests(TestCase):
         kaf1 = Department.objects.create(nomi="Ochiq kafedra")
         kaf2 = Department.objects.create(nomi="Qulflangan kafedra")
 
-        manba_reja = make_reja(boshlanish_yili=otgan, yonalish_kodi="60610100")
-        f_tan = make_fan(
+        manba_reja = reja_yasa(boshlanish_yili=otgan, yonalish_kodi="60610100")
+        f_tan = fan_yasa(
             manba_reja, raqam="1.01", turi=FanTuri.TANLOV, nomi="Web dizayn"
         )
         v_tan = f_tan.variantlar.first()
@@ -144,23 +146,23 @@ class NusxalashServiceTests(TestCase):
         v_tan.save(update_fields=["kafedra"])
         f_tan.tanlangan_variant = v_tan
         f_tan.save(update_fields=["tanlangan_variant"])
-        make_fan_semestr(v_tan, semestr=1)
+        fan_semestr_yasa(v_tan, semestr=1)
 
-        f_lock = make_fan(
+        f_lock = fan_yasa(
             manba_reja, raqam="1.02", kafedra=kaf2, nomi="Tarmoq xavfsizligi"
         )
-        make_fan_semestr(f_lock.tanlangan_variant, semestr=1)
+        fan_semestr_yasa(f_lock.tanlangan_variant, semestr=1)
 
-        maqsad_reja = make_reja(boshlanish_yili=joriy, yonalish_kodi="60610100")
-        m_tan = make_fan(
+        maqsad_reja = reja_yasa(boshlanish_yili=joriy, yonalish_kodi="60610100")
+        m_tan = fan_yasa(
             maqsad_reja, raqam="1.01", turi=FanTuri.TANLOV, nomi="Web dizayn"
         )
-        make_variant(m_tan, kodi="ALT-2", nomi="Mobil ilovalar")
+        variant_yasa(m_tan, kodi="ALT-2", nomi="Mobil ilovalar")
         m_tan_v = m_tan.variantlar.get(nomi="Web dizayn")
-        make_fan_semestr(m_tan_v, semestr=1)
+        fan_semestr_yasa(m_tan_v, semestr=1)
 
-        m_lock = make_fan(maqsad_reja, raqam="1.02", nomi="Tarmoq xavfsizligi")
-        make_fan_semestr(m_lock.tanlangan_variant, semestr=1)
+        m_lock = fan_yasa(maqsad_reja, raqam="1.02", nomi="Tarmoq xavfsizligi")
+        fan_semestr_yasa(m_lock.tanlangan_variant, semestr=1)
         KafedraYuklamaTasdiq.objects.create(
             kafedra=kaf2, akademik_yil=joriy, holat=KafedraTasdiqHolati.TASDIQLANGAN
         )
@@ -179,25 +181,25 @@ class NusxalashServiceTests(TestCase):
         joriy = dashboard.joriy_akademik_yil()
         otgan = joriy - 1
         kaf = Department.objects.create(nomi="AI kafedrasi")
-        oqit = make_oqituvchi(kafedra=kaf)
+        oqit = oqituvchi_yasa(kafedra=kaf)
 
-        reja1 = make_reja(
+        reja1 = reja_yasa(
             boshlanish_yili=otgan, yonalish_kodi="60610500", guruhlar_soni=2
         )
         g1 = reja1.guruhlar.create(raqam=1, nomi="AI-25-1")
-        fan1 = make_fan(reja1, kafedra=kaf, nomi="Sun'iy intellekt")
-        fs1 = make_fan_semestr(fan1.tanlangan_variant, semestr=1)
+        fan1 = fan_yasa(reja1, kafedra=kaf, nomi="Sun'iy intellekt")
+        fs1 = fan_semestr_yasa(fan1.tanlangan_variant, semestr=1)
         Yuklama.objects.create(fan_semestr=fs1, tur=SoatTuri.MARUZA, oqituvchi=oqit)
         Yuklama.objects.create(
             fan_semestr=fs1, tur=SoatTuri.AMALIYOT, oqituvchi=oqit, guruh=g1
         )
 
-        reja2 = make_reja(
+        reja2 = reja_yasa(
             boshlanish_yili=joriy, yonalish_kodi="60610500", guruhlar_soni=2
         )
         g2 = reja2.guruhlar.create(raqam=1, nomi="AI-26-1")
-        fan2 = make_fan(reja2, kafedra=kaf, nomi="Sun'iy intellekt")
-        fs2 = make_fan_semestr(fan2.tanlangan_variant, semestr=1)
+        fan2 = fan_yasa(reja2, kafedra=kaf, nomi="Sun'iy intellekt")
+        fs2 = fan_semestr_yasa(fan2.tanlangan_variant, semestr=1)
 
         natija = nusxalash.kafedra_taqsimotini_nusxalash(kaf, otgan, joriy)
         self.assertEqual(natija.yaratilgan_yuklamalar, 2)
@@ -217,7 +219,7 @@ class ExcelImportServiceTests(TestCase):
     def test_oqituvchilar_excel_import_va_parollar(self) -> None:
         kaf = Department.objects.create(nomi="Fizika")
         OqituvchiTuri.objects.create(nomi="Katta o'qituvchi", min_soat=500)
-        mavjud = make_oqituvchi(kafedra=kaf)
+        mavjud = oqituvchi_yasa(kafedra=kaf)
         namuna_wb = load_workbook(oqituvchilar_namuna_excel())
         self.assertEqual(namuna_wb.sheetnames, ["O'qituvchilar", "Ma'lumotnoma"])
 
@@ -278,10 +280,10 @@ class BildirishnomaVaCommandTests(TestCase):
     def test_bildirishnoma_yubor_va_telegram_on_commit(
         self, mock_tg: MagicMock
     ) -> None:
-        oqit1 = make_oqituvchi()
+        oqit1 = oqituvchi_yasa()
         oqit1.foydalanuvchi.telegram_chat_id = "123456789"
         oqit1.foydalanuvchi.save(update_fields=["telegram_chat_id"])
-        oqit2 = make_oqituvchi()
+        oqit2 = oqituvchi_yasa()
         oqit2.foydalanuvchi.is_active = False
         oqit2.foydalanuvchi.save(update_fields=["is_active"])
 
@@ -313,7 +315,7 @@ class BildirishnomaVaCommandTests(TestCase):
     def test_sync_hemis_mock_bilan_malumotlarni_yuklaydi(
         self, mock_build_opener: MagicMock
     ) -> None:
-        reja = make_reja(
+        reja = reja_yasa(
             yonalish_kodi="60619900",
             boshlanish_yili=2025,
             talabalar_soni=50,
@@ -389,10 +391,10 @@ class Stage2BiznesVaQulflashTests(TestCase):
         otgan = joriy - 1
         kaf = Department.objects.create(nomi="Kaf-A")
 
-        m_kunduzgi = make_reja(
+        m_kunduzgi = reja_yasa(
             boshlanish_yili=otgan, yonalish_kodi="60619901", talim_shakli="Kunduzgi"
         )
-        m_fan = make_fan(
+        m_fan = fan_yasa(
             m_kunduzgi, raqam="1.01", turi=FanTuri.TANLOV, nomi="Kiberxavfsizlik"
         )
         mv = m_fan.variantlar.first()
@@ -401,27 +403,27 @@ class Stage2BiznesVaQulflashTests(TestCase):
         mv.save(update_fields=["kafedra"])
         m_fan.tanlangan_variant = mv
         m_fan.save(update_fields=["tanlangan_variant"])
-        make_fan_semestr(mv, semestr=1)
+        fan_semestr_yasa(mv, semestr=1)
 
-        t_sirtqi = make_reja(
+        t_sirtqi = reja_yasa(
             boshlanish_yili=joriy, yonalish_kodi="60619901", talim_shakli="Sirtqi"
         )
-        ts_fan = make_fan(
+        ts_fan = fan_yasa(
             t_sirtqi, raqam="1.01", turi=FanTuri.TANLOV, nomi="Kiberxavfsizlik"
         )
-        make_fan_semestr(ts_fan.variantlar.first(), semestr=1)
+        fan_semestr_yasa(ts_fan.variantlar.first(), semestr=1)
 
-        t_kunduzgi = make_reja(
+        t_kunduzgi = reja_yasa(
             boshlanish_yili=joriy, yonalish_kodi="60619901", talim_shakli="Kunduzgi"
         )
-        tk_fan = make_fan(
+        tk_fan = fan_yasa(
             t_kunduzgi, raqam="1.01", turi=FanTuri.TANLOV, nomi="Kiberxavfsizlik"
         )
         tk_v1 = tk_fan.variantlar.first()
-        tk_v2 = make_variant(tk_fan, kodi="ALT-X", nomi="Kiberxavfsizlik")
+        tk_v2 = variant_yasa(tk_fan, kodi="ALT-X", nomi="Kiberxavfsizlik")
         tk_fan.tanlangan_variant = tk_v1
         tk_fan.save(update_fields=["tanlangan_variant"])
-        make_fan_semestr(tk_v2, semestr=1)
+        fan_semestr_yasa(tk_v2, semestr=1)
 
         nusxalash.ofis_taqsimotini_nusxalash(otgan, joriy)
         ts_fan.refresh_from_db()
@@ -433,16 +435,16 @@ class Stage2BiznesVaQulflashTests(TestCase):
         joriy = dashboard.joriy_akademik_yil()
         kaf1 = Department.objects.create(nomi="Qulf Kaf 1")
         kaf2 = Department.objects.create(nomi="Qulf Kaf 2")
-        reja = make_reja(boshlanish_yili=joriy, guruhlar_soni=2)
+        reja = reja_yasa(boshlanish_yili=joriy, guruhlar_soni=2)
         services.guruhlarni_sinxronlash(reja)
-        fan = make_fan(reja, raqam="2.01", turi=FanTuri.TANLOV)
+        fan = fan_yasa(reja, raqam="2.01", turi=FanTuri.TANLOV)
         v = fan.variantlar.first()
         assert v is not None
         services.variantni_tanlash(fan, v)
         services.kafedraga_biriktirish(v, kaf1)
-        alt = make_variant(fan, kodi="B-2", nomi="Muqobil")
-        fs = make_fan_semestr(v, semestr=1)
-        oqit = make_oqituvchi(kafedra=kaf1)
+        alt = variant_yasa(fan, kodi="B-2", nomi="Muqobil")
+        fs = fan_semestr_yasa(v, semestr=1)
+        oqit = oqituvchi_yasa(kafedra=kaf1)
         KafedraYuklamaTasdiq.objects.create(
             kafedra=kaf1, akademik_yil=joriy, holat=KafedraTasdiqHolati.TASDIQLANGAN
         )
@@ -459,12 +461,12 @@ class Stage2BiznesVaQulflashTests(TestCase):
     def test_yuklama_kamomadi_va_taqsimlangan_none_qoldiq(self) -> None:
         joriy = dashboard.joriy_akademik_yil()
         kaf = Department.objects.create(nomi="Faolsiz Kaf")
-        reja = make_reja(boshlanish_yili=joriy, guruhlar_soni=None)
-        fan = make_fan(reja, kafedra=kaf)
+        reja = reja_yasa(boshlanish_yili=joriy, guruhlar_soni=None)
+        fan = fan_yasa(reja, kafedra=kaf)
         variant = fan.tanlangan_variant
         assert variant is not None
-        fs = make_fan_semestr(variant, semestr=1)
-        oqit = make_oqituvchi(kafedra=kaf)
+        fs = fan_semestr_yasa(variant, semestr=1)
+        oqit = oqituvchi_yasa(kafedra=kaf)
         Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=oqit)
         oqit.foydalanuvchi.is_active = False
         oqit.foydalanuvchi.save(update_fields=["is_active"])
@@ -487,11 +489,11 @@ class Stage2BiznesVaQulflashTests(TestCase):
 
     def test_dastur_topshirish_variant_protect(self) -> None:
         kaf = Department.objects.create(nomi="Protect Kaf")
-        reja = make_reja()
-        fan = make_fan(reja, kafedra=kaf)
+        reja = reja_yasa()
+        fan = fan_yasa(reja, kafedra=kaf)
         variant = fan.tanlangan_variant
         assert variant is not None
-        oqit = make_oqituvchi(kafedra=kaf)
+        oqit = oqituvchi_yasa(kafedra=kaf)
         DasturTopshirish.objects.create(
             variant=variant,
             urinish_raqami=1,
@@ -505,22 +507,22 @@ class Stage2BiznesVaQulflashTests(TestCase):
         joriy = dashboard.joriy_akademik_yil()
         otgan = joriy - 1
         kaf = Department.objects.create(nomi="Kod Ajrat Kaf")
-        o1 = make_oqituvchi(kafedra=kaf)
-        o2 = make_oqituvchi(kafedra=kaf)
+        o1 = oqituvchi_yasa(kafedra=kaf)
+        o2 = oqituvchi_yasa(kafedra=kaf)
 
-        r1 = make_reja(boshlanish_yili=otgan, yonalish_kodi="60619902")
-        f1 = make_fan(r1, raqam="1.01", kafedra=kaf, kodi="FAN-A", nomi="Dasturlash")
-        fs1 = make_fan_semestr(f1.tanlangan_variant, semestr=1)
+        r1 = reja_yasa(boshlanish_yili=otgan, yonalish_kodi="60619902")
+        f1 = fan_yasa(r1, raqam="1.01", kafedra=kaf, kodi="FAN-A", nomi="Dasturlash")
+        fs1 = fan_semestr_yasa(f1.tanlangan_variant, semestr=1)
         Yuklama.objects.create(fan_semestr=fs1, tur=SoatTuri.MARUZA, oqituvchi=o1)
-        f2 = make_fan(r1, raqam="1.02", kafedra=kaf, kodi="FAN-B", nomi="Dasturlash")
-        fs2 = make_fan_semestr(f2.tanlangan_variant, semestr=1)
+        f2 = fan_yasa(r1, raqam="1.02", kafedra=kaf, kodi="FAN-B", nomi="Dasturlash")
+        fs2 = fan_semestr_yasa(f2.tanlangan_variant, semestr=1)
         Yuklama.objects.create(fan_semestr=fs2, tur=SoatTuri.MARUZA, oqituvchi=o2)
 
-        r2 = make_reja(boshlanish_yili=joriy, yonalish_kodi="60619902")
-        tf = make_fan(
+        r2 = reja_yasa(boshlanish_yili=joriy, yonalish_kodi="60619902")
+        tf = fan_yasa(
             r2, raqam="1.01", kafedra=kaf, kodi="YANGI-KOD", nomi="Dasturlash"
         )
-        tfs = make_fan_semestr(tf.tanlangan_variant, semestr=1)
+        tfs = fan_semestr_yasa(tf.tanlangan_variant, semestr=1)
         natija = nusxalash.kafedra_taqsimotini_nusxalash(kaf, otgan, joriy)
         self.assertEqual(natija.yaratilgan_yuklamalar, 1)
         self.assertEqual(
@@ -558,7 +560,7 @@ class Stage2BiznesVaQulflashTests(TestCase):
         self.assertEqual((yaratildi, yangilandi), (10, 0))
 
     def test_import_reja_cli_buyrugi(self) -> None:
-        from plans.tests.test_parser import _standard_layout
+        from plans.tests.test_parser import _standart_jadval
 
         with self.assertRaises(CommandError):
             call_command("import_reja", "mavjud_emas_reja.xlsx", stderr=StringIO())
@@ -571,7 +573,7 @@ class Stage2BiznesVaQulflashTests(TestCase):
             talim_sohasi_kodi="60",
             talim_sohasi_nomi="TS",
         )
-        rows = _standard_layout(
+        rows = _standart_jadval(
             8,
             "Ta'lim yo'nalishi: 60610999 - CLI Yo'nalish",
             "4 yil",
@@ -596,12 +598,12 @@ class Stage2BiznesVaQulflashTests(TestCase):
 
         yil = dashboard.joriy_akademik_yil()
         kaf = Department.objects.create(nomi="Dastur Kaf")
-        o1 = make_oqituvchi(kafedra=kaf)
-        o2 = make_oqituvchi(kafedra=kaf)
-        reja = make_reja(boshlanish_yili=yil)
-        fan = make_fan(reja, kafedra=kaf)
-        fs1 = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        fs2 = make_fan_semestr(fan.tanlangan_variant, semestr=2)
+        o1 = oqituvchi_yasa(kafedra=kaf)
+        o2 = oqituvchi_yasa(kafedra=kaf)
+        reja = reja_yasa(boshlanish_yili=yil)
+        fan = fan_yasa(reja, kafedra=kaf)
+        fs1 = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        fs2 = fan_semestr_yasa(fan.tanlangan_variant, semestr=2)
         Yuklama.objects.create(fan_semestr=fs1, tur=SoatTuri.MARUZA, oqituvchi=o1)
         Yuklama.objects.create(fan_semestr=fs2, tur=SoatTuri.MARUZA, oqituvchi=o2)
 
@@ -611,3 +613,240 @@ class Stage2BiznesVaQulflashTests(TestCase):
         self.assertEqual(
             topshirilmagan_dasturlar_soni(kafedra_id=kaf.pk, yil=yil + 5), 0
         )
+
+
+class Batch1QulfVaKeshTests(TestCase):
+    def tearDown(self) -> None:
+        cache.clear()
+        super().tearDown()
+
+    def test_birinchi_variantni_tanlash_qulflangan_kafedrani_tekshiradi(self) -> None:
+        reja = reja_yasa(boshlanish_yili=2025)
+        kaf = Department.objects.create(nomi="Qulflangan Kafedra")
+        KafedraYuklamaTasdiq.objects.create(
+            kafedra=kaf, akademik_yil=2025, holat=KafedraTasdiqHolati.TASDIQLANGAN
+        )
+        fan = fan_yasa(reja, turi=FanTuri.TANLOV, kafedra=kaf)
+        variant = fan.variantlar.get()
+        fan_semestr_yasa(variant, semestr=1)
+
+        with self.assertRaises(ValidationError):
+            services.variantni_tanlash(fan, variant)
+        fan.refresh_from_db()
+        self.assertIsNone(fan.tanlangan_variant_id)
+
+    def test_reja_qulflanganmi_faqat_tanlangan_variantni_hisoblaydi(self) -> None:
+        reja = reja_yasa(boshlanish_yili=2025)
+        qulf_kaf = Department.objects.create(nomi="Qulf Kaf")
+        ochiq_kaf = Department.objects.create(nomi="Ochiq Kaf")
+        KafedraYuklamaTasdiq.objects.create(
+            kafedra=qulf_kaf,
+            akademik_yil=2025,
+            holat=KafedraTasdiqHolati.TASDIQLANGAN,
+        )
+        fan = fan_yasa(reja, turi=FanTuri.TANLOV, kafedra=qulf_kaf)
+        tanlanmagan_v = fan.variantlar.get()
+        tanlangan_v = variant_yasa(fan, kodi="K1.01-2", kafedra=ochiq_kaf)
+        fan_semestr_yasa(tanlanmagan_v, semestr=1)
+        fan_semestr_yasa(tanlangan_v, semestr=1)
+
+        fan.tanlangan_variant = tanlangan_v
+        fan.save(update_fields=["tanlangan_variant"])
+        self.assertFalse(services.reja_qulflanganmi(reja))
+
+        fan.tanlangan_variant = tanlanmagan_v
+        fan.save(update_fields=["tanlangan_variant"])
+        self.assertTrue(services.reja_qulflanganmi(reja))
+
+    def test_ofis_nusxa_tanlov_fani_va_kop_semestrli_sanoq(self) -> None:
+        qulf_kaf = Department.objects.create(nomi="Nusxa Qulf Kaf")
+        manba = reja_yasa(boshlanish_yili=2024, yonalish_kodi="60610101")
+        tanlov_manba = fan_yasa(
+            manba,
+            raqam="2.01",
+            turi=FanTuri.TANLOV,
+            kafedra=qulf_kaf,
+            kodi="TV-201",
+            nomi="Tanlov A",
+        )
+        tv_m = tanlov_manba.variantlar.get()
+        tanlov_manba.tanlangan_variant = tv_m
+        tanlov_manba.save(update_fields=["tanlangan_variant"])
+        fan_semestr_yasa(tv_m, semestr=1)
+
+        majb_manba = fan_yasa(
+            manba,
+            raqam="1.02",
+            turi=FanTuri.MAJBURIY,
+            kafedra=qulf_kaf,
+            kodi="MJ-102",
+            nomi="Majburiy B",
+        )
+        fan_semestr_yasa(majb_manba.tanlangan_variant, semestr=1)
+        fan_semestr_yasa(majb_manba.tanlangan_variant, semestr=2)
+
+        maqsad = reja_yasa(boshlanish_yili=2025, yonalish_kodi="60610101")
+        tanlov_maqsad = fan_yasa(
+            maqsad,
+            raqam="2.01",
+            turi=FanTuri.TANLOV,
+            kodi="TV-201",
+            nomi="Tanlov A",
+        )
+        fan_semestr_yasa(tanlov_maqsad.variantlar.get(), semestr=1)
+        majb_maqsad = fan_yasa(
+            maqsad,
+            raqam="1.02",
+            turi=FanTuri.MAJBURIY,
+            kodi="MJ-102",
+            nomi="Majburiy B",
+        )
+        fan_semestr_yasa(majb_maqsad.tanlangan_variant, semestr=1)
+        fan_semestr_yasa(majb_maqsad.tanlangan_variant, semestr=2)
+
+        KafedraYuklamaTasdiq.objects.create(
+            kafedra=qulf_kaf,
+            akademik_yil=2025,
+            holat=KafedraTasdiqHolati.TASDIQLANGAN,
+        )
+        natija = nusxalash.ofis_taqsimotini_nusxalash(2024, 2025)
+        tanlov_maqsad.refresh_from_db()
+        majb_maqsad.tanlangan_variant.refresh_from_db()
+        self.assertIsNone(tanlov_maqsad.tanlangan_variant_id)
+        self.assertIsNone(majb_maqsad.tanlangan_variant.kafedra_id)
+        self.assertEqual(natija.otkazildi_qulflangan, 1)
+
+    @override_settings(IS_TEST=False)
+    def test_keshni_tozala_tranzaksiyada_on_commitga_otadi(self) -> None:
+        with transaction.atomic():
+            with self.captureOnCommitCallbacks(execute=False) as callbacks:
+                services.keshni_tozala()
+            self.assertEqual(len(callbacks), 1)
+
+
+class Batch4IntegratsiyaVaImportTests(TestCase):
+    def test_telegram_xabar_yubor_ok_va_uzunlik_chegarasi(self) -> None:
+        from plans.bildirishnoma import telegram_xabar_yubor
+
+        cm = MagicMock()
+        cm.__enter__.return_value.status = 200
+        cm.__enter__.return_value.read.return_value = json.dumps(
+            {"ok": False, "description": "Bad Request"}
+        ).encode("utf-8")
+        with override_settings(TELEGRAM_BOT_TOKEN="tok123"):
+            with patch(
+                "plans.bildirishnoma._TELEGRAM_OPENER.open", return_value=cm
+            ) as op:
+                self.assertFalse(telegram_xabar_yubor("12345", "A" * 5000))
+                req = op.call_args.args[0]
+                yuk = json.loads(req.data.decode("utf-8"))
+                self.assertEqual(len(yuk["text"]), 4096)
+
+    def test_sync_rejani_top_ikki_reja_bolsa_xato_beradi(self) -> None:
+        from plans.hemis_client import sync_rejani_top
+
+        reja_yasa(
+            yonalish_kodi="60610100", boshlanish_yili=2025, talim_shakli="Kunduzgi"
+        )
+        reja_yasa(yonalish_kodi="60610100", boshlanish_yili=2025, talim_shakli="Sirtqi")
+        with transaction.atomic():
+            with self.assertRaises(ValueError):
+                sync_rejani_top({"yonalish_kodi": "60610100", "boshlanish_yili": 2025})
+
+    def test_shakl1_talaba_soni_turlar_boyicha_ikkilanmaydi(self) -> None:
+        from plans.shakl1 import shakl1_satrlarini_yigish
+
+        kaf = Department.objects.create(nomi="Shakl1 Kaf")
+        oqit1 = oqituvchi_yasa(kafedra=kaf)
+        oqit2 = oqituvchi_yasa(kafedra=kaf)
+        reja = reja_yasa(boshlanish_yili=2025)
+        fan = fan_yasa(reja, kafedra=kaf)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        y1 = Yuklama.objects.create(
+            fan_semestr=fs,
+            tur=SoatTuri.MARUZA,
+            oqituvchi=oqit1,
+            soat=30,
+        )
+        y2 = Yuklama.objects.create(
+            fan_semestr=fs,
+            tur=SoatTuri.KURS_ISHI,
+            oqituvchi=oqit1,
+            soat=50,
+            talabalar_soni=25,
+        )
+        y3 = Yuklama.objects.create(
+            fan_semestr=fs,
+            tur=SoatTuri.KURS_ISHI,
+            oqituvchi=oqit2,
+            soat=100,
+            talabalar_soni=50,
+        )
+        # Xotirada talabalar_soni yozilgan ma'ruza qatori kelsa ham
+        # kurs ishi bilan qo'shilmaydi.
+        y1.talabalar_soni = 75
+        satrlar, _ = shakl1_satrlarini_yigish([y1, y2, y3])
+        self.assertEqual(len(satrlar), 1)
+        self.assertEqual(satrlar[0]["_talabalar_soni"], 75)
+
+    def test_namuna_excel_formula_injectionni_zararsizlantiradi(self) -> None:
+        Department.objects.create(nomi="=cmd|' /C calc'!A0")
+        OqituvchiTuri.objects.create(nomi="@SUM(1+1)", min_soat=500)
+        buf = oqituvchilar_namuna_excel()
+        wb = load_workbook(buf)
+        ref = wb["Ma'lumotnoma"]
+        vals = [row[0] for row in ref.iter_rows(min_row=2, values_only=True)]
+        t_vals = [row[1] for row in ref.iter_rows(min_row=2, values_only=True)]
+        wb.close()
+        self.assertTrue(any(str(v).startswith("'=") for v in vals if v))
+        self.assertTrue(any(str(v).startswith("'@") for v in t_vals if v))
+
+    def test_yonalish_import_uzun_kodni_qisqartirmaydi(self) -> None:
+        wb = Workbook()
+        ws = wb.active
+        ws.append(["Kodi", "Nomi", "BS kod", "BS nom", "TS kod", "TS nom"])
+        ws.append(["123456789012345678901", "Nomi", "60", "BS", "61", "TS"])
+        buf = BytesIO()
+        wb.save(buf)
+        wb.close()
+        fayl = SimpleUploadedFile("uzun_kod.xlsx", buf.getvalue())
+        with self.assertRaises(ValidationError):
+            yonalishlar_excel_import(fayl)
+
+    def test_hemis_qulf_tartibi_fansemestr_guruhdan_oldin(self) -> None:
+        from django.conf import settings
+
+        manba = (Path(settings.BASE_DIR) / "plans" / "hemis_client.py").read_text(
+            encoding="utf-8"
+        )
+        fs_pos = manba.index("FanSemestr.objects.reja_uchun(reja).select_for_update()")
+        g_pos = manba.index("reja.guruhlar.select_for_update()")
+        self.assertLess(fs_pos, g_pos)
+
+    def test_vaqtinchalik_parol_audit_xato_bolsa_qaytariladi(self) -> None:
+        from unittest.mock import patch
+
+        from django.test import Client
+        from django.urls import reverse
+
+        from plans.tests.factories import oqituvchi_yasa
+        from web.tests.helpers import ofis_admin_yarat
+
+        admin = ofis_admin_yarat()
+        profil = oqituvchi_yasa()
+        oqit = profil.foydalanuvchi
+        eski_parol = oqit.parol_ozgartirish_kerak
+        eski_hash = oqit.password
+        c = Client()
+        c.force_login(admin)
+        with (
+            patch(
+                "web.views.office.oqituvchilar.audit_yoz",
+                side_effect=RuntimeError("audit xato"),
+            ),
+            self.assertRaises(RuntimeError),
+        ):
+            c.post(reverse("office:oqituvchi_vaqtinchalik_parol", args=[profil.pk]))
+        oqit.refresh_from_db()
+        self.assertEqual(oqit.parol_ozgartirish_kerak, eski_parol)
+        self.assertEqual(oqit.password, eski_hash)

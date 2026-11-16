@@ -1,8 +1,11 @@
 import json
 from io import BytesIO
+from pathlib import Path
+from unittest.mock import patch
 
 import openpyxl
 from django.conf import settings
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
@@ -20,24 +23,25 @@ from plans.models import (
     Yuklama,
 )
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
 from web.tests.helpers import (
     PAROL,
-    login,
     mudir_yarat,
-    office_admin_yarat,
+    ofis_admin_yarat,
     oqituvchi_yarat,
+    tizimga_kir,
 )
+from web.views.jonli import _KESH_KALITI, JONLI_EPOCH_KALITI, holat_versiyasi
 
 
 class ParolOzgartirishTests(TestCase):
     def test_foydalanuvchi_oz_parolini_almashtiradi(self) -> None:
         user = oqituvchi_yarat()
-        login(self.client, user)
+        tizimga_kir(self.client, user)
         javob = self.client.post(
             reverse("parol_ozgartirish"),
             {
@@ -57,16 +61,16 @@ class OqituvchiYuklamaVaExcelTests(TestCase):
     def setUp(self) -> None:
         self.yil = dashboard.joriy_akademik_yil()
         self.kafedra = Department.objects.create(nomi="Dasturiy injiniring")
-        self.reja = make_reja(boshlanish_yili=self.yil)
-        fan = make_fan(self.reja, kafedra=self.kafedra)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        self.oqituvchi = make_oqituvchi(kafedra=self.kafedra)
+        self.reja = reja_yasa(boshlanish_yili=self.yil)
+        fan = fan_yasa(self.reja, kafedra=self.kafedra)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        self.oqituvchi = oqituvchi_yasa(kafedra=self.kafedra)
         Yuklama.objects.create(
             fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=self.oqituvchi
         )
 
     def test_ofis_oqituvchi_yuklama_varaqasi(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.get(
             reverse("office:oqituvchi_yuklama", args=[self.oqituvchi.pk]),
             {"yil": self.yil},
@@ -76,7 +80,7 @@ class OqituvchiYuklamaVaExcelTests(TestCase):
         self.assertContains(javob, "24")
 
     def test_kafedra_oqituvchi_yuklama_varaqasi(self) -> None:
-        login(self.client, mudir_yarat(kafedra=self.kafedra))
+        tizimga_kir(self.client, mudir_yarat(kafedra=self.kafedra))
         javob = self.client.get(
             reverse("kafedra:oqituvchi_yuklama", args=[self.oqituvchi.pk]),
             {"yil": self.yil},
@@ -85,14 +89,14 @@ class OqituvchiYuklamaVaExcelTests(TestCase):
         self.assertContains(javob, str(self.oqituvchi))
 
     def test_ofis_excel_eksport(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.get(reverse("office:oqituvchi_excel"), {"yil": self.yil})
         self.assertEqual(javob.status_code, 200)
         kitob = openpyxl.load_workbook(BytesIO(b"".join(javob.streaming_content)))
         self.assertEqual(kitob.sheetnames, ["O'qituvchilar", "Yuklama tafsiloti"])
 
     def test_kafedra_hisobot_excel_eksport(self) -> None:
-        login(self.client, mudir_yarat(kafedra=self.kafedra))
+        tizimga_kir(self.client, mudir_yarat(kafedra=self.kafedra))
         javob = self.client.get(reverse("kafedra:hisobot_excel"), {"yil": self.yil})
         self.assertEqual(javob.status_code, 200)
 
@@ -101,13 +105,13 @@ class TopshirilmaganDasturlarMonitoringTests(TestCase):
     def test_topshirilmagan_fan_monitoringda_chiqadi(self) -> None:
         yil = dashboard.joriy_akademik_yil()
         kafedra = Department.objects.create(nomi="Fizika")
-        reja = make_reja(boshlanish_yili=yil)
-        fan = make_fan(reja, kafedra=kafedra)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        oqituvchi = make_oqituvchi(kafedra=kafedra)
+        reja = reja_yasa(boshlanish_yili=yil)
+        fan = fan_yasa(reja, kafedra=kafedra)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        oqituvchi = oqituvchi_yasa(kafedra=kafedra)
         Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=oqituvchi)
 
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.get(
             reverse("office:dastur_topshirishlar"), {"holat": "TOPSHIRILMAGAN"}
         )
@@ -118,7 +122,7 @@ class TopshirilmaganDasturlarMonitoringTests(TestCase):
 
 class SozlamalarVaRejaOchirishTests(TestCase):
     def setUp(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
 
     def test_lavozim_va_yonalish_yaratish(self) -> None:
         self.client.post(
@@ -142,11 +146,11 @@ class SozlamalarVaRejaOchirishTests(TestCase):
         self.assertTrue(TalimYonalishi.objects.filter(kodi="60610999").exists())
 
     def test_yuklamasiz_reja_ochiriladi_yuklamali_rad_etiladi(self) -> None:
-        reja = make_reja()
-        fan = make_fan(reja)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        reja = reja_yasa()
+        fan = fan_yasa(reja)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         yuklama = Yuklama.objects.create(
-            fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=make_oqituvchi()
+            fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=oqituvchi_yasa()
         )
         self.client.post(reverse("office:reja_ochirish", args=[reja.pk]))
         self.assertTrue(OquvReja.objects.filter(pk=reja.pk).exists())
@@ -158,7 +162,7 @@ class SozlamalarVaRejaOchirishTests(TestCase):
 
 class JonliYangilanishTests(TestCase):
     def test_jonli_holat_versiyasi_malumot_ozgarganda_yangilanadi(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob1 = self.client.get(reverse("jonli_holat"))
         self.assertEqual(javob1.status_code, 200)
         v1 = javob1.json()["versiya"]
@@ -168,8 +172,8 @@ class JonliYangilanishTests(TestCase):
         v2 = javob2.json()["versiya"]
         self.assertNotEqual(v1, v2)
 
-        reja = make_reja()
-        fan = make_fan(reja)
+        reja = reja_yasa()
+        fan = fan_yasa(reja)
         fan.tanlangan_variant.kafedra = kafedra
         fan.tanlangan_variant.save()
         javob3 = self.client.get(reverse("jonli_holat"))
@@ -177,10 +181,10 @@ class JonliYangilanishTests(TestCase):
         self.assertNotEqual(v2, v3)
 
     def test_sahifalarda_jonli_atributlari_va_skript_mavjud(self) -> None:
-        reja = make_reja(boshlanish_yili=dashboard.joriy_akademik_yil())
-        fan = make_fan(reja)
-        make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        login(self.client, office_admin_yarat())
+        reja = reja_yasa(boshlanish_yili=dashboard.joriy_akademik_yil())
+        fan = fan_yasa(reja)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.get(reverse("office:dashboard"))
         self.assertContains(javob, "jonli.js")
         self.assertContains(javob, 'data-jonli="office-statlar"')
@@ -192,13 +196,13 @@ class KafedraTasdiqWorkflowTests(TestCase):
         self.yil = dashboard.joriy_akademik_yil()
         self.kafedra = Department.objects.create(nomi="Kiberxavfsizlik")
         self.mudir = mudir_yarat(kafedra=self.kafedra)
-        self.reja = make_reja(boshlanish_yili=self.yil)
-        fan = make_fan(self.reja, kafedra=self.kafedra)
-        self.fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
-        self.oqituvchi = make_oqituvchi(kafedra=self.kafedra)
+        self.reja = reja_yasa(boshlanish_yili=self.yil)
+        fan = fan_yasa(self.reja, kafedra=self.kafedra)
+        self.fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        self.oqituvchi = oqituvchi_yasa(kafedra=self.kafedra)
 
     def test_kafedra_tasdiqqa_yuborish_va_qulflash(self) -> None:
-        login(self.client, self.mudir)
+        tizimga_kir(self.client, self.mudir)
         javob = self.client.post(
             reverse("kafedra:tasdiqqa_yuborish"),
             {"yil": self.yil, "izoh": "Taqsimot yakunlandi"},
@@ -220,8 +224,8 @@ class KafedraTasdiqWorkflowTests(TestCase):
 
     def test_ofis_tasdiqlash_va_qaytarish(self) -> None:
         services.yuklamani_tasdiqqa_yuborish(self.kafedra, self.yil, "Tekshiring")
-        admin = office_admin_yarat()
-        login(self.client, admin)
+        admin = ofis_admin_yarat()
+        tizimga_kir(self.client, admin)
 
         # Tasdiqlash
         self.client.post(
@@ -247,7 +251,7 @@ class KafedraTasdiqWorkflowTests(TestCase):
 
 class AuditJurnaliTests(TestCase):
     def test_audit_yozuvlari_ofisda_korinadi_va_filtrlanadi(self) -> None:
-        admin = office_admin_yarat()
+        admin = ofis_admin_yarat()
         kafedra = Department.objects.create(nomi="Axborot xavfsizligi")
         audit_yoz(
             AuditAmali.TASDIQLANDI,
@@ -260,7 +264,7 @@ class AuditJurnaliTests(TestCase):
             AuditYozuvi.objects.filter(amal=AuditAmali.TASDIQLANDI).exists()
         )
 
-        login(self.client, admin)
+        tizimga_kir(self.client, admin)
         javob = self.client.get(reverse("office:audit_list"))
         self.assertEqual(javob.status_code, 200)
         self.assertContains(javob, "Axborot xavfsizligi")
@@ -294,14 +298,14 @@ class AuditJurnaliTests(TestCase):
         self.assertIsNone(yozuv.ip_manzil)
 
     def test_audit_sahifalash_ishlaydi(self) -> None:
-        admin = office_admin_yarat()
+        admin = ofis_admin_yarat()
         AuditYozuvi.objects.bulk_create(
             [
                 AuditYozuvi(amal=AuditAmali.YARATILDI, tavsif=f"Yozuv-{i}")
                 for i in range(55)
             ]
         )
-        login(self.client, admin)
+        tizimga_kir(self.client, admin)
         javob = self.client.get(reverse("office:audit_list"), {"page": 2})
         self.assertEqual(javob.status_code, 200)
         self.assertContains(javob, "Sahifa 2 / 2")
@@ -313,13 +317,13 @@ class Shakl1IndividualRejaTests(TestCase):
         yil = dashboard.joriy_akademik_yil()
         kafedra = Department.objects.create(nomi="Dasturiy vositalar")
         mudir = mudir_yarat(kafedra=kafedra)
-        oqituvchi = make_oqituvchi(kafedra=kafedra)
-        reja = make_reja(boshlanish_yili=yil)
-        fan = make_fan(reja, kafedra=kafedra)
-        fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        oqituvchi = oqituvchi_yasa(kafedra=kafedra)
+        reja = reja_yasa(boshlanish_yili=yil)
+        fan = fan_yasa(reja, kafedra=kafedra)
+        fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=oqituvchi)
 
-        login(self.client, mudir)
+        tizimga_kir(self.client, mudir)
         javob = self.client.get(
             reverse("kafedra:oqituvchi_yuklama", args=[oqituvchi.pk]), {"yil": yil}
         )
@@ -331,11 +335,11 @@ class Shakl1IndividualRejaTests(TestCase):
 
 class AnalitikaDashboardTests(TestCase):
     def test_ofis_dashboard_analitika_kartochkasi_chiqadi(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         yil = dashboard.joriy_akademik_yil()
-        reja = make_reja(boshlanish_yili=yil)
-        fan = make_fan(reja)
-        make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        reja = reja_yasa(boshlanish_yili=yil)
+        fan = fan_yasa(reja)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
 
         javob = self.client.get(reverse("office:dashboard"))
         self.assertEqual(javob.status_code, 200)
@@ -347,13 +351,13 @@ class AnalitikaDashboardTests(TestCase):
         self.assertContains(javob, 'class="analitika-table analitika-kafedra-table"')
 
     def test_kafedra_biriktirishda_analitika_oob_qaytadi(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         yil = dashboard.joriy_akademik_yil()
-        reja = make_reja(boshlanish_yili=yil)
+        reja = reja_yasa(boshlanish_yili=yil)
         kafedra = Department.objects.create(nomi="Amaliy matematika")
-        fan = make_fan(reja)
+        fan = fan_yasa(reja)
         assert fan.tanlangan_variant is not None
-        make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
 
         javob = self.client.post(
             reverse("office:kafedra_biriktirish", args=[fan.tanlangan_variant.pk]),
@@ -372,10 +376,10 @@ class RestApiTests(TestCase):
         self.kafedra = Department.objects.create(
             nomi="Algoritmlar va sun'iy intellekt", fakultet="AKT"
         )
-        self.oqituvchi = make_oqituvchi(kafedra=self.kafedra)
-        self.reja = make_reja(boshlanish_yili=2024, yonalish_kodi="60610500")
-        fan = make_fan(self.reja, kafedra=self.kafedra)
-        self.fs = make_fan_semestr(fan.tanlangan_variant, semestr=1)
+        self.oqituvchi = oqituvchi_yasa(kafedra=self.kafedra)
+        self.reja = reja_yasa(boshlanish_yili=2024, yonalish_kodi="60610500")
+        fan = fan_yasa(self.reja, kafedra=self.kafedra)
+        self.fs = fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
         self.yuklama = Yuklama.objects.create(
             fan_semestr=self.fs, tur=SoatTuri.MARUZA, oqituvchi=self.oqituvchi
         )
@@ -417,7 +421,7 @@ class RestApiTests(TestCase):
     def test_api_sessiya_orqali_post_csrf_himoyalangan(self) -> None:
         from django.test import Client
 
-        admin = office_admin_yarat()
+        admin = ofis_admin_yarat()
         csrf_client = Client(enforce_csrf_checks=True)
         csrf_client.force_login(admin)
         javob = csrf_client.post(
@@ -488,3 +492,163 @@ class RestApiTests(TestCase):
         self.assertTrue(
             AuditYozuvi.objects.filter(amal=AuditAmali.TAHRIRLANDI).exists()
         )
+
+
+class Batch1XavfsizlikVaQulfTests(TestCase):
+    def tearDown(self) -> None:
+        cache.clear()
+        super().tearDown()
+
+    def test_api_brute_force_veb_kirishni_bloklamaydi(self) -> None:
+        user = oqituvchi_yarat()
+        for _ in range(21):
+            r_api = self.client.get(
+                reverse("api:kafedralar"),
+                HTTP_AUTHORIZATION="Bearer notogri-kalit",
+            )
+        self.assertEqual(r_api.status_code, 429)
+
+        r_login = self.client.post(
+            reverse("kirish"),
+            {"username": user.telefon, "password": PAROL},
+        )
+        self.assertEqual(r_login.status_code, 302)
+
+    def test_jonli_holat_eski_epoch_bilan_keshga_yozmaydi(self) -> None:
+        cache.clear()
+        cache.set(JONLI_EPOCH_KALITI, "epoch-1", timeout=60)
+
+        def poyga_qiluvchi() -> list[str]:
+            cache.set(JONLI_EPOCH_KALITI, "epoch-2", timeout=60)
+            return ["eski:1"]
+
+        with patch("web.views.jonli._jadval_qismlari", side_effect=poyga_qiluvchi):
+            eski = holat_versiyasi()
+        self.assertIsNone(cache.get(_KESH_KALITI))
+
+        yangi = holat_versiyasi()
+        self.assertNotEqual(eski, yangi)
+        self.assertEqual(cache.get(_KESH_KALITI), yangi)
+
+    def test_oqituvchi_ochirish_mudirni_xavfsiz_boshatadi(self) -> None:
+        admin = ofis_admin_yarat()
+        kaf = Department.objects.create(nomi="Kaf-Mudir")
+        mudir = mudir_yarat(kaf)
+        kaf.refresh_from_db()
+        profil = kaf.mudir
+        assert profil is not None
+        reja = reja_yasa(boshlanish_yili=2025)
+        fan = fan_yasa(reja, kafedra=kaf)
+        fs = fan_semestr_yasa(fan.tanlangan_variant)
+        Yuklama.objects.create(fan_semestr=fs, tur=SoatTuri.MARUZA, oqituvchi=profil)
+
+        tizimga_kir(self.client, admin)
+        javob = self.client.post(reverse("office:oqituvchi_ochirish", args=[profil.pk]))
+        self.assertEqual(javob.status_code, 302)
+        kaf.refresh_from_db()
+        mudir.refresh_from_db()
+        self.assertIsNone(kaf.mudir_id)
+        self.assertFalse(mudir.is_active)
+
+    def test_reja_tahrir_post_va_validatsiya(self) -> None:
+        admin = ofis_admin_yarat()
+        kaf = Department.objects.create(nomi="Reja Kaf")
+        reja = reja_yasa(boshlanish_yili=2025, guruhlar_soni=3)
+        g3 = reja.guruhlar.create(raqam=3, nomi="DI-3")
+        fan = fan_yasa(reja, kafedra=kaf)
+        fs = fan_semestr_yasa(fan.tanlangan_variant)
+        oqit = oqituvchi_yasa(kafedra=kaf)
+        Yuklama.objects.create(
+            fan_semestr=fs, tur=SoatTuri.AMALIYOT, guruh=g3, oqituvchi=oqit
+        )
+
+        tizimga_kir(self.client, admin)
+        yomon = self.client.post(
+            reverse("office:reja_tahrir", args=[reja.pk]),
+            {
+                "bilim_sohasi_kodi": reja.bilim_sohasi_kodi,
+                "bilim_sohasi_nomi": reja.bilim_sohasi_nomi,
+                "talim_sohasi_kodi": reja.talim_sohasi_kodi,
+                "talim_sohasi_nomi": reja.talim_sohasi_nomi,
+                "yonalish_kodi": reja.yonalish_kodi,
+                "yonalish_nomi": reja.yonalish_nomi,
+                "talim_shakli": reja.talim_shakli,
+                "daraja": reja.daraja,
+                "talabalar_soni": 50,
+                "guruhlar_soni": 2,
+                "guruh_prefiksi": reja.guruh_prefiksi,
+            },
+        )
+        self.assertEqual(yomon.status_code, 200)
+        reja.refresh_from_db()
+        self.assertEqual(reja.guruhlar_soni, 3)
+
+        yaxshi = self.client.post(
+            reverse("office:reja_tahrir", args=[reja.pk]),
+            {
+                "bilim_sohasi_kodi": reja.bilim_sohasi_kodi,
+                "bilim_sohasi_nomi": reja.bilim_sohasi_nomi,
+                "talim_sohasi_kodi": reja.talim_sohasi_kodi,
+                "talim_sohasi_nomi": reja.talim_sohasi_nomi,
+                "yonalish_kodi": reja.yonalish_kodi,
+                "yonalish_nomi": reja.yonalish_nomi,
+                "talim_shakli": reja.talim_shakli,
+                "daraja": reja.daraja,
+                "talabalar_soni": 80,
+                "guruhlar_soni": 4,
+                "guruh_prefiksi": reja.guruh_prefiksi,
+            },
+        )
+        self.assertEqual(yaxshi.status_code, 302)
+        reja.refresh_from_db()
+        self.assertEqual(reja.talabalar_soni, 80)
+        self.assertEqual(reja.guruhlar_soni, 4)
+
+
+class Batch2Va3UiA11yTests(TestCase):
+    def test_css_va_sw_va_jonli_tuzatishlar(self) -> None:
+        css_matn = (Path(settings.BASE_DIR) / "web/static/web/css/app.css").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(".navbar .nav-notif-btn", css_matn)
+        self.assertIn(".msg-warning", css_matn)
+        self.assertIn("\n.muted {", css_matn)
+        self.assertIn("@keyframes spin", css_matn)
+        self.assertIn(".mobile-only-val", css_matn)
+
+        jonli_matn = (Path(settings.BASE_DIR) / "web/static/web/js/jonli.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("function normHtml(el)", jonli_matn)
+        self.assertIn(".nav-notif-menu", jonli_matn)
+        self.assertIn(
+            'document.dispatchEvent(new CustomEvent("jonli:yangilandi"', jonli_matn
+        )
+        self.assertIn('verb === "get"', jonli_matn)
+
+        sw = self.client.get(reverse("service_worker"))
+        self.assertEqual(sw.status_code, 200)
+        self.assertContains(sw, "print.css?v=6")
+        self.assertContains(sw, "jonli.js?v=3")
+
+    def test_semestrovka_bosh_holat_va_a11y(self) -> None:
+        admin = ofis_admin_yarat()
+        reja = reja_yasa(boshlanish_yili=2025)
+        tizimga_kir(self.client, admin)
+
+        bosh = self.client.get(
+            f"{reverse('office:reja_detail', args=[reja.pk])}?tab=semestrovka"
+        )
+        self.assertEqual(bosh.status_code, 200)
+        self.assertContains(bosh, "Semestrovka bo'sh")
+        self.assertContains(bosh, "resp.ok")
+        self.assertContains(bosh, "showAppToast")
+
+        fan = fan_yasa(reja)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=1)
+        fan_semestr_yasa(fan.tanlangan_variant, semestr=2)
+        toldi = self.client.get(
+            f"{reverse('office:reja_detail', args=[reja.pk])}?tab=semestrovka"
+        )
+        self.assertContains(toldi, "mobile-only-val")
+        self.assertContains(toldi, "Ma'ruza soati")

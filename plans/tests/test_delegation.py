@@ -5,20 +5,20 @@ from plans.delegation import fan_semestr_holati, fs_satri, kafedra_fs_satrlari
 from plans.models import SoatTuri, Yuklama
 from plans.services import guruhlarni_sinxronlash
 from plans.tests.factories import (
-    make_fan,
-    make_fan_semestr,
-    make_oqituvchi,
-    make_reja,
+    fan_semestr_yasa,
+    fan_yasa,
+    oqituvchi_yasa,
+    reja_yasa,
 )
 
 
 class FanSemestrHolatiTests(TestCase):
     def setUp(self) -> None:
-        self.reja = make_reja()  # 3 guruh, 75 talaba
+        self.reja = reja_yasa()  # 3 guruh, 75 talaba
         self.guruhlar = guruhlarni_sinxronlash(self.reja)
-        self.oqituvchi = make_oqituvchi()
-        self.fan = make_fan(self.reja, kafedra=self.oqituvchi.kafedra)
-        self.fs = make_fan_semestr(self.fan.tanlangan_variant, kurs_ishi_bor=True)
+        self.oqituvchi = oqituvchi_yasa()
+        self.fan = fan_yasa(self.reja, kafedra=self.oqituvchi.kafedra)
+        self.fs = fan_semestr_yasa(self.fan.tanlangan_variant, kurs_ishi_bor=True)
 
     def test_shakllar_togri_quriladi(self) -> None:
         holatlar = {h.tur: h for h in fan_semestr_holati(self.fs)}
@@ -62,12 +62,12 @@ class FanSemestrHolatiTests(TestCase):
 class KafedraFsSatrlariTests(TestCase):
     def test_faqat_oz_kafedrasi(self) -> None:
         joriy = joriy_akademik_yil()
-        reja = make_reja(boshlanish_yili=joriy)
-        oqituvchi = make_oqituvchi()
-        bizniki = make_fan(reja, raqam="1.01", kafedra=oqituvchi.kafedra)
-        make_fan_semestr(bizniki.tanlangan_variant, semestr=1)
-        begona = make_fan(reja, raqam="1.02")
-        make_fan_semestr(begona.tanlangan_variant, semestr=1)
+        reja = reja_yasa(boshlanish_yili=joriy)
+        oqituvchi = oqituvchi_yasa()
+        bizniki = fan_yasa(reja, raqam="1.01", kafedra=oqituvchi.kafedra)
+        fan_semestr_yasa(bizniki.tanlangan_variant, semestr=1)
+        begona = fan_yasa(reja, raqam="1.02")
+        fan_semestr_yasa(begona.tanlangan_variant, semestr=1)
 
         satrlar = kafedra_fs_satrlari(oqituvchi.kafedra, joriy)
 

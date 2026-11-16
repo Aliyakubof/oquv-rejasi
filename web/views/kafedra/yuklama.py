@@ -1,8 +1,7 @@
-"""HTMX endpoints creating and removing Yuklama rows for one kafedra.
+"""Bitta kafedra uchun Yuklama qatorlarini yaratish va o'chirish HTMX nuqtalari.
 
-Every endpoint resolves objects THROUGH self.kafedra (from the mixin), so a
-mudir can only ever touch fan-semestrs delegated to, and teachers employed
-by, their own department.
+Har bir nuqta obyektlarni self.kafedra orqali oladi, shunda mudir faqat
+o'z kafedrasiga tegishli fan-semestr va o'qituvchilar bilan ishlay oladi.
 """
 
 from django.core.exceptions import ValidationError
@@ -31,7 +30,7 @@ FORMALAR: dict[str, type[YuklamaAsosForm]] = {
 
 
 class PanelAsosView(KafedraMudiriTalabMixin, View):
-    """Shared helpers: kafedra-scoped lookups and the panel response."""
+    """Umumiy yordamchilar: kafedra doirasidagi qidiruv va panel javobi."""
 
     def fan_semestr(self, pk: int) -> FanSemestr:
         return get_object_or_404(
@@ -186,7 +185,7 @@ class YuklamaOchirishView(PanelAsosView):
 
 
 class GuruhlarOmmaviyYaratishView(PanelAsosView):
-    """Assigns one teacher to all unassigned groups for an activity type."""
+    """Bir dars turi uchun bo'sh guruhlarga bitta o'qituvchini biriktiradi."""
 
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
         oqituvchi_pk = musbat_int_yoki_none(request.POST.get("oqituvchi"))
@@ -228,7 +227,7 @@ class GuruhlarOmmaviyYaratishView(PanelAsosView):
 
 
 class GuruhlarTozalashView(PanelAsosView):
-    """Clears all group delegations for a given activity type in one step."""
+    """Berilgan dars turi bo'yicha barcha guruh taqsimotlarini tozalaydi."""
 
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
         tur = request.POST.get("tur")

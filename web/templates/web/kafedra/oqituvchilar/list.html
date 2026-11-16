@@ -117,7 +117,7 @@
                   title="Yuklama varaqasini ko'rish">
                   <span class="avatar">{{ holat.oqituvchi|stringformat:"s"|bosh_harflar }}</span>
                   <span>{{ holat.oqituvchi }}</span>
-                  {% if holat.oqituvchi == kafedra.mudir %}<span class="tag tag-mand">MUDIR</span>{% endif %}
+                  {% if holat.oqituvchi.pk == kafedra.mudir_id %}<span class="tag tag-mand">MUDIR</span>{% endif %}
                 </a>
               </td>
               <td class="col-center" data-label="Telefon"><span class="code">{{ holat.oqituvchi.foydalanuvchi.telefon }}</span></td>

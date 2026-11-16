@@ -1,9 +1,9 @@
-"""DEBUG-only account switcher: impersonate any role without re-logging in.
+"""Faqat DEBUG da ishlaydigan rol almashtirgich: qayta kirmasdan rolga o'tish.
 
-Roles are not self-contained — a mudir needs an OqituvchiProfil that a
-Department points at, a teacher needs a profile to have any yuklama. So this
-switches to a user who genuinely holds the role instead of rewriting rol on
-the current account, which would land on empty or forbidden pages.
+Rollar alohida emas — mudir uchun Department ga bog'langan OqituvchiProfil,
+o'qituvchi uchun esa yuklama bo'lishi kerak. Shuning uchun bu vosita joriy
+hisobning rolini shunchaki o'zgartirmasdan, o'sha rolga ega foydalanuvchiga
+o'tkazadi.
 """
 
 from collections.abc import Callable
@@ -29,10 +29,10 @@ BACKEND = "django.contrib.auth.backends.ModelBackend"
 
 
 def debug_talab(view: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
-    """Make the endpoint indistinguishable from nonexistent outside DEBUG.
+    """DEBUG o'chirilganda bu endpoint umuman yo'qdek ko'rinishi kerak.
 
-    The guard lives here rather than in urls.py because the URLconf is built at
-    import time, so override_settings(DEBUG=True) could never reach it in tests.
+    Tekshiruv urls.py da emas, shu yerda turadi — chunki URLconf import
+    vaqtida tuziladi va testlarda override_settings(DEBUG=True) unga yetmaydi.
     """
 
     @wraps(view)
@@ -87,8 +87,8 @@ def rol_almashtirish(request: HttpRequest) -> HttpResponse:
 
     login(request, nishon, backend=BACKEND)
 
-    # login() flushes the session when the user changes, so both the original
-    # pk and the message have to be written after it, not before.
+    # Foydalanuvchi o'zgarganda login() sessiyani yangilab yuboradi, shu bois asl
+    # pk ham, xabar ham undan keyin yozilishi shart.
     if nishon.pk != asl_pk:
         request.session[ASL_KEY] = asl_pk
     messages.success(request, f"{nishon.get_full_name()} sifatida kirildi.")
@@ -119,10 +119,10 @@ def _ofis_adminlar() -> list[Foydalanuvchi]:
 
 
 def _mudirli_kafedralar() -> list[Department]:
-    """Only kafedras that have an active mudir — those are the heads that can log in.
+    """Faqat faol mudiri bor kafedralar — tizimga kira oladigan mudirlar shular.
 
-    Filtering by rol=DEPARTMENT_ADMIN instead would list heads whose kafedra
-    link is missing, and KafedraMudiriTalabMixin bounces those straight out.
+    rol=DEPARTMENT_ADMIN bo'yicha filtrlansa, kafedraga biriktirilmagan mudirlar
+    ham chiqadi va KafedraMudiriTalabMixin ularni darhol qaytarib yuboradi.
     """
     return list(
         Department.objects.exclude(mudir=None)

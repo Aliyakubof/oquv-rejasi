@@ -1,8 +1,7 @@
-"""Delegation state for the kafedra head's assignment panel.
+"""Kafedra mudiri paneli uchun yuklama taqsimlash holati.
 
-Shapes one FanSemestr's demand into per-type sections the UI can render:
-a single lecture slot, one slot per guruh for group types, and a
-student-count ledger for kurs ishi.
+FanSemestr talabini UI chiza oladigan bo'limlarga ajratadi: bitta ma'ruza o'rni,
+guruhli mashg'ulotlar uchun har guruhga alohida o'rin va kurs ishi hisobi.
 """
 
 from collections import defaultdict
@@ -26,7 +25,7 @@ class GuruhSlot:
 
 @dataclass(frozen=True)
 class TurHolati:
-    """One hour type's delegation section inside the panel."""
+    """Panel ichidagi bitta soat turining taqsimot bo'limi."""
 
     tur: str
     tur_nomi: str
@@ -93,7 +92,7 @@ def _tur_holati(
 
 @dataclass(frozen=True)
 class FsSatri:
-    """One dashboard row: a fan-semester with its per-type demand lines."""
+    """Dashboarddagi bitta qator: fan-semestr va uning soat turlari bo'yicha talabi."""
 
     fan_semestr: FanSemestr
     turlar: dict[str, TalabSatri]
@@ -133,7 +132,7 @@ def kafedra_fs_satrlari(
 
 
 def fs_satri(fs: FanSemestr) -> FsSatri:
-    """Rebuild a single row after a mutation, without the full-year query."""
+    """O'zgarishdan keyin umumiy yillik so'rovsiz bitta qatorni yangilaydi."""
     reja = fs.variant.fan.reja
     taqsimlangan = taqsimlangan_soatlar(FanSemestr.objects.filter(pk=fs.pk))
     turlar = {

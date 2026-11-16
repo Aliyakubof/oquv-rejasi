@@ -1,8 +1,7 @@
 /**
- * Real-time UI synchronization for O'quv Reja Platformasi.
- * Watches /jonli-holat/ and updates [data-jonli] DOM regions in-place
- * whenever database state changes, without disrupting active popovers,
- * search inputs, open panels, or Alpine state.
+ * O'quv Reja Platformasi uchun jonli interfeys sinxronizatsiyasi.
+ * /jonli-holat/ ni kuzatadi va bazadagi o'zgarishlarda [data-jonli] bloklarini
+ * ochiq popover, qidiruv maydoni, panel yoki Alpine holatini buzmasdan yangilaydi.
  */
 (() => {
   const BOSH_INTERVAL_MS = 8000;
@@ -10,7 +9,7 @@
   let joriyIntervalMs = BOSH_INTERVAL_MS;
   let joriyVersiya = null;
   let sorovKetmoqda = false;
-  let timerId = null;
+  let taymerId = null;
 
   function kirishManzili() {
     return (
@@ -20,8 +19,8 @@
   }
 
   function qaytaRejalashtir(kechikishMs = joriyIntervalMs) {
-    if (timerId) clearTimeout(timerId);
-    timerId = setTimeout(tekshir, kechikishMs);
+    if (taymerId) clearTimeout(taymerId);
+    taymerId = setTimeout(tekshir, kechikishMs);
   }
 
   function skrollniSaqlash(el) {
@@ -61,10 +60,18 @@
     ) {
       return true;
     }
-    const popoverlar = el.querySelectorAll(".popover, .action-menu");
+    const popoverlar = el.querySelectorAll(".popover, .action-menu, .nav-notif-menu");
     for (const p of popoverlar) {
       const st = window.getComputedStyle(p);
       if (st.display !== "none" && st.visibility !== "hidden") return true;
+    }
+    const notifWrap = el.closest(".nav-notif-wrap");
+    if (notifWrap) {
+      const menu = notifWrap.querySelector(".nav-notif-menu");
+      if (menu) {
+        const st = window.getComputedStyle(menu);
+        if (st.display !== "none" && st.visibility !== "hidden") return true;
+      }
     }
     if (el.querySelector("details[open]")) return true;
     const panellar = el.querySelectorAll('[id^="panel-"], [id^="dastur-panel-"]');
@@ -82,6 +89,48 @@
     setTimeout(() => ind.classList.remove("puls"), 900);
   }
 
+  function normHtml(el) {
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('input[name="csrfmiddlewaretoken"]').forEach((inp) => {
+      inp.removeAttribute("value");
+    });
+    clone.querySelectorAll("[data-bg]").forEach((node) => {
+      node.style.removeProperty("background");
+      if ((node.getAttribute("style") || "").trim() === "") {
+        node.removeAttribute("style");
+      }
+    });
+    clone.querySelectorAll("[data-width]").forEach((node) => {
+      node.style.removeProperty("width");
+      if ((node.getAttribute("style") || "").trim() === "") {
+        node.removeAttribute("style");
+      }
+    });
+    clone.querySelectorAll("[data-counted]").forEach((node) => {
+      node.removeAttribute("data-counted");
+    });
+    clone.querySelectorAll("[x-cloak]").forEach((node) => {
+      node.removeAttribute("x-cloak");
+    });
+    clone.querySelectorAll("[x-show]").forEach((node) => {
+      if (node.style.display === "none") {
+        node.style.removeProperty("display");
+        if ((node.getAttribute("style") || "").trim() === "") {
+          node.removeAttribute("style");
+        }
+      }
+    });
+    clone
+      .querySelectorAll(".is-htmx-updated, .is-jonli-updated, .puls")
+      .forEach((node) => {
+        node.classList.remove("is-htmx-updated", "is-jonli-updated", "puls");
+        if ((node.getAttribute("class") || "").trim() === "") {
+          node.removeAttribute("class");
+        }
+      });
+    return clone.innerHTML;
+  }
+
   async function sahifaniYangila() {
     const bloklar = document.querySelectorAll("[data-jonli]");
     if (!bloklar.length) return true;
@@ -92,7 +141,7 @@
       cache: "no-store",
     });
     if (javob.status === 401) {
-      if (timerId) clearTimeout(timerId);
+      if (taymerId) clearTimeout(taymerId);
       window.location.assign(kirishManzili());
       return true;
     }
@@ -104,7 +153,7 @@
     const matn = await javob.text();
     const doc = new DOMParser().parseFromString(matn, "text/html");
     let hammasiYangilandi = true;
-    let ozgarishBor = false;
+    const yangilanganBloklar = [];
 
     for (const el of bloklar) {
       if (el.parentElement && el.parentElement.closest("[data-jonli]")) {
@@ -115,7 +164,7 @@
       if (!yangiEl) {
         continue;
       }
-      if (el.innerHTML === yangiEl.innerHTML) continue;
+      if (normHtml(el) === normHtml(yangiEl)) continue;
       if (blokBandmi(el)) {
         hammasiYangilandi = false;
         continue;
@@ -125,12 +174,15 @@
       skrollniTiklash(el, skroll);
       if (window.htmx) window.htmx.process(el);
       if (window.applyDynamicStyles) window.applyDynamicStyles(el);
-      ozgarishBor = true;
+      if (window.animateCounters) window.animateCounters(el);
+      yangilanganBloklar.push(el);
     }
 
-    if (ozgarishBor) {
+    if (yangilanganBloklar.length) {
       indikatorniYiltirat();
-      window.dispatchEvent(new CustomEvent("jonli:yangilandi"));
+      for (const el of yangilanganBloklar) {
+        document.dispatchEvent(new CustomEvent("jonli:yangilandi", { detail: { el } }));
+      }
     }
     return hammasiYangilandi;
   }
@@ -151,20 +203,20 @@
         cache: "no-store",
       });
       if (javob.status === 401) {
-        if (timerId) clearTimeout(timerId);
+        if (taymerId) clearTimeout(taymerId);
         window.location.assign(kirishManzili());
         return;
       }
       if (javob.status === 403) {
         const xato = await javob.json().catch(() => null);
         if (xato && xato.manzil) {
-          if (timerId) clearTimeout(timerId);
+          if (taymerId) clearTimeout(taymerId);
           window.location.assign(xato.manzil);
           return;
         }
       }
       if (javob.redirected) {
-        if (timerId) clearTimeout(timerId);
+        if (taymerId) clearTimeout(taymerId);
         window.location.assign(javob.url);
         return;
       }
@@ -178,12 +230,12 @@
         return;
       }
       joriyIntervalMs = BOSH_INTERVAL_MS;
-      const data = await javob.json();
+      const malumot = await javob.json();
       if (!joriyVersiya) {
-        joriyVersiya = data.versiya;
-      } else if (data.versiya !== joriyVersiya) {
+        joriyVersiya = malumot.versiya;
+      } else if (malumot.versiya !== joriyVersiya) {
         const tugadi = await sahifaniYangila();
-        if (tugadi) joriyVersiya = data.versiya;
+        if (tugadi) joriyVersiya = malumot.versiya;
       }
     } catch (_) {
       joriyIntervalMs = Math.min(joriyIntervalMs * 2, MAX_INTERVAL_MS);
@@ -201,8 +253,8 @@
     }
   }
 
-  function belgilarniTozalash(scope) {
-    (scope || document).querySelectorAll('[data-ozgardi="1"]').forEach((el) => {
+  function belgilarniTozalash(hudud) {
+    (hudud || document).querySelectorAll('[data-ozgardi="1"]').forEach((el) => {
       delete el.dataset.ozgardi;
     });
   }
@@ -220,7 +272,9 @@
       }
     });
     window.addEventListener("focus", tekshir);
-    document.body.addEventListener("htmx:afterSettle", () => {
+    document.body.addEventListener("htmx:afterSettle", (e) => {
+      const verb = (e?.detail?.requestConfig?.verb || "").toLowerCase();
+      if (!verb || verb === "get") return;
       fetch("/jonli-holat/", { credentials: "same-origin", cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {

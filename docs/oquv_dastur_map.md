@@ -7,7 +7,7 @@ The platform **generates** this document with course metadata pre-filled. Teache
 `plans/dastur/oquv_dastur.docx` is a hand-editable Word file, not code-generated. It was produced once by `scripts/make_dastur_template.py`, which opens
 `sources/Kiberxavfsizlik_asoslari_fan_dasturi_ATDT.docx` (a real, fully populated dastur) read-only, swaps concrete values for docxtpl Jinja tags, and
 collapses repeating rows into `{%tr for %}` loops — keeping every border, merge, and font byte-for-byte. The one structural addition over the reference
-document itself is a fourth hour column, **Seminar** (`add_seminar_column()`, run before any other edit) — the reference document only has
+document itself is a fourth hour column, **Seminar** (`seminar_ustunini_qosh()`, run before any other edit) — the reference document only has
 Ma'ruza/Amaliy/Lab-ya, but `FanVariant.seminar_soat` is a real, independent hours field, so the template needs its own column and section-5 loop for it
 (see §3, §5, §9). Re-run the script only if the university reissues the reference form; otherwise edit `plans/dastur/oquv_dastur.docx` directly in Word
 (reword a heading, adjust a border) the same way any other document is edited. At runtime, `plans/dastur/service.py::dastur_render()` renders that
@@ -116,7 +116,7 @@ Row 5:  (empty, span=3)    │ {total_hrs}      │{lec_hrs}│{pra_hr}│{lab_h
 | R5.C6 | Independent study hours | O'quv Reja → mustaqil ta'lim | e.g., `108` |
 | R5.C7 | Course project | O'quv Reja → kurs ishi | `-` if none, `Kurs ishi` if present |
 
-> **Note on the hour columns:** the template has **four** hour-type columns — `Ma'ruza`, `Amaliy`, `Lab-ya`, `Seminar` — even though the reference document itself only has the first three; `Seminar` was added at build time by `scripts/make_dastur_template.py::add_seminar_column()`, since `FanVariant.seminar_soat` is a real, independent hours field distinct from `laboratoriya_soat` and a course can have both non-zero at once (both must then render side by side). A column is dropped entirely (not just shown as `-`) when that hour type is zero, implemented as post-render OOXML surgery in `plans/dastur/soat_ustunlari.py::soat_ustunlarini_tozala()`, since docxtpl can only substitute tags, not remove table columns. The freed width is spread evenly across the surviving hour columns so the table stays full width. If all four are zero, nothing is deleted — removing all four would leave the "Auditoriya" header cell spanning zero grid columns, which is invalid OOXML.
+> **Note on the hour columns:** the template has **four** hour-type columns — `Ma'ruza`, `Amaliy`, `Lab-ya`, `Seminar` — even though the reference document itself only has the first three; `Seminar` was added at build time by `scripts/make_dastur_template.py::seminar_ustunini_qosh()`, since `FanVariant.seminar_soat` is a real, independent hours field distinct from `laboratoriya_soat` and a course can have both non-zero at once (both must then render side by side). A column is dropped entirely (not just shown as `-`) when that hour type is zero, implemented as post-render OOXML surgery in `plans/dastur/soat_ustunlari.py::soat_ustunlarini_tozala()`, since docxtpl can only substitute tags, not remove table columns. The freed width is spread evenly across the surviving hour columns so the table stays full width. If all four are zero, nothing is deleted — removing all four would leave the "Auditoriya" header cell spanning zero grid columns, which is invalid OOXML.
 
 ---
 

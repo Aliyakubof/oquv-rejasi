@@ -1,4 +1,4 @@
-"""Pull curriculum student/group counts from configured HEMIS API URL."""
+"""Sozlangan HEMIS API manzilidan talaba va guruhlar sonini sinxronlash komandasi."""
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 

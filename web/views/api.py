@@ -16,9 +16,9 @@ from accounts.models import Department, OqituvchiProfil
 from plans.hemis_client import hemis_elementlarni_sinxronlash, json_royxatni_ajrat
 from plans.models import FanVariant, OquvReja, Yuklama
 from web.security import (
+    api_kalit_bloklanganmi,
+    api_kalit_xatosini_qayd_et,
     api_sorov_limitdan_oshdimi,
-    kirish_bloklanganmi,
-    kirish_xatosini_qayd_et,
 )
 
 _XAVFSIZ_METODLAR = ("GET", "HEAD", "OPTIONS", "TRACE")
@@ -30,31 +30,34 @@ _TModel = TypeVar("_TModel", bound=Model)
 
 
 def _kalit_mosmi(request: HttpRequest) -> bool:
-    expected_key = getattr(settings, "HEMIS_API_KEY", "")
-    if not expected_key:
+    kutilgan_kalit = getattr(settings, "HEMIS_API_KEY", "")
+    if not kutilgan_kalit:
         return False
-    auth_header = request.headers.get("Authorization", "").strip()
-    if auth_header.startswith(("Bearer ", "Token ")):
-        token = auth_header.split(" ", 1)[1].strip()
-        if constant_time_compare(token, expected_key):
+    auth_sarlavha = request.headers.get("Authorization", "").strip()
+    if auth_sarlavha.startswith(("Bearer ", "Token ")):
+        kalit = auth_sarlavha.split(" ", 1)[1].strip()
+        if constant_time_compare(kalit, kutilgan_kalit):
             return True
     x_api_key = request.headers.get("X-API-KEY", "").strip()
-    return bool(x_api_key and constant_time_compare(x_api_key, expected_key))
+    return bool(x_api_key and constant_time_compare(x_api_key, kutilgan_kalit))
 
 
 def _api_kirish_tekshir(request: HttpRequest) -> tuple[bool, int, str]:
-    """Validate API token or active office/superadmin session with CSRF."""
-    bloklangan, _ = kirish_bloklanganmi(request)
-    if bloklangan:
-        return (
-            False,
-            429,
-            "Juda ko'p noto'g'ri urinish. Birozdan so'ng qayta urinib ko'ring.",
-        )
-    if _kalit_mosmi(request):
-        return True, 200, ""
-    if request.headers.get("Authorization") or request.headers.get("X-API-KEY"):
-        kirish_xatosini_qayd_et(request)
+    """API kaliti yoki CSRF-himoyalangan ofis/superadmin sessiyasini tekshiradi."""
+    kalit_sarlavhasi = bool(
+        request.headers.get("Authorization") or request.headers.get("X-API-KEY")
+    )
+    if kalit_sarlavhasi:
+        bloklangan, _ = api_kalit_bloklanganmi(request)
+        if bloklangan:
+            return (
+                False,
+                429,
+                "Juda ko'p noto'g'ri urinish. Birozdan so'ng qayta urinib ko'ring.",
+            )
+        if _kalit_mosmi(request):
+            return True, 200, ""
+        api_kalit_xatosini_qayd_et(request)
         return False, 401, "API kalit noto'g'ri yoki yaroqsiz."
     if not (request.user.is_authenticated and request.user.is_active):
         return False, 401, "Avtorizatsiyadan o'tilmagan yoki API kalit noto'g'ri."
@@ -75,14 +78,14 @@ def _api_kirish_tekshir(request: HttpRequest) -> tuple[bool, int, str]:
     return True, 200, ""
 
 
-def check_api_auth(request: HttpRequest) -> bool:
-    """Validate request authentication via API token or CSRF-safe session."""
+def api_kirish_ruxsatimi(request: HttpRequest) -> bool:
+    """API kaliti yoki CSRF-xavfsiz sessiya orqali kirish ruxsatini tekshiradi."""
     return _api_kirish_tekshir(request)[0]
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class BaseApiView(View):
-    """Base API view enforcing authentication and rate limits."""
+class AsosiyApiView(View):
+    """Autentifikatsiya va so'rov limitini tekshiruvchi asosiy API ko'rinishi."""
 
     def dispatch(
         self, request: HttpRequest, *args: object, **kwargs: object
@@ -146,8 +149,8 @@ def _sahifalangan_javob(
     )
 
 
-class RejalarApiView(BaseApiView):
-    """GET /api/v1/rejalar/ - Return paginated list of curricula."""
+class RejalarApiView(AsosiyApiView):
+    """GET /api/v1/rejalar/ - O'quv rejalar ro'yxatini sahifalab qaytaradi."""
 
     def get(self, request: HttpRequest) -> JsonResponse:
         yil, xato = _sorov_int_yoki_xato(request, "yil")
@@ -191,8 +194,8 @@ def _kafedra_dict(
     }
 
 
-class KafedralarApiView(BaseApiView):
-    """GET /api/v1/kafedralar/ - Return paginated departments with summary."""
+class KafedralarApiView(AsosiyApiView):
+    """GET /api/v1/kafedralar/ - Kafedralarni umumiy sonlar bilan qaytaradi."""
 
     def get(self, request: HttpRequest) -> JsonResponse:
         sahifa, xato = _sorov_int_yoki_xato(request, "page", min_qiymat=1)
@@ -244,8 +247,8 @@ def _oqituvchi_dict(
     }
 
 
-class OqituvchilarApiView(BaseApiView):
-    """GET /api/v1/oqituvchilar/ - Return paginated teachers and workload stats."""
+class OqituvchilarApiView(AsosiyApiView):
+    """GET /api/v1/oqituvchilar/ - O'qituvchilar va yuklama statistikasini qaytaradi."""
 
     def get(self, request: HttpRequest) -> JsonResponse:
         kafedra_id, xato = _sorov_int_yoki_xato(request, "kafedra_id")
@@ -307,8 +310,8 @@ def _yuklama_dict(y: Yuklama) -> dict[str, object]:
     }
 
 
-class YuklamalarApiView(BaseApiView):
-    """GET /api/v1/yuklamalar/ - Return paginated delegated course workloads."""
+class YuklamalarApiView(AsosiyApiView):
+    """GET /api/v1/yuklamalar/ - Biriktirilgan fan yuklamalarini qaytaradi."""
 
     def get(self, request: HttpRequest) -> JsonResponse:
         paramlar: dict[str, int | None] = {}
@@ -363,8 +366,8 @@ def _sync_elementlarni_oqish(
     return elementlar, None
 
 
-class HemisSyncApiView(BaseApiView):
-    """POST /api/v1/sync/ - Synchronize students and groups from HEMIS."""
+class HemisSyncApiView(AsosiyApiView):
+    """POST /api/v1/sync/ - HEMIS dan talaba va guruhlarni sinxronlaydi."""
 
     def post(self, request: HttpRequest) -> JsonResponse:
         items, xato_javob = _sync_elementlarni_oqish(request)

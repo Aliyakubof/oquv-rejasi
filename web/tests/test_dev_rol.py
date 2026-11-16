@@ -3,30 +3,30 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from web.tests.helpers import (
-    login,
     mudir_yarat,
-    office_admin_yarat,
+    ofis_admin_yarat,
     oqituvchi_yarat,
+    tizimga_kir,
 )
 from web.views.dev import ASL_KEY
 
 
 class DebugOchiqTests(TestCase):
-    """The switcher must not exist at all outside DEBUG."""
+    """DEBUG o'chirilganda rol almashtirgich umuman ishlamasligi kerak."""
 
     def test_almashtirish_debugsiz_404(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.post(
             reverse("dev:almashtirish"), {"foydalanuvchi": mudir_yarat().pk}
         )
         self.assertEqual(javob.status_code, 404)
 
     def test_panel_debugsiz_404(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         self.assertEqual(self.client.get(reverse("dev:panel")).status_code, 404)
 
     def test_navbarda_almashtirgich_yoq(self) -> None:
-        login(self.client, office_admin_yarat())
+        tizimga_kir(self.client, ofis_admin_yarat())
         javob = self.client.get(reverse("office:dashboard"))
         self.assertNotContains(javob, "user-avatar")
         self.assertContains(javob, f'href="{reverse("parol_ozgartirish")}">Parol</a>')
@@ -35,11 +35,11 @@ class DebugOchiqTests(TestCase):
 @override_settings(DEBUG=True)
 class RolAlmashtirishTests(TestCase):
     def setUp(self) -> None:
-        self.admin = office_admin_yarat()
+        self.admin = ofis_admin_yarat()
         self.mudir = mudir_yarat()
         self.kafedra = self.mudir.oqituvchi_profil.kafedra
         self.oqituvchi = oqituvchi_yarat(kafedra=self.kafedra)
-        login(self.client, self.admin)
+        tizimga_kir(self.client, self.admin)
 
     def _almashtir(self, foydalanuvchi_pk: int) -> None:
         self.client.post(
@@ -65,7 +65,7 @@ class RolAlmashtirishTests(TestCase):
         )
 
     def test_mudirga_otib_kafedrani_ocha_oladi(self) -> None:
-        """Impersonation, unlike flipping rol, lands on a working /kafedra/ page."""
+        """Rolni shunchaki almashtirmay, haqiqiy /kafedra/ sahifasini ochib beradi."""
         self._almashtir(self.mudir.pk)
         self.assertEqual(self._joriy_pk(), self.mudir.pk)
         self.assertEqual(self.client.get(reverse("kafedra:dashboard")).status_code, 200)

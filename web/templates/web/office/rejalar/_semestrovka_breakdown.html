@@ -1,6 +1,7 @@
 {% comment %}Full-reja per-semester breakdown: one editable row per occupied
 semester of each course. Ma'ruza/Amaliyot/Lab/Seminar hours and the kurs-ishi
 flag are editable; weekly hours and credits stay as parsed.{% endcomment %}
+{% if majburiy_satrlar or tanlov_satrlar %}
 <form method="post" action="{% url 'office:semestrovka_saqlash' reja.pk %}"
       hx-post="{% url 'office:semestrovka_saqlash' reja.pk %}"
       hx-target="#reja-jonli" hx-select="#reja-jonli" hx-select-oob="#app-messages" hx-swap="outerHTML" hx-indicator="#htmx-yuklanish">
@@ -59,3 +60,9 @@ flag are editable; weekly hours and credits stay as parsed.{% endcomment %}
     <button type="submit" class="btn btn-primary btn-sm">Semestrovkani saqlash</button>
   </div>
 </form>
+{% else %}
+<div class="empty-state">
+  <h3>Semestrovka bo'sh</h3>
+  <p>Ushbu o'quv rejada hozircha semestrlar kesimida kiritilgan fanlar mavjud emas.</p>
+</div>
+{% endif %}

@@ -1,4 +1,4 @@
-"""Create timestamped backup archive of the database and media files."""
+"""Ma'lumotlar bazasi va media fayllarning vaqt tamg'ali zaxira arxivini yaratadi."""
 
 import os
 import sqlite3
@@ -43,10 +43,18 @@ def _postgres_nusxa(db_conf: dict[str, object], nishon: Path) -> None:
         env["PGPASSWORD"] = password
     try:
         natija = subprocess.run(
-            cmd, capture_output=True, text=True, check=False, env=env
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+            stdin=subprocess.DEVNULL,
+            timeout=300,
         )
     except FileNotFoundError as exc:
         raise CommandError("pg_dump utilitasi topilmadi") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise CommandError("pg_dump belgilangan vaqt ichida tugamadi") from exc
     if natija.returncode != 0:
         raise CommandError(f"pg_dump xatosi: {natija.stderr.strip() or 'nomalum'}")
 

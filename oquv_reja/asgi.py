@@ -1,10 +1,7 @@
 """
-ASGI config for oquv_reja project.
+oquv_reja loyihasi uchun ASGI sozlamalari.
 
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
+Modul darajasidagi ``application`` nomli ASGI obyektini taqdim etadi.
 """
 
 import os

@@ -1,11 +1,11 @@
-"""HEMIS integration helpers: inbound payload normalization and outbound pull."""
+"""HEMIS integratsiyasi: kiruvchi ma'lumotni tartiblash va tashqi API dan yuklash."""
 
 import json
 import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-from http.client import HTTPMessage
+from http.client import HTTPException, HTTPMessage
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -93,7 +93,15 @@ def sync_rejani_top(item: dict[str, object]) -> OquvReja | None:
             if not isinstance(item["talim_shakli"], str):
                 raise ValueError("talim_shakli matn bo'lishi kerak")
             filtr["talim_shakli"] = item["talim_shakli"].strip()
-        return OquvReja.objects.select_for_update().filter(**filtr).first()
+        rejalar = list(
+            OquvReja.objects.select_for_update().filter(**filtr).order_by("pk")[:2]
+        )
+        if len(rejalar) > 1:
+            raise ValueError(
+                "yonalish_kodi va boshlanish_yili bo'yicha bir nechta reja topildi; "
+                "talim_shakli ko'rsating."
+            )
+        return rejalar[0] if rejalar else None
     return None
 
 
@@ -142,13 +150,13 @@ def _sync_cheklovlarini_tekshir(
 def sync_rejani_yangila(
     reja: OquvReja, item: dict[str, object]
 ) -> dict[str, object] | None:
-    """Apply atomic, lock-safe updates to one reja from a HEMIS sync item."""
+    """HEMIS elementidan kelgan o'zgarishlarni qulf bilan atomik tarzda qo'llaydi."""
     reja = OquvReja.objects.select_for_update().get(pk=reja.pk)
     ozgardi, talabalar, guruhlar = _reja_maydonlarini_yangila(reja, item)
     if not ozgardi:
         return None
-    list(reja.guruhlar.select_for_update().order_by("pk"))
     list(FanSemestr.objects.reja_uchun(reja).select_for_update().order_by("pk"))
+    list(reja.guruhlar.select_for_update().order_by("pk"))
     _sync_cheklovlarini_tekshir(reja, talabalar, guruhlar)
     reja.full_clean()
     reja.save()
@@ -170,7 +178,7 @@ def hemis_elementlarni_sinxronlash(
     foydalanuvchi: Foydalanuvchi | None = None,
     request: HttpRequest | None = None,
 ) -> tuple[list[dict[str, object]], list[str]]:
-    """Apply HEMIS curriculum student/group updates atomically per item."""
+    """HEMIS talaba va guruh yangilanishlarini har bir reja bo'yicha qo'llaydi."""
     yangilangan: list[dict[str, object]] = []
     xatolar: list[str] = []
 
@@ -203,7 +211,7 @@ def hemis_elementlarni_sinxronlash(
 
 
 def json_royxatni_ajrat(data: object) -> list[dict[str, object]]:
-    """Normalize supported HEMIS JSON payloads to a list of dicts."""
+    """HEMISdan kelgan turli JSON shakllarini lug'atlar ro'yxatiga keltiradi."""
     if isinstance(data, list):
         elementlar = data
     elif isinstance(data, dict):
@@ -252,7 +260,7 @@ def hemis_dan_yuklash(
     *,
     timeout: int | None = None,
 ) -> list[dict[str, object]]:
-    """Fetch curriculum counts from external HEMIS endpoint using stdlib HTTP."""
+    """Tashqi HEMIS manzilidan o'quv reja sonlarini standart HTTP orqali tortadi."""
     manzil = (base_url or getattr(settings, "HEMIS_BASE_URL", "")).strip()
     if not manzil:
         raise ValueError("HEMIS_BASE_URL sozlanmagan.")
@@ -266,8 +274,19 @@ def hemis_dan_yuklash(
     kutish = timeout or int(getattr(settings, "HEMIS_TIMEOUT", 15))
     try:
         xom = _http_ochish(sorov, kutish).decode("utf-8")
-    except urllib.error.URLError as err:
-        raise ConnectionError(f"HEMIS serveriga ulanib bo'lmadi: {err}") from err
+    except (
+        urllib.error.URLError,
+        HTTPException,
+        TimeoutError,
+        OSError,
+        UnicodeDecodeError,
+    ) as err:
+        xato_info = (
+            f"HTTP {err.code}"
+            if isinstance(err, urllib.error.HTTPError)
+            else type(err).__name__
+        )
+        raise ConnectionError(f"HEMIS serveriga ulanib bo'lmadi: {xato_info}") from err
     try:
         malumot = json.loads(xom)
     except json.JSONDecodeError as err:
